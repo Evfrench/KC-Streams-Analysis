@@ -4,10 +4,52 @@ library(tidyverse)
 library(RSocrata)
 library(lubridate)
 library(miscTools)
+library(ggplot2)
+library(forecast)
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
-source("//kc.kingcounty.lcl/dnrp/WLRD/STS/WQStats/R Code Library/freshwater_nutrient_adjustment/function_for_fixing_method_change_nutrients.R")
-source("//kc.kingcounty.lcl/dnrp/WLRD/STS/WQStats/R Code Library/freshwater_nutrient_adjustment/lab_chlorophyll_correction.R")
+#source("//kc.kingcounty.lcl/dnrp/WLRD/STS/WQStats/R Code Library/freshwater_nutrient_adjustment/function_for_fixing_method_change_nutrients.R")
+#source("//kc.kingcounty.lcl/dnrp/WLRD/STS/WQStats/R Code Library/freshwater_nutrient_adjustment/lab_chlorophyll_correction.R")
+lab_chlorophyll_correction<-function(Value,Parameter='Chlorophyll a',Date){
+  
+  ifelse(Parameter=='Chlorophyll a'&Date<as.Date("1996-07-01"),1.14*Value,Value)
+  
+}
+
+
+
+lab_change_correction<-function(Value,Parameter='Total Phosphorus',Date){
+  if(!require(lubridate)) install.packages('lubridate')
+  Date<-as.Date(Date)
+  Year<-lubridate::year(Date)
+  ifelse(Parameter=='Total Phosphorus'&Year<=2006,
+         ifelse(Date<as.Date('1998-07-01'),
+                ifelse(Value<0.024,1.224*(1.776*Value^1.203)^1.031,
+                       1.224*(0.9347*Value^1.056)^1.031),
+                1.224*Value^1.031),
+         ifelse(Parameter=='Total Nitrogen'&Year<=2006,1.005*Value^0.9921,
+                ifelse(Parameter=='Orthophosphate Phosphorus'&Year<=2006,
+                       ifelse(Value<0.0087,2.109*Value^1.090,
+                              ifelse(Value<0.0424,0.6358*Value^0.8621,
+                                     0.9366*Value^0.9823)),
+                       ifelse(Parameter=='Nitrite + Nitrate Nitrogen'&Year<=2006,
+                              ifelse(Value<0.678,0.002+0.9747*Value,
+                                     0.024+0.9381*Value),
+                              Value)
+                       
+                )))
+  
+  
+  
+}
+
+
+#example
+Date<-c('2006-12-15','2006-12-15','2006-12-15')
+Value<-c(0.012, 0.1,0.0005)
+Parameter<-'Total Phosphorus'
+
+lab_change_correction(Value = Value,Date=Date,Parameter=Parameter)
 
 
 # get_socrata_data_func <- function(locns = c('0852'),parms = c('Chlorophyll a','Secchi Transparency','Total Suspended Solids'), SiteType = 'Large Lakes'){
@@ -89,3 +131,57 @@ loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
   
   
 }
+GrCeRiverData<- get_socrata_data_func(locns = c('A319','0438'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
+                                                                   "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
+                                                                   "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
+                                                                   "Orthophosphate Phosphorus", "Pheophytin a", "pH, Field", "Salinity", "Salinity, Field", "Secchi Transparency", 
+                                                                   "Silica", "Temperature", "Total Kjeldahl Nitrogen", "Total Nitrogen", "Total Organic Carbon", "Total Phosphorus", 
+                                                                   "Total Suspended Solids", "Turbidity", "Turbidity, Field", "Aragonite Saturation State", 
+                                                                   "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
+), SiteType = 'Streams and Rivers')
+
+GreenDO <- GrCeRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
+CedarDO <- GrCeRiverData %>% filter(Locator=="0438",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
+
+CedarDO %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Cedar River DO")
+
+GreenPoop <- GrCeRiverData %>% filter(Parameter=="Fecal Coliform")
+GreenPoop2 <- GrCeRiverData %>% filter(Parameter=="E. coli")
+GreenPoop3 <- GrCeRiverData %>% filter(Parameter=="Enterococcus")
+GreenTP <- GrCeRiverData %>% filter(Parameter=="Total Phosphorus")
+GreenOrthoP <- GrCeRiverData %>% filter(Parameter=="Orthophosphate Phosphorus")
+
+
+
+GreenDO %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River DO")
+
+GreenPoop %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River Fecal Coliform")
+
+GreenPoop2 %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River E. coli")
+
+GreenPoop3 %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River Enterococcus")
+
+GreenTP %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River TP")
+
+GreenOrthoP %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River OrthoP")
