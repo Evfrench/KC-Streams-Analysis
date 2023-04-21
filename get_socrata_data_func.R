@@ -111,6 +111,13 @@ GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),parms = 
 #put the data in log scale
 GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
+#Temperature Check, in log space
+GreenTemp <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Temperature")
+GreenTemp %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River Temperature")
+
 #Create Dissolved Oxygen Plots
 GreenDO <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
 CedarDO <- GrCeIsRiverData %>% filter(Locator=="0438",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
