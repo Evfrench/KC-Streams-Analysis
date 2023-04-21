@@ -8,40 +8,8 @@ library(ggplot2)
 library(forecast)
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
-#source("//kc.kingcounty.lcl/dnrp/WLRD/STS/WQStats/R Code Library/freshwater_nutrient_adjustment/function_for_fixing_method_change_nutrients.R")
-#source("//kc.kingcounty.lcl/dnrp/WLRD/STS/WQStats/R Code Library/freshwater_nutrient_adjustment/lab_chlorophyll_correction.R")
-lab_chlorophyll_correction<-function(Value,Parameter='Chlorophyll a',Date){
-  
-  ifelse(Parameter=='Chlorophyll a'&Date<as.Date("1996-07-01"),1.14*Value,Value)
-  
-}
-
-
-
-lab_change_correction<-function(Value,Parameter='Total Phosphorus',Date){
-  if(!require(lubridate)) install.packages('lubridate')
-  Date<-as.Date(Date)
-  Year<-lubridate::year(Date)
-  ifelse(Parameter=='Total Phosphorus'&Year<=2006,
-         ifelse(Date<as.Date('1998-07-01'),
-                ifelse(Value<0.024,1.224*(1.776*Value^1.203)^1.031,
-                       1.224*(0.9347*Value^1.056)^1.031),
-                1.224*Value^1.031),
-         ifelse(Parameter=='Total Nitrogen'&Year<=2006,1.005*Value^0.9921,
-                ifelse(Parameter=='Orthophosphate Phosphorus'&Year<=2006,
-                       ifelse(Value<0.0087,2.109*Value^1.090,
-                              ifelse(Value<0.0424,0.6358*Value^0.8621,
-                                     0.9366*Value^0.9823)),
-                       ifelse(Parameter=='Nitrite + Nitrate Nitrogen'&Year<=2006,
-                              ifelse(Value<0.678,0.002+0.9747*Value,
-                                     0.024+0.9381*Value),
-                              Value)
-                       
-                )))
-  
-  
-  
-}
+#source("https://github.com/Evfrench/KC-Streams-Analysis/blob/main/function_for_fixing_method_change_nutrients.R")
+#source("https://github.com/Evfrench/KC-Streams-Analysis/blob/main/lab_chlorophyll_correction.R")
 
 
 #example
@@ -131,7 +99,7 @@ loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
   
   
 }
-GrCeRiverData<- get_socrata_data_func(locns = c('A319','0438'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
+GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
                                                                    "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
                                                                    "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
                                                                    "Orthophosphate Phosphorus", "Pheophytin a", "pH, Field", "Salinity", "Salinity, Field", "Secchi Transparency", 
@@ -140,48 +108,65 @@ GrCeRiverData<- get_socrata_data_func(locns = c('A319','0438'),parms = c("Chloro
                                                                    "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
 ), SiteType = 'Streams and Rivers')
 
-GreenDO <- GrCeRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
-CedarDO <- GrCeRiverData %>% filter(Locator=="0438",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
+#put the data in log scale
+GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
-CedarDO %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
-  geom_line() +
-  ggtitle("Cedar River DO")
-
-GreenPoop <- GrCeRiverData %>% filter(Parameter=="Fecal Coliform")
-GreenPoop2 <- GrCeRiverData %>% filter(Parameter=="E. coli")
-GreenPoop3 <- GrCeRiverData %>% filter(Parameter=="Enterococcus")
-GreenTP <- GrCeRiverData %>% filter(Parameter=="Total Phosphorus")
-GreenOrthoP <- GrCeRiverData %>% filter(Parameter=="Orthophosphate Phosphorus")
-
-
+#Create Dissolved Oxygen Plots
+GreenDO <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
+CedarDO <- GrCeIsRiverData %>% filter(Locator=="0438",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
+IssaquahDO <- GrCeIsRiverData %>% filter(Locator=="0631",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
 
 GreenDO %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+  ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
   ggtitle("Green River DO")
 
-GreenPoop %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+CedarDO %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
+  geom_line() +
+  ggtitle("Cedar River DO")
+
+IssaquahDO %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
+  geom_line() +
+  ggtitle("Issaquah Creek DO")
+
+#Create Plots of Fecal Coliform
+GreenFecColi <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Fecal Coliform")
+CedarFecColi <- GrCeIsRiverData %>% filter(Locator=="0438",Parameter=="Fecal Coliform")
+IssaquahFecColi <- GrCeIsRiverData %>% filter(Locator=="0631",Parameter=="Fecal Coliform")
+
+GreenFecColi %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
   ggtitle("Green River Fecal Coliform")
 
-GreenPoop2 %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+CedarFecColi %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
-  ggtitle("Green River E. coli")
+  ggtitle("Cedar River Fecal Coliform")
 
-GreenPoop3 %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+IssaquahFecColi %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
-  ggtitle("Green River Enterococcus")
+  ggtitle("Issaquah Creek Coliform")
+
+#Create TP Plots
+GreenTP <- GrCeIsRiverData %>% filter(Locator=="A319", Parameter=="Total Phosphorus")
+CedarTP <- GrCeIsRiverData %>% filter(Locator=="0438", Parameter=="Total Phosphorus")
+IssaquahTP <- GrCeIsRiverData %>% filter(Locator=="0631", Parameter=="Total Phosphorus")
 
 GreenTP %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+  ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
-  ggtitle("Green River TP")
+  ggtitle("Green River Total Phosphorus")
 
-GreenOrthoP %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+CedarTP %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
-  ggtitle("Green River OrthoP")
+  ggtitle("Cedar River Total Phosphorus")
+
+IssaquahTP %>%
+  ggplot(aes(x=CollectDate, y=logData)) +
+  geom_line() +
+  ggtitle("Issaquah Creek Total Phosphorus")
