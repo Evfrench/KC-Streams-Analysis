@@ -99,6 +99,8 @@ loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
   
   
 }
+
+#Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
 GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
                                                                    "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
                                                                    "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
