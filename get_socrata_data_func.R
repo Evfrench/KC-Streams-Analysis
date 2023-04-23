@@ -6,6 +6,10 @@ library(lubridate)
 library(miscTools)
 library(ggplot2)
 library(forecast)
+library(readr)
+
+source("lab_chlorophyll_correction.R")
+source("function_for_fixing_method_change_nutrients.R")
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
 #source("https://github.com/Evfrench/KC-Streams-Analysis/blob/main/function_for_fixing_method_change_nutrients.R")
@@ -113,26 +117,76 @@ GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),parms = 
 #put the data in log scale
 GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
-# Loop through and generate our additional columns
-# issue is properly assigning values to the columns
-SampleID <- unique(GrCeIsRiverData$LabSampleNum)
-newframe <- data.frame(SampleID)
+## To save time, we store a cache of the data
+cache_name = "./GrCeIsRiverData_normalized.csv"
+# Check if cache data exists, and grab it if it does
+if(file.exists(cache_name)) {
+  GrCeIsRiverDataExpanded <- read_csv(cache_name)
+} else {
+  # If there's no cache file, we need to generate it ourselves.
 
-for (id in SampleID){
-  for (param in unique(GrCeIsRiverData$Parameter)){
-    # TODO: Given SampleID and PArameter name, fetch each of the values in [""]
-    # Figure out how to generate column names (the paste0(param,*)) parts
-    #potential: copy both for loops, and have one just setup the dataframe and the other fill it in
-    newFrame[id]$str(param) = GrCeIsRiverData %>% filter(LabSampleNum==id, Parameter==param)[0]["Value"]
-    newFrame[id]$paste0(param,'_log') = GrCeIsRiverData %>% filter(LabSampleNum== id, Parameter==param)[0]["logData"]
-    newFrame[id]$paste0(param,'_units') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["Units"]
-    newFrame[id]$paste0(param,'_mdl') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["MDL"]
-    newFrame[id]$paste0(param,'_rdl') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["RDL"]
-    newFrame[id]$paste0(param,'_text') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["Text"]
-    newFrame[id]$paste0(param,'_orig') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["Value_orig"]
+  # Start By building a new data frame
+  # Use the LabSampleNums as the primary key
+  SampleID = unique(GrCeIsRiverData$LabSampleNum)
+  newFrame <- data.frame(SampleID)
+
+  # Add some additional fields we care about
+  newFrame <- mutate(newFrame,
+    "CollectDate" = as.POSIXct("2999-01-01"),
+    "Year" = 0,
+    "Month" = 0,
+    "Locator" = ""
+  )  
+  # For each Parameter type, we want to encode those entries in the same Sample row
+  ParameterVals = unique(GrCeIsRiverData$Parameter)
+  for (param in ParameterVals) {
+    # Add underscores for column naming
+    normalized_param = gsub(" ", "_", param)
+    # Add a number of columns, and set to sensible defaults
+    # Acts on all rows at once
+    newFrame <- mutate(newFrame,
+        "{normalized_param}" := 0,
+        "{paste0(normalized_param,'_log')}" := 0,
+        "{paste0(normalized_param,'_units')}" := "",
+        "{paste0(normalized_param,'_mdl')}" := NA,
+        "{paste0(normalized_param,'_rdl')}" := NA,
+        "{paste0(normalized_param,'_text')}" := "",
+        "{paste0(normalized_param,'_orig')}" := 0
+      )
+  }  
+  
+  # Now we start filling in data values
+
+  # For each SampleID, we fill in parameter values
+  for (id in SampleID){
+    for (param in unique(GrCeIsRiverData$Parameter)){
+      # Normalize column name same as above
+      normalized_param = gsub(" ", "_", param)
+      # Fetch parameter row for sampleID  
+      prow <- filter(GrCeIsRiverData,LabSampleNum==id, Parameter==param)
+      # If we don't get anything, continue
+      if (nrow(prow) == 0) { next }
+      # For each of the meta-parameter values, we select the row id using `newFrame$SameplID==id`
+      # Set the column by pulling the corresponding value from the prow variable
+      newFrame[newFrame$SampleID==id,"CollectDate"] = prow["CollectDate"]
+      newFrame[newFrame$SampleID==id,"Year"] = prow["Year"]
+      newFrame[newFrame$SampleID==id,"Month"] = prow["Month"]
+      newFrame[newFrame$SampleID==id,"Locator"] = prow["Locator"]        
+      newFrame[newFrame$SampleID==id,normalized_param] = prow["Value"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_log')] = prow["logData"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_units')] = prow["Units"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_mdl')] = prow["MDL"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_rdl')] = prow["RDL"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_text')] = prow["Text"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_orig')] = prow["Value_orig"]
+    }
   }
+  
+  # Now that we've re-organized the data, save our progress in a csv for later
+  write_csv(newFrame, cache_name, col_name=TRUE)
+  # Store the result in a usable dataframe
+  GrCeIsRiverDataExpanded = newFrame
 }
-
 
 
 #Temperature Check, in log space
