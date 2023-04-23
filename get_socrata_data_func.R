@@ -28,9 +28,9 @@ get_socrata_data_func <- function(locns = c('0852'),parms = c("Chlorophyll a", "
                                                               "Silica", "Temperature", "Total Kjeldahl Nitrogen", "Total Nitrogen", "Total Organic Carbon", "Total Phosphorus", 
                                                               "Total Suspended Solids", "Turbidity", "Turbidity, Field", "Aragonite Saturation State", 
                                                               "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
-                                                              ), SiteType = 'Large Lakes'){
-
-loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
+), SiteType = 'Large Lakes'){
+  
+  loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
   locs<-read.socrata(loc_url_portal) %>%
     transmute(SiteName=sitename,
               Locator=locator,
@@ -102,16 +102,38 @@ loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
 
 #Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
 GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
-                                                                   "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
-                                                                   "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
-                                                                   "Orthophosphate Phosphorus", "Pheophytin a", "pH, Field", "Salinity", "Salinity, Field", "Secchi Transparency", 
-                                                                   "Silica", "Temperature", "Total Kjeldahl Nitrogen", "Total Nitrogen", "Total Organic Carbon", "Total Phosphorus", 
-                                                                   "Total Suspended Solids", "Turbidity", "Turbidity, Field", "Aragonite Saturation State", 
-                                                                   "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
+                                                                                  "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
+                                                                                  "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
+                                                                                  "Orthophosphate Phosphorus", "Pheophytin a", "pH, Field", "Salinity", "Salinity, Field", "Secchi Transparency", 
+                                                                                  "Silica", "Temperature", "Total Kjeldahl Nitrogen", "Total Nitrogen", "Total Organic Carbon", "Total Phosphorus", 
+                                                                                  "Total Suspended Solids", "Turbidity", "Turbidity, Field", "Aragonite Saturation State", 
+                                                                                  "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
 ), SiteType = 'Streams and Rivers')
 
 #put the data in log scale
 GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
+
+# Loop through and generate our additional columns
+# issue is properly assigning values to the columns
+SampleID <- unique(GrCeIsRiverData$LabSampleNum)
+newframe <- data.frame(SampleID)
+
+for (id in SampleID){
+  for (param in unique(GrCeIsRiverData$Parameter)){
+    # TODO: Given SampleID and PArameter name, fetch each of the values in [""]
+    # Figure out how to generate column names (the paste0(param,*)) parts
+    #potential: copy both for loops, and have one just setup the dataframe and the other fill it in
+    newFrame[id]$str(param) = GrCeIsRiverData %>% filter(LabSampleNum==id, Parameter==param)[0]["Value"]
+    newFrame[id]$paste0(param,'_log') = GrCeIsRiverData %>% filter(LabSampleNum== id, Parameter==param)[0]["logData"]
+    newFrame[id]$paste0(param,'_units') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["Units"]
+    newFrame[id]$paste0(param,'_mdl') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["MDL"]
+    newFrame[id]$paste0(param,'_rdl') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["RDL"]
+    newFrame[id]$paste0(param,'_text') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["Text"]
+    newFrame[id]$paste0(param,'_orig') = GrCeIsRiverData %>% filter(LabSampleNum == id, Parameter==param)[0]["Value_orig"]
+  }
+}
+
+
 
 #Temperature Check, in log space
 GreenTemp <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Temperature")
