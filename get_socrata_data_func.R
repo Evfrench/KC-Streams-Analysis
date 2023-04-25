@@ -61,8 +61,18 @@ default_data_parms = c(
 #
 # Define function that fetches socrata data from king county
 #
-get_socrata_data_func <- function(
-  locns = c('0852'),
+# Define function that fetches King County Water Quality data based on location
+# First fetches metadata about locations - https://data.kingcounty.gov/Environment-Waste-Management/WLRD-Sites/wbhs-bbzf
+# Then fetches the passed parameters for the locations - https://data.kingcounty.gov/Environment-Waste-Management/Water-Quality/vwmt-pvjw
+#
+# Caches results, where passing the same locations will use cached data
+# Does not detect different parms value.
+# To 'clear' cache, just rename or delete the files located in `./data_cache`
+#
+# Example call:
+#   get_socrata_data_func <- function(locns = c('0852'),parms = c('Chlorophyll a','Secchi Transparency','Total Suspended Solids'), SiteType = 'Large Lakes'){
+#
+get_socrata_data_func <- function(locns = c('0852'),
   parms = default_data_parms,
   SiteType = 'Large Lakes') {
   
@@ -96,7 +106,6 @@ get_socrata_data_func <- function(
   locs <- filter(locs,Locator %in% locns)
   # Do each location individually, for ease of caching
   # Base cache name on location
-
   cache_name = paste0('./data_cache/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
   
   if(file.exists(cache_name)) {
@@ -107,7 +116,6 @@ get_socrata_data_func <- function(
   data_url_start<-'https://data.kingcounty.gov/resource/vwmt-pvjw.csv' #entire wq portal
   download_query<-paste0("?$where=",
                          "(",paste0("locator='",locs$Locator,"'",collapse=' OR '),')',
-                         # " AND (",paste0("parameter='",c('Temperature','Conductivity, Field','Chlorophyll a','Secchi Transparency','Total Suspended Solids'),"'",collapse=' OR '),')',
                          " AND (",paste0("parameter='",parms,"'",collapse=' OR '),')',
                          " AND ","NOT qualityid = 4") # qualityid = 4 for rejected data
   
@@ -127,6 +135,7 @@ get_socrata_data_func <- function(
               RDL=rdl,
                     Text=textvalue
           )
+
         # save df as csv for later
         write_csv(data_out, cache_name, col_name=TRUE)
   }
@@ -162,18 +171,21 @@ get_socrata_data_func <- function(
                       Parameter=data_out$Parameter)
   
   return(data_out)
-  
-  
 }
-
-#Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
-GrCeIsRiverData<- get_socrata_data_func(
-  locns = c('A319','0438','0631'),
+  
+######################################
+#
+# Start of Scripting and Plot Making 
+#
+######################################
+  
+# Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
+GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),
   parms = default_data_parms,
   SiteType = 'Streams and Rivers'
 )
 
-#put the data in log scale
+# Store the data on the log scale
 GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
 ## To save time, we store a cache of the data
