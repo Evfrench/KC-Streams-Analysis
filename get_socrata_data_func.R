@@ -9,18 +9,20 @@ library(forecast)
 library(readr)
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
+
+# Checks for the 'Chlorophyll a' parameter
 source("lab_chlorophyll_correction.R")
+
+# Checks the following parameters:
+# Total Phosphorus, Total Nitrogen, Orthophosphate Phosphorus, Nitrite + Nitrate Nitrogen
 source("lab_nutrient_correction.R")
 
-
-
-
-#example
+# example of correcting data
 Date<-c('2006-12-15','2006-12-15','2006-12-15')
 Value<-c(0.012, 0.1,0.0005)
 Parameter<-'Total Phosphorus'
-
-lab_change_correction(Value = Value,Date=Date,Parameter=Parameter)
+# Function is pass by reference (edits variables in place)
+lab_nutrient_correction(Value = Value,Date=Date,Parameter=Parameter)
 
 
 # get_socrata_data_func <- function(locns = c('0852'),parms = c('Chlorophyll a','Secchi Transparency','Total Suspended Solids'), SiteType = 'Large Lakes'){
@@ -77,7 +79,6 @@ get_socrata_data_func <- function(locns = c('0852'),parms = c("Chlorophyll a", "
   data_out$Locator <- with(data_out,(ifelse(Locator=='612','0612',
                                             ifelse(Locator=='852','0852',
                                                    ifelse(Locator=='512','0512',
-                                                          
                                                           ifelse(Locator=='826','0826',
                                                                  ifelse(Locator=='831','0831',
                                                                         ifelse(Locator=='804','0804',
@@ -92,10 +93,9 @@ get_socrata_data_func <- function(locns = c('0852'),parms = c("Chlorophyll a", "
   
   tmp <- data_out[is.na(data_out$Value),]
   
-  
   #### adjustments for lab method changes (nutrients and chlorophyll)
   ### note this only changes results reported prior to 2007 for nutrients and prior to July 1996 for chlorophyll a data
-  data_out$Value <- lab_change_correction(
+  data_out$Value <- lab_nutrient_correction(
                       Value = data_out$Value,
                       Date=data_out$CollectDate,
                       Parameter=data_out$Parameter)

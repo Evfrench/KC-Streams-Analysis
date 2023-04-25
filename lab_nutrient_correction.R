@@ -4,8 +4,10 @@
 # Total Phosphorus, Total Nitrogen, Orthophosphate Phosphorus, Nitrite + Nitrate Nitrogen
 # Function is pass by reference (edits variables in place)
 #
-lab_change_correction <- function(Value, Parameter = 'None', Date) {
-  if (!require(lubridate)) install.packages('lubridate')
+if (!require(lubridate)) install.packages('lubridate')
+library(lubridate)
+
+lab_nutrient_correction <- function(Value, Parameter = 'None', Date) {
   Date <- as.Date(Date)
   Year <- lubridate::year(Date)
   #
