@@ -8,12 +8,11 @@ library(ggplot2)
 library(forecast)
 library(readr)
 
-source("lab_chlorophyll_correction.R")
-source("function_for_fixing_method_change_nutrients.R")
-
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
-#source("https://github.com/Evfrench/KC-Streams-Analysis/blob/main/function_for_fixing_method_change_nutrients.R")
-#source("https://github.com/Evfrench/KC-Streams-Analysis/blob/main/lab_chlorophyll_correction.R")
+source("lab_chlorophyll_correction.R")
+source("lab_nutrient_correction.R")
+
+
 
 
 #example
@@ -96,8 +95,15 @@ get_socrata_data_func <- function(locns = c('0852'),parms = c("Chlorophyll a", "
   
   #### adjustments for lab method changes (nutrients and chlorophyll)
   ### note this only changes results reported prior to 2007 for nutrients and prior to July 1996 for chlorophyll a data
-  data_out$Value <- lab_change_correction(Value = data_out$Value,Date=data_out$CollectDate,Parameter=data_out$Parameter)
-  data_out$Value <- lab_chlorophyll_correction(Value = data_out$Value,Date=data_out$CollectDate,Parameter=data_out$Parameter)
+  data_out$Value <- lab_change_correction(
+                      Value = data_out$Value,
+                      Date=data_out$CollectDate,
+                      Parameter=data_out$Parameter)
+
+  data_out$Value <- lab_chlorophyll_correction(
+                      Value = data_out$Value,
+                      Date=data_out$CollectDate,
+                      Parameter=data_out$Parameter)
   
   return(data_out)
   
