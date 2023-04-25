@@ -58,8 +58,28 @@ default_data_parms = c(
     "Sampling Method", 
     "Storm Or Non-Storm"   
 )
+#
+# Define function that fetches socrata data from king county
+#
+get_socrata_data_func <- function(
+  locns = c('0852'),
+  parms = default_data_parms,
+  SiteType = 'Large Lakes') {
+  
+  # Start by fetching location data
+  # https://data.kingcounty.gov/Environment-Waste-Management/WLRD-Sites/wbhs-bbzf
   loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
-  locs<-read.socrata(loc_url_portal) %>%
+  cache_name = './data_cache/cache_WLRD_location_dataset.csv'
+  # Rename cache file to re-fetch data
+  if(file.exists(cache_name)) {
+    locs <- read_csv(cache_name)
+  } else {
+    # save df as csv for later
+    locs <- read.socrata(loc_url_portal)
+    write_csv(locs, cache_name, col_name=TRUE)
+  }
+
+  locs <- (locs %>%
     transmute(SiteName=sitename,
               Locator=locator,
               lng=as.numeric(longitude),
@@ -67,14 +87,23 @@ default_data_parms = c(
               SiteTypeName=site_type,
               Area=area) %>%
     filter(SiteTypeName==SiteType&!is.na(lng)) 
-  
+  )
   
   # Limit to central lake locations and two long-term locations (0540 at Montlake Cut and 0804 at north end of Lake Washington)
   # locs <- filter(locs,Locator %in% c("0612","0852","A522","0804","0540"))
-  #  locs <- filter(locs,Locator %in% c("A522"))
+  # locs <- filter(locs,Locator %in% c("A522"))
+  # locs <- filter(locs,Locator %in% c("0512"))
   locs <- filter(locs,Locator %in% locns)
-  #locs <- filter(locs,Locator %in% c("0512"))
+  # Do each location individually, for ease of caching
+  # Base cache name on location
+
+  cache_name = paste0('./data_cache/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
   
+  if(file.exists(cache_name)) {
+    location_data <- read_csv(cache_name)
+  } else {
+      # Fetching Puget Sound Water Quality data
+      # https://data.kingcounty.gov/Environment-Waste-Management/Water-Quality/vwmt-pvjw
   data_url_start<-'https://data.kingcounty.gov/resource/vwmt-pvjw.csv' #entire wq portal
   download_query<-paste0("?$where=",
                          "(",paste0("locator='",locs$Locator,"'",collapse=' OR '),')',
@@ -96,7 +125,11 @@ default_data_parms = c(
               Qualifier=lab_qualifier,
               MDL=mdl,
               RDL=rdl,
-              Text=textvalue) 
+                    Text=textvalue
+          )
+        # save df as csv for later
+        write_csv(data_out, cache_name, col_name=TRUE)
+  }
   
   # fix some bad Locators
   data_out$Locator <- with(data_out,(ifelse(Locator=='612','0612',
