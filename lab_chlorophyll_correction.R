@@ -2,10 +2,9 @@
 #
 # Checks for the 'Chlorophyll a' parameter
 #
-lab_chlorophyll_correction <- function(Value,Parameter='None',Date=as.Date("2999-07-01")){
-  if(Parameter=='Chlorophyll a' & Date<as.Date("1996-07-01")){
-    1.14*Value
-  } else {
+lab_chlorophyll_correction <- function(Value,Parameter='None',Date){
+  ifelse(Parameter=='Chlorophyll a' & Date<as.Date("1996-07-01"),
+    1.14*Value,
     Value
-  }
+  )
 }
