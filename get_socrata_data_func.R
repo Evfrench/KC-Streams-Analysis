@@ -26,15 +26,38 @@ lab_nutrient_correction(Value = Value,Date=Date,Parameter=Parameter)
 
 
 # get_socrata_data_func <- function(locns = c('0852'),parms = c('Chlorophyll a','Secchi Transparency','Total Suspended Solids'), SiteType = 'Large Lakes'){
-get_socrata_data_func <- function(locns = c('0852'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
-                                                              "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
-                                                              "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
-                                                              "Orthophosphate Phosphorus", "Pheophytin a", "pH, Field", "Salinity", "Salinity, Field", "Secchi Transparency", 
-                                                              "Silica", "Temperature", "Total Kjeldahl Nitrogen", "Total Nitrogen", "Total Organic Carbon", "Total Phosphorus", 
-                                                              "Total Suspended Solids", "Turbidity", "Turbidity, Field", "Aragonite Saturation State", 
-                                                              "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
-), SiteType = 'Large Lakes'){
   
+# default parameters
+default_data_parms = c(
+    "Ammonia Nitrogen", 
+    "Chlorophyll a", "Chlorophyll, Field", "Density", 
+    "Dissolved Organic Carbon", "Total Organic Carbon", "Dissolved Inorganic Carbon", "Revelle Factor",
+    "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen",
+    "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total Nitrogen",
+    "Dissolved Oxygen", "Dissolved Oxygen, Field", "Dissolved Oxygen Saturation, Field", "Biochemical Oxygen Demand",
+    "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus", 
+    "Pheophytin a",
+    "CO₂", "CO₃²⁻", "fCO₂", "HCO₃⁻", "pCO₂", 
+
+    "BGA PC, Field", "Total Coliform", "E. coli", "Enterococcus", 
+    "Fecal Coliform", "Fecal Streptococcus",
+
+    "Aragonite Saturation State", "Calcite Saturation State",
+    "Conductivity", "Conductivity, Field",
+    "pH, Field", "pH, total scale",
+    "Salinity", "Salinity, Field",
+    "Total Alkalinity", 
+    "Secchi Transparency",
+    "Light Intensity (PAR)", "Surface Light Intensity (PAR)", "Light Transmissivity",
+    "Silica",
+    "Hardness, Calc",
+    "Temperature",
+    "Total Suspended Solids", "Volatile Suspended Solids", "Settleable Solids, Gravimetric", 
+    "Turbidity", "Turbidity, Field",
+
+    "Sampling Method", 
+    "Storm Or Non-Storm"   
+)
   loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
   locs<-read.socrata(loc_url_portal) %>%
     transmute(SiteName=sitename,
@@ -111,20 +134,17 @@ get_socrata_data_func <- function(locns = c('0852'),parms = c("Chlorophyll a", "
 }
 
 #Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
-GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),parms = c("Chlorophyll a", "Chlorophyll, Field", "Density", "Dissolved Organic Carbon", "Dissolved Oxygen", 
-                                                                                  "Dissolved Oxygen, Field", "E. coli", "Enterococcus", "Fecal Coliform", "Light Intensity (PAR)", 
-                                                                                  "Surface Light Intensity (PAR)", "Light Transmissivity", "Ammonia Nitrogen", "Nitrite + Nitrate Nitrogen", 
-                                                                                  "Orthophosphate Phosphorus", "Pheophytin a", "pH, Field", "Salinity", "Salinity, Field", "Secchi Transparency", 
-                                                                                  "Silica", "Temperature", "Total Kjeldahl Nitrogen", "Total Nitrogen", "Total Organic Carbon", "Total Phosphorus", 
-                                                                                  "Total Suspended Solids", "Turbidity", "Turbidity, Field", "Aragonite Saturation State", 
-                                                                                  "Calcite Saturation State", "CO₂", "CO₃²⁻", "Dissolved Inorganic Carbon", "fCO₂", "HCO₃⁻", "pCO₂", "pH, total scale", "Revelle Factor", "Total Alkalinity", "Biochemical Oxygen Demand", "Conductivity", "Conductivity, Field", "Dissolved Oxygen Saturation, Field", "Fecal Streptococcus", "Hardness, Calc", "Nitrate Nitrogen", "Nitrite Nitrogen", "Organic Nitrogen", "Sampling Method", "Settleable Solids, Gravimetric", "Storm Or Non-Storm", "Total Coliform", "Total Hydrolyzable Phosphorus", "Volatile Suspended Solids", "pH", "BGA PC, Field"
-), SiteType = 'Streams and Rivers')
+GrCeIsRiverData<- get_socrata_data_func(
+  locns = c('A319','0438','0631'),
+  parms = default_data_parms,
+  SiteType = 'Streams and Rivers'
+)
 
 #put the data in log scale
 GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
 ## To save time, we store a cache of the data
-cache_name = "./GrCeIsRiverData_normalized.csv"
+cache_name = "./data_cache/GrCeIsRiverData_normalized.csv"
 # Check if cache data exists, and grab it if it does
 if(file.exists(cache_name)) {
   GrCeIsRiverDataExpanded <- read_csv(cache_name)
