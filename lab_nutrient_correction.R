@@ -4,44 +4,35 @@
 # Total Phosphorus, Total Nitrogen, Orthophosphate Phosphorus, Nitrite + Nitrate Nitrogen
 # Function is pass by reference (edits variables in place)
 #
-lab_nutrient_correction <- function(Value, Parameter='None', Date=as.Date("2999-07-01")) {
+lab_change_correction <- function(Value, Parameter = 'None', Date) {
   if (!require(lubridate)) install.packages('lubridate')
   Date <- as.Date(Date)
   Year <- lubridate::year(Date)
-
-  # 
-  if(Parameter == 'Total Phosphorus' & Year <= 2006) {
-    if(Date < as.Date('1998-07-01')) {
-      if(Value < 0.024) {
-        1.224 * (1.776 * Value ^ 1.203) ^ 1.031
-      } else {
+  ifelse(Parameter == 'Total Phosphorus' & Year <= 2006,
+    ifelse(Date < as.Date('1998-07-01'),
+      ifelse(Value < 0.024, 
+        1.224 * (1.776 * Value ^ 1.203) ^ 1.031,
         1.224 * (0.9347 * Value ^ 1.056) ^ 1.031
-      }
-    } else {
-        1.224 * Value ^ 1.031
-    }
-  #
-  } else if (Parameter == 'Total Nitrogen' & Year <= 2006) {
-    1.005 * Value ^ 0.9921
-  #
-  } else if (Parameter == 'Orthophosphate Phosphorus' & Year <= 2006) {
-      if (Value < 0.0087){
-        2.109 * Value ^ 1.090
-      } else if(Value < 0.0424){
-        0.6358 * Value ^ 0.8621
-      } else {
-        0.9366 * Value ^ 0.9823
-      }
-  #
-  } else if (Parameter == 'Nitrite + Nitrate Nitrogen' & Year <= 2006) {
-    if(Value < 0.678){
-      0.002 + 0.9747 * Value
-    } else {
-      0.024 + 0.9381 * Value
-    }
-  } else {
+      ),
+      1.224 * Value ^ 1.031
+    ),
+  ifelse(Parameter == 'Total Nitrogen' & Year <= 2006, 
+    1.005 * Value ^ 0.9921,
+  ifelse(Parameter == 'Orthophosphate Phosphorus' & Year <= 2006,
+    ifelse(Value < 0.0087, 
+      2.109 * Value ^ 1.090,
+      ifelse(Value < 0.0424, 
+        0.6358 * Value ^ 0.8621,
+        0.9366 * Value ^ 0.9823)
+    ),
+  ifelse(Parameter == 'Nitrite + Nitrate Nitrogen' & Year <= 2006,
+    ifelse(Value < 0.678, 
+      0.002 + 0.9747 * Value,
+      0.024 + 0.9381 * Value),
+    
     Value
-  }
+  )
+  )))
 }
 
 #example
