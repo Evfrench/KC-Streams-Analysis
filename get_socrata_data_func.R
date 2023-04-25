@@ -24,9 +24,6 @@ Parameter<-'Total Phosphorus'
 # Function is pass by reference (edits variables in place)
 lab_nutrient_correction(Value = Value,Date=Date,Parameter=Parameter)
 
-
-# get_socrata_data_func <- function(locns = c('0852'),parms = c('Chlorophyll a','Secchi Transparency','Total Suspended Solids'), SiteType = 'Large Lakes'){
-  
 # default parameters
 default_data_parms = c(
     "Ammonia Nitrogen", 
@@ -58,8 +55,75 @@ default_data_parms = c(
     "Sampling Method", 
     "Storm Or Non-Storm"   
 )
+
 #
-# Define function that fetches socrata data from king county
+# Reformats the data for easier referencing
+# Performs the following transformations:
+# - Adds a logData column that stores log of reading value
+# - Creates a row for each LabSampleNum
+# - Adds multiple columns for each parameter, condensing the data from a LabSampleNum x Parameter format to just LabSampleNum
+normalize_water_quality_data_parameters <- function(input_data = data.frame()) {
+  # Store the data on the log scale
+  input_data$logData <- log(input_data$Value)
+  # Start By building a new data frame
+  # Use the LabSampleNums as the primary key
+  SampleID = unique(input_data$LabSampleNum)
+  newFrame <- data.frame(SampleID)
+
+  # Add some additional fields we care about
+  newFrame <- mutate(newFrame,
+    "CollectDate" = as.POSIXct("2999-01-01"),
+    "Year" = 0,
+    "Month" = 0,
+    "Locator" = ""
+  )
+  # For each Parameter type, we want to create a number of new columns
+  ParameterVals = unique(input_data$Parameter)
+  for (param in ParameterVals) {
+    # Replace spaces with underscores for column naming
+    normalized_param = gsub(" ", "_", param)
+    # Add a number of columns, and set to sensible, empty defaults
+    # Acts on all rows at once
+    newFrame <- mutate(newFrame,
+        "{normalized_param}" := 0,
+        "{paste0(normalized_param,'_log')}" := 0,
+        "{paste0(normalized_param,'_units')}" := "",
+        "{paste0(normalized_param,'_mdl')}" := NA,
+        "{paste0(normalized_param,'_rdl')}" := NA,
+        "{paste0(normalized_param,'_text')}" := "",
+        "{paste0(normalized_param,'_orig')}" := 0
+      )
+  }  
+  
+  # Now we start filling in data values
+
+  # For each SampleID, we fill in parameter values
+  for (id in SampleID){
+    for (param in unique(input_data$Parameter)){
+      # Normalize column name same as above
+      normalized_param = gsub(" ", "_", param)
+      # Fetch parameter row for sampleID  
+      prow <- filter(input_data,LabSampleNum==id, Parameter==param)
+      # If we don't get anything, continue
+      if (nrow(prow) == 0) { next }
+      # For each of the meta-parameter values, we select the row id using `newFrame$SameplID==id`
+      # Set the column by pulling the corresponding value from the prow variable
+      newFrame[newFrame$SampleID==id,"CollectDate"] = prow["CollectDate"]
+      newFrame[newFrame$SampleID==id,"Year"] = prow["Year"]
+      newFrame[newFrame$SampleID==id,"Month"] = prow["Month"]
+      newFrame[newFrame$SampleID==id,"Locator"] = prow["Locator"]        
+      newFrame[newFrame$SampleID==id,normalized_param] = prow["Value"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_log')] = prow["logData"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_units')] = prow["Units"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_mdl')] = prow["MDL"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_rdl')] = prow["RDL"]
+      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_text')] = prow["Text"]
+      #newFrame[newFrame$SampleID==id,paste0(normalized_param,'_orig')] = prow["Value_orig"]
+    }
+  }
+  return(newFrame)
+}
+
 #
 # Define function that fetches King County Water Quality data based on location
 # First fetches metadata about locations - https://data.kingcounty.gov/Environment-Waste-Management/WLRD-Sites/wbhs-bbzf
@@ -109,67 +173,69 @@ get_socrata_data_func <- function(locns = c('0852'),
   cache_name = paste0('./data_cache/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
   
   if(file.exists(cache_name)) {
-    location_data <- read_csv(cache_name)
+    data_out <- read_csv(cache_name)
   } else {
       # Fetching Puget Sound Water Quality data
       # https://data.kingcounty.gov/Environment-Waste-Management/Water-Quality/vwmt-pvjw
-  data_url_start<-'https://data.kingcounty.gov/resource/vwmt-pvjw.csv' #entire wq portal
-  download_query<-paste0("?$where=",
-                         "(",paste0("locator='",locs$Locator,"'",collapse=' OR '),')',
-                         " AND (",paste0("parameter='",parms,"'",collapse=' OR '),')',
-                         " AND ","NOT qualityid = 4") # qualityid = 4 for rejected data
-  
-  data_out<-read.socrata(paste0(data_url_start,download_query)) %>% filter(qualityid != 9) %>% # also remove missing (not data values) data (qualityid = 9)
-    # filter(!is.na(depth)) %>% 
-    transmute(CollectDate=collect_datetime,
-              Year=year(CollectDate),
-              Month=month(CollectDate),
-              LabSampleNum=sample_number,
-              Locator=locator,
-              Depth=depth,
-              Parameter=parameter,
-              Value=value,#if_else(is.na(overridevalue),value,overridevalue),
-              Units=units,
-              Qualifier=lab_qualifier,
-              MDL=mdl,
-              RDL=rdl,
-                    Text=textvalue
-          )
+    data_url_start<-'https://data.kingcounty.gov/resource/vwmt-pvjw.csv' #entire wq portal
+    download_query<-paste0("?$where=",
+                          "(",paste0("locator='",locs$Locator,"'",collapse=' OR '),')',
+                          " AND (",paste0("parameter='",parms,"'",collapse=' OR '),')',
+                          " AND ","NOT qualityid = 4") # qualityid = 4 for rejected data
+    
+    data_out<-read.socrata(paste0(data_url_start,download_query)) %>% filter(qualityid != 9) %>% # also remove missing (not data values) data (qualityid = 9)
+      # filter(!is.na(depth)) %>% 
+      transmute(CollectDate=collect_datetime,
+                Year=year(CollectDate),
+                Month=month(CollectDate),
+                LabSampleNum=sample_number,
+                Locator=locator,
+                Depth=depth,
+                Parameter=parameter,
+                Value=value,#if_else(is.na(overridevalue),value,overridevalue),
+                Units=units,
+                Qualifier=lab_qualifier,
+                MDL=mdl,
+                RDL=rdl,
+                      Text=textvalue
+            )
 
-        # save df as csv for later
-        write_csv(data_out, cache_name, col_name=TRUE)
+          
+    
+    # fix some bad Locators
+    data_out$Locator <- with(data_out,(ifelse(Locator=='612','0612',
+                                              ifelse(Locator=='852','0852',
+                                                    ifelse(Locator=='512','0512',
+                                                            ifelse(Locator=='826','0826',
+                                                                  ifelse(Locator=='831','0831',
+                                                                          ifelse(Locator=='804','0804',
+                                                                                Locator))))))))
+    
+    #### to correctly handdle nondetects (i.e., NADA package) replacing <MDLs with MDL and creating nondetect flag
+    data_out$Value_orig <- data_out$Value
+    data_out$det_Flag <- with(data_out,ifelse(is.na(data_out$Value),TRUE,FALSE))
+    data_out$Value <- with(data_out,ifelse(is.na(data_out$Value),MDL,Value))
+    
+    # any NAs left are nondetects with no MDLs
+    
+    tmp <- data_out[is.na(data_out$Value),]
+    
+    #### adjustments for lab method changes (nutrients and chlorophyll)
+    ### note this only changes results reported prior to 2007 for nutrients and prior to July 1996 for chlorophyll a data
+    data_out$Value <- lab_nutrient_correction(
+                        Value = data_out$Value,
+                        Date=data_out$CollectDate,
+                        Parameter=data_out$Parameter)
+
+    data_out$Value <- lab_chlorophyll_correction(
+                        Value = data_out$Value,
+                        Date=data_out$CollectDate,
+                        Parameter=data_out$Parameter)
+
+    # save df as csv for later
+    write_csv(data_out, cache_name, col_name=TRUE)
   }
-  
-  # fix some bad Locators
-  data_out$Locator <- with(data_out,(ifelse(Locator=='612','0612',
-                                            ifelse(Locator=='852','0852',
-                                                   ifelse(Locator=='512','0512',
-                                                          ifelse(Locator=='826','0826',
-                                                                 ifelse(Locator=='831','0831',
-                                                                        ifelse(Locator=='804','0804',
-                                                                               Locator))))))))
-  
-  #### to correctly handdle nondetects (i.e., NADA package) replacing <MDLs with MDL and creating nondetect flag
-  data_out$Value_orig <- data_out$Value
-  data_out$det_Flag <- with(data_out,ifelse(is.na(data_out$Value),TRUE,FALSE))
-  data_out$Value <- with(data_out,ifelse(is.na(data_out$Value),MDL,Value))
-  
-  # any NAs left are nondetects with no MDLs
-  
-  tmp <- data_out[is.na(data_out$Value),]
-  
-  #### adjustments for lab method changes (nutrients and chlorophyll)
-  ### note this only changes results reported prior to 2007 for nutrients and prior to July 1996 for chlorophyll a data
-  data_out$Value <- lab_nutrient_correction(
-                      Value = data_out$Value,
-                      Date=data_out$CollectDate,
-                      Parameter=data_out$Parameter)
 
-  data_out$Value <- lab_chlorophyll_correction(
-                      Value = data_out$Value,
-                      Date=data_out$CollectDate,
-                      Parameter=data_out$Parameter)
-  
   return(data_out)
 }
   
@@ -188,76 +254,8 @@ GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),
 # Store the data on the log scale
 GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
-## To save time, we store a cache of the data
-cache_name = "./data_cache/GrCeIsRiverData_normalized.csv"
-# Check if cache data exists, and grab it if it does
-if(file.exists(cache_name)) {
-  GrCeIsRiverDataExpanded <- read_csv(cache_name)
-} else {
-  # If there's no cache file, we need to generate it ourselves.
-
-  # Start By building a new data frame
-  # Use the LabSampleNums as the primary key
-  SampleID = unique(GrCeIsRiverData$LabSampleNum)
-  newFrame <- data.frame(SampleID)
-
-  # Add some additional fields we care about
-  newFrame <- mutate(newFrame,
-    "CollectDate" = as.POSIXct("2999-01-01"),
-    "Year" = 0,
-    "Month" = 0,
-    "Locator" = ""
-  )  
-  # For each Parameter type, we want to encode those entries in the same Sample row
-  ParameterVals = unique(GrCeIsRiverData$Parameter)
-  for (param in ParameterVals) {
-    # Add underscores for column naming
-    normalized_param = gsub(" ", "_", param)
-    # Add a number of columns, and set to sensible defaults
-    # Acts on all rows at once
-    newFrame <- mutate(newFrame,
-        "{normalized_param}" := 0,
-        "{paste0(normalized_param,'_log')}" := 0,
-        "{paste0(normalized_param,'_units')}" := "",
-        "{paste0(normalized_param,'_mdl')}" := NA,
-        "{paste0(normalized_param,'_rdl')}" := NA,
-        "{paste0(normalized_param,'_text')}" := "",
-        "{paste0(normalized_param,'_orig')}" := 0
-      )
-  }  
-  
-  # Now we start filling in data values
-
-  # For each SampleID, we fill in parameter values
-  for (id in SampleID){
-    for (param in unique(GrCeIsRiverData$Parameter)){
-      # Normalize column name same as above
-      normalized_param = gsub(" ", "_", param)
-      # Fetch parameter row for sampleID  
-      prow <- filter(GrCeIsRiverData,LabSampleNum==id, Parameter==param)
-      # If we don't get anything, continue
-      if (nrow(prow) == 0) { next }
-      # For each of the meta-parameter values, we select the row id using `newFrame$SameplID==id`
-      # Set the column by pulling the corresponding value from the prow variable
-      newFrame[newFrame$SampleID==id,"CollectDate"] = prow["CollectDate"]
-      newFrame[newFrame$SampleID==id,"Year"] = prow["Year"]
-      newFrame[newFrame$SampleID==id,"Month"] = prow["Month"]
-      newFrame[newFrame$SampleID==id,"Locator"] = prow["Locator"]        
-      newFrame[newFrame$SampleID==id,normalized_param] = prow["Value"]
-      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_log')] = prow["logData"]
-      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_units')] = prow["Units"]
-      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_mdl')] = prow["MDL"]
-      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_rdl')] = prow["RDL"]
-      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_text')] = prow["Text"]
-      newFrame[newFrame$SampleID==id,paste0(normalized_param,'_orig')] = prow["Value_orig"]
-    }
-  }
-  
-  # Now that we've re-organized the data, save our progress in a csv for later
-  write_csv(newFrame, cache_name, col_name=TRUE)
-  # Store the result in a usable dataframe
-  GrCeIsRiverDataExpanded = newFrame
-}
+# We can normalize and make the reading more accessable py passing raw data through this function
+GrCeIsRiverDataExpanded = normalize_water_quality_data_parameters(GrCeIsRiverData)
 
 
 #Temperature Check, in log space
