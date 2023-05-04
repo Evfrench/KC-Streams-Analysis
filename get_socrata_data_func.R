@@ -246,17 +246,17 @@ get_socrata_data_func <- function(locns = c('0852'),
 ######################################
   
 # Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
-GrCeIsRiverData<- get_socrata_data_func(locns = c('A319','0438','0631'),
+GrCeIsRiverData<- get_socrata_data_func(locns = c('A319'),
   parms = default_data_parms,
   SiteType = 'Streams and Rivers'
 )
 
 # Store the data on the log scale
-GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
+#GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
 # We can normalize and make the reading more accessable py passing raw data through this function
 GrCeIsRiverDataExpanded = normalize_water_quality_data_parameters(GrCeIsRiverData)
-
+GrCeIsRiverDataExpanded <- arrange(GrCeIsRiverDataExpanded,GrCeIsRiverDataExpanded$CollectDate)
 
 #Temperature Check, in log space
 GreenTemp <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Temperature")
@@ -267,60 +267,9 @@ GreenTemp %>%
 
 #Create Dissolved Oxygen Plots
 GreenDO <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
-CedarDO <- GrCeIsRiverData %>% filter(Locator=="0438",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
-IssaquahDO <- GrCeIsRiverData %>% filter(Locator=="0631",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
 
 GreenDO %>%
   ggplot(aes(x=CollectDate, y=logData)) +
   geom_line() +
   ggtitle("Green River DO")
 
-CedarDO %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Cedar River DO")
-
-IssaquahDO %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Issaquah Creek DO")
-
-#Create Plots of Fecal Coliform
-GreenFecColi <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Fecal Coliform")
-CedarFecColi <- GrCeIsRiverData %>% filter(Locator=="0438",Parameter=="Fecal Coliform")
-IssaquahFecColi <- GrCeIsRiverData %>% filter(Locator=="0631",Parameter=="Fecal Coliform")
-
-GreenFecColi %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Green River Fecal Coliform")
-
-CedarFecColi %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Cedar River Fecal Coliform")
-
-IssaquahFecColi %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Issaquah Creek Coliform")
-
-#Create TP Plots
-GreenTP <- GrCeIsRiverData %>% filter(Locator=="A319", Parameter=="Total Phosphorus")
-CedarTP <- GrCeIsRiverData %>% filter(Locator=="0438", Parameter=="Total Phosphorus")
-IssaquahTP <- GrCeIsRiverData %>% filter(Locator=="0631", Parameter=="Total Phosphorus")
-
-GreenTP %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Green River Total Phosphorus")
-
-CedarTP %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Cedar River Total Phosphorus")
-
-IssaquahTP %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Issaquah Creek Total Phosphorus")
