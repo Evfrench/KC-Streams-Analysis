@@ -12,6 +12,7 @@ library(forecast)
 library(EGRET)
 library(MARSS)
 library(tidyverse)
+library(dplyr)
 ```
 
 ## R Markdown
@@ -20,27 +21,54 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r expand data}
-######################################
+```{r wrangle data}
+####################################
 #
 # Start of Scripting and Plot Making 
 #
-######################################
+####################################
   
 # Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
+# Need to... Call? Initialize? the funtions
 GreenRiverData<- get_socrata_data_func(locns = c('A319'),
   parms = default_data_parms,
   SiteType = 'Streams and Rivers'
 )
 
-# Store the data on the log scale
-#GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
 
-# We can normalize and make the reading more accessable py passing raw data through this function
-GreenRiverDataExpanded = normalize_water_quality_data_parameters(GrCeIsRiverData)
+# We can normalize and make the reading more accessible py passing raw data through this function
+GreenRiverDataExpanded = normalize_water_quality_data_parameters(GreenRiverData)
+# Arrange the Rows by Collection date
 GreenRiverDataExpanded <- arrange(GreenRiverDataExpanded,GreenRiverDataExpanded$CollectDate)
 
+# There are two fields for DO, KC determine they have comparable detection results
+# That means we can merge the two columns
+
+GreenRiverDataExpanded$Dissolved_Oxygen <- GreenRiverDataExpanded$Dissolved_Oxygen + GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`
+
+# Merge the log values as well
+GreenRiverDataExpanded$Dissolved_Oxygen_log <- GreenRiverDataExpanded$Dissolved_Oxygen_log + GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`
+
+# Remove one instance of duplicate values, will use the lab sample because it was collected regularly at this point
+GreenRiverDataExpanded$Dissolved_Oxygen[267] <- GreenRiverDataExpanded$Dissolved_Oxygen[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`[267]
+GreenRiverDataExpanded$Dissolved_Oxygen_log[267] <- GreenRiverDataExpanded$Dissolved_Oxygen_log[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`[267]
+
+# Pull out Just the stuff we need and replace the O's with empty values
+GreenDO <- subset(GreenRiverDataExpanded, select = c(CollectDate, Year, Month, Dissolved_Oxygen, Dissolved_Oxygen_log ))
+GreenDO <- replace(GreenDO, GreenDO==0, NA)
+GreenDO <- GreenDO %>% rename(Date = CollectDate)
+
+# Add a decimal date, then the sine and cosine of the date
+GreenDO$DecYear <- decimal_date(GreenDO$CollectDate)
+GreenDO$SinDY <- sinpi(GreenDO$DecYear)
+GreenDO$CosDY <- cospi(GreenDO$DecYear)
+
 ```
+
+
+
+
+
 
 ## Including Plots
 
@@ -49,17 +77,15 @@ You can also embed plots, for example:
 ```{r River Plots}
 
 #Temperature Check, in log space
-GreenTemp <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Temperature")
-GreenTemp %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+GreenRiverDataExpanded %>%
+  ggplot(aes(x=CollectDate, y=Temperature)) +
   geom_line() +
   ggtitle("Green River Temperature")
 
 #Create Dissolved Oxygen Plots
-GreenDO <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
 
 GreenDO %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
+  ggplot(aes(x=CollectDate, y=Dissolved_Oxygen)) +
   geom_line() +
   ggtitle("Green River DO")
 
@@ -70,4 +96,39 @@ green_river_daily_averages %>%
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r WRTDS Attempt}
+
+yr_frst <- as_date("1976-04-01")
+GreenDO <- GreenDO[GreenDO[, "Date"] >= yr_frst,]
+# Gather discharge data:
+siteID <- "12113000" #Green River in Auburn, WA
+startDate <- yr_frst #Gets earliest date
+endDate <- ""
+# Gather sample data:
+parameter_cd<-"00300" #5 digit USGS code, this is the dissolved oxygen
+#Sample <- readNWISSample(siteID,parameter_cd,startDate,endDate) We collected this from the King County Database already
+Sample <- GreenDO
+#Gets earliest date from Sample record:
+#This is just one of many ways to assure the Daily record
+#spans the Sample record
+startDate <- min(as.character(Sample$Date)) 
+# Gather discharge data:
+# This was done prior and stored as a CSV
+Daily <- green_river_daily_averages
+# Gather site and parameter information:
+
+# Here user must input some values for
+# the default (interactive=TRUE)
+INFO<- readNWISInfo(siteID,parameter_cd)
+INFO$shortName <- "Green River at Aurburn, WA"
+
+# Merge discharge with sample data:
+eList <- mergeReport(INFO, Daily, Sample)
+
+# Run WRTDS model:
+eList <- modelEstimation(eList)
+
+#eList:
+plotConcTimeDaily(eList)
+
+```
