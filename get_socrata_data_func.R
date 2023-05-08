@@ -239,37 +239,4 @@ get_socrata_data_func <- function(locns = c('0852'),
   return(data_out)
 }
   
-######################################
-#
-# Start of Scripting and Plot Making 
-#
-######################################
-  
-# Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
-GrCeIsRiverData<- get_socrata_data_func(locns = c('A319'),
-  parms = default_data_parms,
-  SiteType = 'Streams and Rivers'
-)
-
-# Store the data on the log scale
-#GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
-
-# We can normalize and make the reading more accessable py passing raw data through this function
-GrCeIsRiverDataExpanded = normalize_water_quality_data_parameters(GrCeIsRiverData)
-GrCeIsRiverDataExpanded <- arrange(GrCeIsRiverDataExpanded,GrCeIsRiverDataExpanded$CollectDate)
-
-#Temperature Check, in log space
-GreenTemp <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Temperature")
-GreenTemp %>%
-  ggplot(aes(x=CollectDate, y=Value)) +
-  geom_line() +
-  ggtitle("Green River Temperature")
-
-#Create Dissolved Oxygen Plots
-GreenDO <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
-
-GreenDO %>%
-  ggplot(aes(x=CollectDate, y=logData)) +
-  geom_line() +
-  ggtitle("Green River DO")
-
+# Everything here has been moved to a methods files

@@ -1,0 +1,73 @@
+---
+title: "KC Analysis Methods Draft"
+author: "Em French"
+date: "2023-05-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(forecast)
+library(EGRET)
+library(MARSS)
+library(tidyverse)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r expand data}
+######################################
+#
+# Start of Scripting and Plot Making 
+#
+######################################
+  
+# Query Socrata for the chosen site records, in this case Green River, Cedar River, and Issaquah Creek
+GreenRiverData<- get_socrata_data_func(locns = c('A319'),
+  parms = default_data_parms,
+  SiteType = 'Streams and Rivers'
+)
+
+# Store the data on the log scale
+#GrCeIsRiverData$logData <- log(GrCeIsRiverData$Value)
+
+# We can normalize and make the reading more accessable py passing raw data through this function
+GreenRiverDataExpanded = normalize_water_quality_data_parameters(GrCeIsRiverData)
+GreenRiverDataExpanded <- arrange(GreenRiverDataExpanded,GreenRiverDataExpanded$CollectDate)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r River Plots}
+
+#Temperature Check, in log space
+GreenTemp <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Temperature")
+GreenTemp %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River Temperature")
+
+#Create Dissolved Oxygen Plots
+GreenDO <- GrCeIsRiverData %>% filter(Locator=="A319",Parameter=="Dissolved Oxygen" | Parameter=="Dissolved Oxygen, Field")
+
+GreenDO %>%
+  ggplot(aes(x=CollectDate, y=Value)) +
+  geom_line() +
+  ggtitle("Green River DO")
+
+green_river_daily_averages %>%
+  ggplot(aes(x=Date, y=AveQ)) +
+  geom_line() +
+  ggtitle("Green River Daily Flows")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

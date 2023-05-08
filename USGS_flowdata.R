@@ -45,10 +45,10 @@ usgsflow <- usgsflow[usgsflow[, "Year"] >= yr_frst,]
 NewFrame <- usgsflow %>% filter(SITE_CODE=="12113000")
 NewFrame2 <- usgsflow %>% filter(SITE_CODE=="12112600")
 
-greenriverflows <- NewFrame[,c("Date","AveQ","Year","Month","Week")]
-greenriverflows$AveQ <- NewFrame$AveQ - NewFrame2$AveQ
-write_csv(greenriverflows, './data_cache/green_river_daily_averages.csv', col_name=TRUE)
+#greenriverflows <- NewFrame[,c("Date","AveQ","Year","Month","Week")]
+#greenriverflows$AveQ <- NewFrame$AveQ - NewFrame2$AveQ
+#write_csv(greenriverflows, './data_cache/green_river_daily_averages.csv', col_name=TRUE)
 
-#cache_name = paste0('./data_cache/cache_daily_flows-',paste0(gages,collapse='-'),'-dataset.csv')
-#write_csv(usgsflow, cache_name, col_name=TRUE)
+cache_name = paste0('./data_cache/cache_daily_flows-',paste0(gages,collapse='-'),'-dataset.csv')
+write_csv(usgsflow, cache_name, col_name=TRUE)
 
