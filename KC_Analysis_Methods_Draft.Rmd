@@ -53,7 +53,7 @@ GreenRiverDataExpanded$Dissolved_Oxygen_log <- GreenRiverDataExpanded$Dissolved_
 GreenRiverDataExpanded$Dissolved_Oxygen[267] <- GreenRiverDataExpanded$Dissolved_Oxygen[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`[267]
 GreenRiverDataExpanded$Dissolved_Oxygen_log[267] <- GreenRiverDataExpanded$Dissolved_Oxygen_log[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`[267]
 
-# Pull out Just the stuff we need and replace the O's with empty values
+# Pull out Just the stuff we need and replace the 0's with empty values
 GreenDO <- subset(GreenRiverDataExpanded, select = c(CollectDate, Year, Month, Dissolved_Oxygen, Dissolved_Oxygen_log ))
 GreenDO <- replace(GreenDO, GreenDO==0, NA)
 GreenDO <- GreenDO %>% rename(Date = CollectDate)
