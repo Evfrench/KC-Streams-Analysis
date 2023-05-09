@@ -124,6 +124,40 @@ normalize_water_quality_data_parameters <- function(input_data = data.frame()) {
   return(newFrame)
 }
 
+
+
+#
+# Reformats the data for easier referencing
+# Performs the following transformations:
+# - Adds a logData column that stores log of reading value
+# - Creates a row for each LabSampleNum
+# - Adds multiple columns for each parameter, condensing the data from a LabSampleNum x Parameter format to just LabSampleNum
+generate_egret_sample_from_water_quality_data <- function(input_data = data.frame(), parameters) {  
+  # Normalize parameter names so they match the column names in input_data
+  normalized_params = list(gsub(" ", "_", unique(parameters)))
+  # create our return dict
+  egret_normalized = list(normalized_params)
+  # Go through each param, and compile/generate sample data 
+  for (param in normalized_params){
+    egret_normalized[param] = data.frame(
+                        Date = as.Date(input_data$CollectDate),
+                        ConcLow = input_data[param], 
+                        ConcHigh = input_data[normalized_param], 
+                        Uncen = (input_data[normalized_param] * 0 + 1),
+                        ConcAve = input_data[normalized_param],
+                        Julian = (input_data[normalized_param] * 0),
+                        Month = strftime(input_data$CollectDate, format="%m"),
+                        Day = strftime(input_data$CollectDate, format="%d"),
+                        DecYear = decimal_date(input_data$CollectDate),
+                        MonthSeq = (input_data[normalized_param] * 0),
+                        SinDY = sin(2*pi*decimal_date(input_data$CollectDate)),
+                        CosDY = cos(2*pi*decimal_date(input_data$CollectDate))
+    )
+  }
+  
+  return(egret_normalized)
+}
+
 #
 # Define function that fetches King County Water Quality data based on location
 # First fetches metadata about locations - https://data.kingcounty.gov/Environment-Waste-Management/WLRD-Sites/wbhs-bbzf
@@ -239,4 +273,4 @@ get_socrata_data_func <- function(locns = c('0852'),
   return(data_out)
 }
   
-# Everything here has been moved to a methods files
+# Everything past here has been moved to a methods files

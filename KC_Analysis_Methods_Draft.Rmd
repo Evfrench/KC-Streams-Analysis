@@ -13,6 +13,8 @@ library(EGRET)
 library(MARSS)
 library(tidyverse)
 library(dplyr)
+
+source("get_socrata_data_func.R")
 ```
 
 ## R Markdown
@@ -106,8 +108,11 @@ startDate <- yr_frst #Gets earliest date
 endDate <- ""
 # Gather sample data:
 parameter_cd<-"00300" #5 digit USGS code, this is the dissolved oxygen
-#Sample <- readNWISSample(siteID,parameter_cd,startDate,endDate) We collected this from the King County Database already
-Sample <- GreenDO
+#Sample <- readNWISSample(siteID,parameter_cd,startDate,endDate) We collected this from the 
+#King County Database already
+Sample <- = generate_egret_sample_from_water_quality_data(GreenRiverDataExpanded, unique(GreenRiverData$Parameter))
+
+
 #Gets earliest date from Sample record:
 #This is just one of many ways to assure the Daily record
 #spans the Sample record
