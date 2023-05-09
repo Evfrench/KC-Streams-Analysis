@@ -137,6 +137,10 @@ parameter_cd<-"00300" #5 digit USGS code, this is the dissolved oxygen
 Sample <- GreenDO #The sample data cannot be retrieve from the NWIS because it 
 # comes from King County
 
+# Example of generating egret sample data from the expanded ds
+#Sample = NULL
+#Sample  = generate_egret_sample_from_water_quality_data(GreenRiverDataExpanded, "Total_Alkalinity")
+
 # Gather discharge data:
 # The Green River Gauge is actually 3.5km downstream from the King County site,
 # Another creek merges with it during that time, so we must subtract those discharges
