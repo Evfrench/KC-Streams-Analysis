@@ -13,15 +13,11 @@ library(EGRET)
 library(MARSS)
 library(tidyverse)
 library(dplyr)
-
-source("get_socrata_data_func.R")
+library(data.table)
+library(smwrBase)
+source('./functions/get_socrata_data_func.R')
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r wrangle data}
 ####################################
@@ -40,12 +36,12 @@ GreenRiverData<- get_socrata_data_func(locns = c('A319'),
 
 # We can normalize and make the reading more accessible py passing raw data through this function
 GreenRiverDataExpanded = normalize_water_quality_data_parameters(GreenRiverData)
+
 # Arrange the Rows by Collection date
 GreenRiverDataExpanded <- arrange(GreenRiverDataExpanded,GreenRiverDataExpanded$CollectDate)
 
 # There are two fields for DO, KC determine they have comparable detection results
 # That means we can merge the two columns
-
 GreenRiverDataExpanded$Dissolved_Oxygen <- GreenRiverDataExpanded$Dissolved_Oxygen + GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`
 
 # Merge the log values as well
@@ -55,38 +51,20 @@ GreenRiverDataExpanded$Dissolved_Oxygen_log <- GreenRiverDataExpanded$Dissolved_
 GreenRiverDataExpanded$Dissolved_Oxygen[267] <- GreenRiverDataExpanded$Dissolved_Oxygen[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`[267]
 GreenRiverDataExpanded$Dissolved_Oxygen_log[267] <- GreenRiverDataExpanded$Dissolved_Oxygen_log[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`[267]
 
-# Pull out Just the stuff we need and replace the 0's with empty values
-GreenDO <- subset(GreenRiverDataExpanded, select = c(CollectDate, Year, Month, Dissolved_Oxygen, Dissolved_Oxygen_log ))
-GreenDO <- replace(GreenDO, GreenDO==0, NA)
-GreenDO <- GreenDO %>% rename(Date = CollectDate)
-
-# Add a decimal date, then the sine and cosine of the date
-GreenDO$DecYear <- decimal_date(GreenDO$CollectDate)
-GreenDO$SinDY <- sin(2*pi*GreenDO$DecYear)
-GreenDO$CosDY <- cos(2*pi*GreenDO$DecYear)
 
 ```
 
 
 
+## Initial Plots
 
-
-
-## Including Plots
-
-You can also embed plots, for example:
+These plot show a large gap from ~2008 to ~2012
+There are a lot of 0's in the data set because two columns are merged, these need to be removed
 
 ```{r River Plots}
-
-#Temperature Check, in log space
-GreenRiverDataExpanded %>%
-  ggplot(aes(x=CollectDate, y=Temperature)) +
-  geom_line() +
-  ggtitle("Green River Temperature")
-
 #Create Dissolved Oxygen Plots
 
-GreenDO %>%
+GreenRiverDataExpanded %>%
   ggplot(aes(x=CollectDate, y=Dissolved_Oxygen)) +
   geom_line() +
   ggtitle("Green River DO")
@@ -98,28 +76,67 @@ green_river_daily_averages %>%
 
 ```
 
+From the WRTDS_Sample_Workflow file, it looks like the sample dataframe needs a number of fields that were not imported from the KC database, so they have to be added manually
+```{r format data for WRTDS}
+# Pull out Just the stuff we need and replace the 0's with empty values
+GreenDO <- subset(GreenRiverDataExpanded, select = c(CollectDate, Year, Month, Dissolved_Oxygen))
+GreenDO <- replace(GreenDO, GreenDO==0, NA)
+GreenDO <- GreenDO %>% 
+  rename(Date = CollectDate,
+         ConcAve = Dissolved_Oxygen)
+
+# Add all of the missing fields for WRTDS
+GreenDO$ConcLow <- GreenDO$ConcAve
+GreenDO$ConcHigh <- GreenDO$ConcAve
+GreenDO$DecYear <- decimal_date(GreenDO$Date)
+GreenDO$SinDY <- sin(2*pi*GreenDO$DecYear)
+GreenDO$CosDY <- cos(2*pi*GreenDO$DecYear)
+GreenDO$Uncen <- NA
+GreenDO$Uncen <- c(1)
+GreenDO$Date <- as_date(GreenDO$Date)
+GreenDO$RefDate <- as_date("1850-01-01")
+GreenDO$Julian<- difftime(GreenDO$Date, GreenDO$RefDate, units = "days")
+GreenDO$Julian <- as.integer(GreenDO$Julian)
+GreenDO$MonthSeq <- interval(GreenDO$RefDate, GreenDO$Date) %/% months(1)
+GreenDO$waterYear <- waterYear(GreenDO$Date, numeric = FALSE)
+
+#Quick plot of new data
+GreenDO %>%
+  ggplot(aes(x=Date, y=ConcAve)) +
+  geom_line() +
+  ggtitle("Green River DO")
+```
+Much better, This almost looks like the DO is steadily decreasing or staying constant
+
+
 ```{r WRTDS Attempt}
 
-yr_frst <- as_date("1976-04-01")
-GreenDO <- GreenDO[GreenDO[, "Date"] >= yr_frst,]
+yr_frst <- as_date("1976-04-13")
+yr_last <- as_date("2008-12-03")
+GreenDO <- GreenDO[GreenDO[, "Date"] >= yr_frst & GreenDO[, "Date"] <= yr_last,]
+row.names(GreenDO) <- NULL
 # Gather discharge data:
 siteID <- "12113000" #Green River in Auburn, WA
-startDate <- yr_frst #Gets earliest date
-endDate <- ""
+
 # Gather sample data:
 parameter_cd<-"00300" #5 digit USGS code, this is the dissolved oxygen
 #Sample <- readNWISSample(siteID,parameter_cd,startDate,endDate) We collected this from the 
-#King County Database already
-Sample <- = generate_egret_sample_from_water_quality_data(GreenRiverDataExpanded, unique(GreenRiverData$Parameter))
+#Sample <- generate_egret_sample_from_water_quality_data(GreenRiverDataExpanded, unique(GreenRiverData$Parameter)) Commenting out until it works
+Sample <- GreenDO #The sample data cannot be retrieve from the NWIS because it 
+# comes from King County
 
-
-#Gets earliest date from Sample record:
-#This is just one of many ways to assure the Daily record
-#spans the Sample record
-startDate <- min(as.character(Sample$Date)) 
 # Gather discharge data:
-# This was done prior and stored as a CSV
-Daily <- green_river_daily_averages
+# The Green River Gauge is actually 3.5km downstream from the King County site,
+# Another creek merges with it during that time, so we must subtract those discharges
+# The corrected discharge data were collected and stored in the cache, so we need to
+# import the data and replace all the discharge values with those in the .csv
+green_river_daily_averages <- fread('./data_cache/green_river_daily_averages.csv')
+Daily <- readNWISDaily(siteID,"00060",yr_frst,yr_last)
+
+Daily$Q <- green_river_daily_averages$Q
+Daily$LogQ <- green_river_daily_averages$LogQ
+Daily$Q7 <- green_river_daily_averages$Q7
+Daily$Q30 <- green_river_daily_averages$Q30
 # Gather site and parameter information:
 
 # Here user must input some values for
@@ -135,5 +152,42 @@ eList <- modelEstimation(eList)
 
 #eList:
 plotConcTimeDaily(eList)
+
+plotConcHist(eList)
+```
+
+
+```{r DLM Attempt}
+marsFrame <- full_join(Sample, Daily, by = "Date")
+marsFrame <- arrange(marsFrame,marsFrame$Date)
+marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y)
+marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y)
+DO = t(marsFrame$ConcAve)
+
+TT = nrow(marsFrame)
+
+Z = array(NA,c(1,5,TT))
+Z[1,1,] = c(1)
+Z[1,2,] = marsFrame$DecYear.y
+Z[1,3,] = marsFrame$LogQ
+Z[1,4,] = marsFrame$SinDY
+Z[1,5,] = marsFrame$CosDY
+
+modlist = list( #all other arguments are left at default
+  Z = Z,
+  U = "zero",
+  A = "zero",
+  B = "identity",
+  U = "diagonal and unequal"
+)
+
+marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)), control = list(maxit=1000))
+```
+
+
+
+```{r Residuals}
+
+
 
 ```

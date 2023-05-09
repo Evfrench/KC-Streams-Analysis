@@ -8,6 +8,7 @@ endDate <- "2011-09-30"
 # Gather sample data:
 parameter_cd<-"00631" #5 digit USGS code, this is the nitrate+nitrite as nitrogen 
 Sample <- readNWISSample(siteID,parameter_cd,startDate,endDate)
+SampleHolder <- Sample
 #Gets earliest date from Sample record:
 #This is just one of many ways to assure the Daily record
 #spans the Sample record
