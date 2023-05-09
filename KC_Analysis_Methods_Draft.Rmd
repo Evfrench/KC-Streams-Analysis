@@ -60,8 +60,8 @@ GreenDO <- GreenDO %>% rename(Date = CollectDate)
 
 # Add a decimal date, then the sine and cosine of the date
 GreenDO$DecYear <- decimal_date(GreenDO$CollectDate)
-GreenDO$SinDY <- sinpi(GreenDO$DecYear)
-GreenDO$CosDY <- cospi(GreenDO$DecYear)
+GreenDO$SinDY <- sin(2*pi*GreenDO$DecYear)
+GreenDO$CosDY <- cos(2*pi*GreenDO$DecYear)
 
 ```
 
