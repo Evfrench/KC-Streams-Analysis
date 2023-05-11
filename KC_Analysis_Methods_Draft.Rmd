@@ -14,6 +14,7 @@ library(ggplot2)
 library(forecast)
 library(EGRET)
 library(MARSS)
+library(marssTMB)
 library(tidyverse)
 library(dplyr)
 library(data.table)
@@ -51,7 +52,7 @@ GreenRiverDataExpanded$Dissolved_Oxygen <- GreenRiverDataExpanded$Dissolved_Oxyg
 # Merge the log values as well
 GreenRiverDataExpanded$Dissolved_Oxygen_log <- GreenRiverDataExpanded$Dissolved_Oxygen_log + GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`
 
-# Remove one instance of duplicate values, will use the lab sample because it was collected regularly at this point
+# Remove one instance of duplicate values, will use the Dissolved_Oxygen sample because it was collected regularly at this point
 GreenRiverDataExpanded$Dissolved_Oxygen[267] <- GreenRiverDataExpanded$Dissolved_Oxygen[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`[267]
 GreenRiverDataExpanded$Dissolved_Oxygen_log[267] <- GreenRiverDataExpanded$Dissolved_Oxygen_log[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`[267]
 
@@ -72,13 +73,13 @@ GreenRiverDataExpanded %>%
   ggtitle("Green River DO")
 
 green_river_daily_averages %>%
-  ggplot(aes(x=Date, y=AveQ)) +
+  ggplot(aes(x=Date, y=LogQ)) +
   geom_line() +
   ggtitle("Green River Daily Flows")
 
 ```
 
-## Formating to fit the models
+## Formatting to fit the models
 
 From the WRTDS_Sample_Workflow file, it looks like the sample dataframe
 needs a number of fields that were not imported from the KC database, so
@@ -176,26 +177,36 @@ plotConcHist(eList)
 # DLM
 
 Everything should be in the correct form? The model took about half an
-hour to run 1000 iterations but it failed to converge. The message is as
-follows:
+hour to run 1000 iterations but it failed to converge.
 
-Warning! Reached maxit before parameters converged. Maxit was 1000.
-neither abstol nor log-log convergence tests were passed.
+1st Attempt to fix: switch to marssTMB with the same data structure, using TMB prevents me from setting the intercept to be constant
+  Results: MARSS still ran for 20 plus minutes so I quit before it finished
 
-MARSS fit is Estimation method: kem Convergence test:
-conv.test.slope.tol = 0.5, abstol = 0.001 WARNING: maxit reached at 1000
-iter before convergence. Neither abstol nor log-log convergence test
-were passed. The likelihood and params are not at the ML values. Try
-setting control\$maxit higher.
+2nd Attempt: Use marssTMB and compress covariates down to monthly averages
 
 ```{r DLM Attempt}
 # Merge the water quality (Sample) and the discharge (Daily) frames
 # Discharge dataframe has daily records, while the quality frame has bi-monthly
 # This means the response variable will have lots of missing entries
+marsFrame <- data_frame()
 marsFrame <- full_join(Sample, Daily, by = "Date") 
 marsFrame <- arrange(marsFrame,marsFrame$Date)
-marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y)
-marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y)
+marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y) # Fill in the sin and cos of the
+marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y) # decimal year to have daily reports
+
+testdf <- data_frame()
+testdf <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(decimalYear = mean(DecYear.y)) %>%
+  mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(SinDY = mean(SinDY)) %>%
+  mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(CosDY = mean(CosDY)) %>% 
+  mutate(month = as.Date(Date, "%B")) %>%
+  group_by(MonthSeq.y) %>%
+    summarize(logDO = log(mean(ConcAve))) 
 
 # Response variable: log(Dissolved Oxygen)
 DO = ts(t(log(marsFrame$ConcAve)))
@@ -218,11 +229,11 @@ modlist = list( #all other arguments are left at default
   Q = "diagonal and unequal"
 )
 # initial effects were set to 0, maybe 1 would be better
-marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=1000))
+marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=1000), method = "TMB")
 ```
 
 ```{r Residuals}
 
-
+eList[["surfaces"]]
 
 ```
