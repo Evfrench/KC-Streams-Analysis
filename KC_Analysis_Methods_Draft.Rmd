@@ -38,7 +38,6 @@ GreenRiverData<- get_socrata_data_func(locns = c('A319'),
   SiteType = 'Streams and Rivers'
 )
 
-
 # We can normalize and make the reading more accessible py passing raw data through this function
 GreenRiverDataExpanded = normalize_water_quality_data_parameters(GreenRiverData)
 
@@ -56,6 +55,8 @@ GreenRiverDataExpanded$Dissolved_Oxygen_log <- GreenRiverDataExpanded$Dissolved_
 GreenRiverDataExpanded$Dissolved_Oxygen[267] <- GreenRiverDataExpanded$Dissolved_Oxygen[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field`[267]
 GreenRiverDataExpanded$Dissolved_Oxygen_log[267] <- GreenRiverDataExpanded$Dissolved_Oxygen_log[267] - GreenRiverDataExpanded$`Dissolved_Oxygen,_Field_log`[267]
 
+# Load discharge records from cached CSV
+green_river_daily_averages <- fread('./data_cache/green_river_daily_averages.csv')
 
 ```
 
@@ -147,7 +148,7 @@ Sample <- GreenDO #The sample data cannot be retrieve from the NWIS because it
 # Another creek merges with it during that time, so we must subtract those discharges
 # The corrected discharge data were collected and stored in the cache, so we need to
 # import the data and replace all the discharge values with those in the .csv
-green_river_daily_averages <- fread('./data_cache/green_river_daily_averages.csv')
+
 Daily <- readNWISDaily(siteID,"00060",yr_frst,yr_last)
 
 Daily$Q <- green_river_daily_averages$Q
@@ -194,32 +195,34 @@ marsFrame <- arrange(marsFrame,marsFrame$Date)
 marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y) # Fill in the sin and cos of the
 marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y) # decimal year to have daily reports
 
-testdf <- data_frame()
-testdf <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
+yearFrame <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
-    summarize(decimalYear = mean(DecYear.y)) %>%
-  mutate(month = as.Date(Date, "%B")) %>%
+    summarize(decimalYear = as.double((mean(DecYear.y))))
+QFrame <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
-    summarize(SinDY = mean(SinDY)) %>%
-  mutate(month = as.Date(Date, "%B")) %>%
+    summarize(LogQ = as.double(mean(LogQ))) 
+sineFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
-    summarize(CosDY = mean(CosDY)) %>% 
-  mutate(month = as.Date(Date, "%B")) %>%
+    summarize(SinDY = as.double(mean(SinDY)))
+cosFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(CosDY = as.double(mean(CosDY)))
+DOFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
   group_by(MonthSeq.y) %>%
-    summarize(logDO = log(mean(ConcAve))) 
+    summarize(logDO = as.double(log(mean(ConcAve, na.rm = TRUE))))
+
+TT = nrow(DOFrame)
 
 # Response variable: log(Dissolved Oxygen)
-DO = ts(t(log(marsFrame$ConcAve)))
-
-TT = nrow(marsFrame)
+DO = t(DOFrame$logDO)
 
 #Covariates: Time(as the decimal year), Daily ave discharge (logQ), seasonal effects (sin and cos of the decimal year)
 Z = array(NA,c(1,5,TT))
 Z[1,1,] = c(1)
-Z[1,2,] = marsFrame$DecYear.y
-Z[1,3,] = marsFrame$LogQ
-Z[1,4,] = marsFrame$SinDY
-Z[1,5,] = marsFrame$CosDY
+Z[1,2,] = yearFrame$decimalYear
+Z[1,3,] = QFrame$LogQ
+Z[1,4,] = sineFrame$SinDY
+Z[1,5,] = cosFrame$CosDY
 
 modlist = list( #all other arguments are left at default
   Z = Z,
