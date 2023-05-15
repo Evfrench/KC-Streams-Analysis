@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(forecast)
 library(EGRET)
+library(EGRETci)
 library(MARSS)
 library(marssTMB)
 library(tidyverse)
@@ -85,6 +86,8 @@ green_river_daily_averages %>%
 From the WRTDS_Sample_Workflow file, it looks like the sample dataframe
 needs a number of fields that were not imported from the KC database, so
 they have to be added manually
+
+The initial window 
 
 ```{r format data for WRTDS}
 # Pull out Just the stuff we need and replace the 0's with empty values
@@ -169,11 +172,25 @@ eList <- mergeReport(INFO, Daily, Sample)
 # Run WRTDS model:
 eList <- modelEstimation(eList)
 
-#eList:
+# Test some of the plotting functions:
 plotConcTimeDaily(eList)
 
 plotConcHist(eList)
+
+# Why aren't some of these working?
+egretsurfaces <- eList[["surfaces"]]
+EGRET::multiPlotDataOverview(eList = eList)
+EGRET::dataOverview(Daily, Sample)
+EGRET::plot15(eList, yr_frst, yr_last)
+EGRET::errorStats(eList)
 ```
+The model has converged, excellent!
+Next steps: Dig into the "surfaces" array and extract any data available.
+Targets: response variable estimates, coefficient values, R-squared or other model fit data, confidence intervals, residuals
+
+
+
+
 
 # DLM
 
@@ -184,6 +201,7 @@ hour to run 1000 iterations but it failed to converge.
   Results: MARSS still ran for 20 plus minutes so I quit before it finished
 
 2nd Attempt: Use marssTMB and compress covariates down to monthly averages
+  Results: The model has converged! This does use only monthly averages. I am a little concerned this model may be too "flattened" but we will see
 
 ```{r DLM Attempt}
 # Merge the water quality (Sample) and the discharge (Daily) frames
@@ -195,6 +213,7 @@ marsFrame <- arrange(marsFrame,marsFrame$Date)
 marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y) # Fill in the sin and cos of the
 marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y) # decimal year to have daily reports
 
+# Compress all the data into monthly averages
 yearFrame <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
     summarize(decimalYear = as.double((mean(DecYear.y))))
@@ -233,10 +252,12 @@ modlist = list( #all other arguments are left at default
 )
 # initial effects were set to 0, maybe 1 would be better
 marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=1000), method = "TMB")
+
+
 ```
+The Model has successfully converged, I would like to get a visual comparison, look at r-squared values, and compare the change in effects over time.
 
 ```{r Residuals}
 
-eList[["surfaces"]]
-
+egretsurfaces
 ```
