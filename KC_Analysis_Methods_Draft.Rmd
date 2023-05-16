@@ -20,6 +20,7 @@ library(tidyverse)
 library(dplyr)
 library(data.table)
 library(smwrBase)
+library(timetk)
 source('./functions/get_socrata_data_func.R')
 ```
 
@@ -160,6 +161,7 @@ Daily$Q7 <- green_river_daily_averages$Q7
 Daily$Q30 <- green_river_daily_averages$Q30
 
 
+
 # Gather site and parameter information:
 # Here user must input some values for
 # the default (interactive=TRUE)
@@ -181,12 +183,12 @@ plotConcHist(eList)
 egretsurfaces <- eList[["surfaces"]]
 EGRET::multiPlotDataOverview(eList = eList)
 EGRET::dataOverview(Daily, Sample)
-EGRET::plot15(eList, yr_frst, yr_last)
-EGRET::errorStats(eList)
+EGRET::plot15(eList, yr_frst, yr_last) #This function is not working currently
+EGRET::errorStats(eList) #Neither is thnis one
 ```
 The model has converged, excellent!
 Next steps: Dig into the "surfaces" array and extract any data available.
-Targets: response variable estimates, coefficient values, R-squared or other model fit data, confidence intervals, residuals
+Targets: response variable estimates, coefficient values, R-squared or other model fit data, confidence intervals, residuals.
 
 
 
@@ -210,13 +212,47 @@ hour to run 1000 iterations but it failed to converge.
 marsFrame <- data_frame()
 marsFrame <- full_join(Sample, Daily, by = "Date") 
 marsFrame <- arrange(marsFrame,marsFrame$Date)
-marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y) # Fill in the sin and cos of the
-marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y) # decimal year to have daily reports
-
+marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y) # Fill in the sin and cos of 
+marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y) # the decimal year to have daily reports
+yearFrame <- marsFrame %>%
+  summarise_by_time(
+    .date_var = Date,
+    .by = "14 days",
+    .week_start = NULL,
+    decyear = mean(DecYear.y)
+  )
+QFrame<- marsFrame %>% 
+  summarise_by_time(
+    .date_var = Date,
+    .by = "14 days",
+    .week_start = NULL,
+    LogQ = mean(LogQ)
+  )
+sineFrame<- marsFrame %>% 
+  summarise_by_time(
+    .date_var = Date,
+    .by = "14 days",
+    .week_start = NULL,
+    SinDY = mean(SinDY)
+  )
+cosFrame<- marsFrame %>% 
+  summarise_by_time(
+    .date_var = Date,
+    .by = "14 days",
+    .week_start = NULL,
+    CosDY = mean(CosDY)
+  )
+DOFrame<- marsFrame %>% 
+  summarise_by_time(
+    .date_var = Date,
+    .by = "14 days",
+    .week_start = NULL,
+    logDO = log(mean(ConcAve, na.rm = TRUE))
+  )
 # Compress all the data into monthly averages
 yearFrame <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
-    summarize(decimalYear = as.double((mean(DecYear.y))))
+    summarize(decyear = as.double((mean(DecYear.y))))
 QFrame <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
     summarize(LogQ = as.double(mean(LogQ))) 
@@ -238,7 +274,7 @@ DO = t(DOFrame$logDO)
 #Covariates: Time(as the decimal year), Daily ave discharge (logQ), seasonal effects (sin and cos of the decimal year)
 Z = array(NA,c(1,5,TT))
 Z[1,1,] = c(1)
-Z[1,2,] = yearFrame$decimalYear
+Z[1,2,] = yearFrame$decyear
 Z[1,3,] = QFrame$LogQ
 Z[1,4,] = sineFrame$SinDY
 Z[1,5,] = cosFrame$CosDY
@@ -251,13 +287,34 @@ modlist = list( #all other arguments are left at default
   Q = "diagonal and unequal"
 )
 # initial effects were set to 0, maybe 1 would be better
-marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=1000), method = "TMB")
+marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=3000)
+                , method = "TMB"
+                 )
 
 
 ```
 The Model has successfully converged, I would like to get a visual comparison, look at r-squared values, and compare the change in effects over time.
 
-```{r Residuals}
+```{r}
+QFrame %>%
+  ggplot(aes(x=MonthSeq.y, y=LogQ)) +
+  geom_line() +
+  ggtitle("Monthly Discharge")
 
-egretsurfaces
+marsFrame %>%
+  ggplot(aes(x=MonthSeq.y, y=LogQ)) +
+  geom_line() +
+  ggtitle("Daily Discharge")
+
 ```
+
+```{r Residuals}
+plotResidPred(eList)
+#resids <- MARSSresiduals(marsfit)
+autoplot.marssMLE(marsfit)
+```
+MARSS DLM Residuals: Response residuals appear to have tails indicating the error distribution is not Gaussian. States (the effects matrix for covariates) appear to be mostly constant except for x3 (log-discharge) and x5 (cosine seasonality). x5 residuals have a significant tail at the lower end. This appears to be caused by the large dip around time point 350
+
+
+
+Further plan: This analysis will focus on temperature and DO of KC water bodies. Our hypothesis is that water quality metrics have been staying constant despite increasing temperature, and this is due to improvements in water management practices such as increased stormwater infrastrucure, more awareness of water quality by locals, etc. (quantifying this will be challenging, as of now we need to determine if there even is a long term trend)
