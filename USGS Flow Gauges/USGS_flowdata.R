@@ -40,8 +40,8 @@ usgsflow <- right_join(site_details,usgs.flow, by="SITE_CODE")
 
 ######################
 
-yr_frst <- as_date("1976-04-13")
-yr_last <- as_date("2008-12-03")
+yr_frst <- as_date("1985-01-01")
+yr_last <- as_date("2022-12-31")
 usgsflow <- usgsflow[usgsflow[, "Date"] >= yr_frst & usgsflow[, "Date"] <= yr_last, ]
 
 NewFrame <- usgsflow %>% filter(SITE_CODE=="12113000")
