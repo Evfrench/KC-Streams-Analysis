@@ -217,41 +217,7 @@ marsFrame <- full_join(Sample, Daily, by = "Date")
 marsFrame <- arrange(marsFrame,marsFrame$Date)
 marsFrame$SinDY <- sin(2*pi*marsFrame$DecYear.y) # Fill in the sin and cos of 
 marsFrame$CosDY <- cos(2*pi*marsFrame$DecYear.y) # the decimal year to have daily reports
-yearFrame <- marsFrame %>%
-  summarise_by_time(
-    .date_var = Date,
-    .by = "14 days",
-    .week_start = NULL,
-    decyear = mean(DecYear.y)
-  )
-QFrame<- marsFrame %>% 
-  summarise_by_time(
-    .date_var = Date,
-    .by = "14 days",
-    .week_start = NULL,
-    LogQ = mean(LogQ)
-  )
-sineFrame<- marsFrame %>% 
-  summarise_by_time(
-    .date_var = Date,
-    .by = "14 days",
-    .week_start = NULL,
-    SinDY = mean(SinDY)
-  )
-cosFrame<- marsFrame %>% 
-  summarise_by_time(
-    .date_var = Date,
-    .by = "14 days",
-    .week_start = NULL,
-    CosDY = mean(CosDY)
-  )
-DOFrame<- marsFrame %>% 
-  summarise_by_time(
-    .date_var = Date,
-    .by = "14 days",
-    .week_start = NULL,
-    logDO = log(mean(ConcAve, na.rm = TRUE))
-  )
+
 # Compress all the data into monthly averages
 yearFrame <- marsFrame %>% mutate(month = as.Date(Date, "%B")) %>%
     group_by(MonthSeq.y) %>%
@@ -283,7 +249,15 @@ Z[1,3,] = QFrame$LogQ
 Z[1,4,] = sineFrame$SinDY
 Z[1,5,] = cosFrame$CosDY
 
-modlist = list( #all other arguments are left at default
+modlist1 = list( #all other arguments are left at default
+  Z = Z,
+  U = "zero",
+  A = "zero",
+  B = "identity",
+  Q = ldiag(list(0.002,"q2","q3","q4","q5"))
+)
+
+modlist2 = list( #all other arguments are left at default
   Z = Z,
   U = "zero",
   A = "zero",
@@ -291,11 +265,13 @@ modlist = list( #all other arguments are left at default
   Q = "diagonal and unequal"
 )
 # initial effects were set to 0, maybe 1 would be better
-marsfit <- MARSS(DO, model = modlist, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=3000)
+marssfit1 <- MARSS(DO, model = modlist1, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=3000)
                 , method = "TMB"
                  )
 
-
+marssfit2 <- MARSS(DO, model = modlist2, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=3000)
+                , method = "TMB"
+                 )
 ```
 The Model has successfully converged, I would like to get a visual comparison, look at r-squared values, and compare the change in effects over time. (1976-2009)
 
@@ -316,12 +292,29 @@ marsFrame %>%
 plotResidPred(eList)
 #resids <- MARSSresiduals(marsfit)
 plotConcTimeDaily(eList)
-autoplot.marssMLE(marsfit)
+autoplot.marssMLE(marssfit1,silent = TRUE)
+
+Z2=Z
+dim(Z2)= c(5,dim(Z)[3])
+A = Z2[,1:3] %*% marssfit$states[1:3,]
+plot(diag(A))
+
+TT=dim(Z)[3]
+lev = rep(NA, TT)
+for (i in 1:TT){
+  lev[i] = Z[1, 1:3,i] %*% marssfit$states[1:3,i]
+}
+plot(lev)
+apply(Z,2,function(x){any(is.na(x))})
+
+plot(Daily$waterYear)
+poly() #use this for making yearly effects 
+#otherwise they will be highly correlated 
 ```
 MARSS DLM Residuals: 
 (1976-2009) Response residuals appear to have tails indicating the error distribution is not Gaussian. States (the effects matrix for covariates) appear to be mostly constant except for x3 (log-discharge) and x5 (cosine seasonality). x5 residuals have a significant tail at the lower end. This appears to be caused by the large dip around time point 350
 
-(1985-2022) Both ends of the response residuals are 
+(1985-2022) Both ends of the response residuals are low
 Further plan: This analysis will focus on temperature and DO of KC water bodies. Our hypothesis is that water quality metrics have been staying constant despite increasing temperature, and this is due to improvements in water management practices such as increased stormwater infrastrucure, more awareness of water quality by locals, etc. (quantifying this will be challenging, as of now we need to determine if there even is a long term trend)
 
 Addendum: Move the window of years you want to analyze to more recent times. Apparently the missing 4 years should not bias the data too much, at least for the MARSS model. Need to check how this missing data will affect the WRTDS model.
