@@ -21,6 +21,8 @@ library(dplyr)
 library(data.table)
 library(smwrBase)
 library(timetk)
+library(miscTools)
+library(RSocrata)
 source('./functions/get_socrata_data_func.R')
 ```
 
@@ -254,7 +256,7 @@ modlist1 = list( #all other arguments are left at default
   U = "zero",
   A = "zero",
   B = "identity",
-  Q = ldiag(list(0.002,"q2","q3","q4","q5"))
+  Q = ldiag(list(1e-6,"q2","q3","q4","q5"))
 )
 
 modlist2 = list( #all other arguments are left at default
@@ -265,6 +267,7 @@ modlist2 = list( #all other arguments are left at default
   Q = "diagonal and unequal"
 )
 # initial effects were set to 0, maybe 1 would be better
+# EEH: This approach is not working; need to use a year effect; see below
 marssfit1 <- MARSS(DO, model = modlist1, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=3000)
                 , method = "TMB"
                  )
@@ -277,7 +280,7 @@ The Model has successfully converged, I would like to get a visual comparison, l
 
 ```{r}
 QFrame %>%
-  ggplot(aes(x=Date, y=LogQ)) +
+  ggplot(aes(x=MonthSeq.y, y=LogQ)) +
   geom_line() +
   ggtitle("Monthly Discharge")
 
@@ -288,6 +291,8 @@ marsFrame %>%
 
 ```
 
+Problem: With the fixed mean (level) in modlist1, there is no way to track the changing mean yearly level. When I tried to force the mean to vary.
+
 ```{r Residuals}
 plotResidPred(eList)
 #resids <- MARSSresiduals(marsfit)
@@ -296,22 +301,43 @@ autoplot.marssMLE(marssfit1,silent = TRUE)
 
 Z2=Z
 dim(Z2)= c(5,dim(Z)[3])
-A = Z2[,1:3] %*% marssfit$states[1:3,]
+A = Z2[,1:3] %*% marssfit1$states[1:3,]
 plot(diag(A))
 
 TT=dim(Z)[3]
 lev = rep(NA, TT)
 for (i in 1:TT){
-  lev[i] = Z[1, 1:3,i] %*% marssfit$states[1:3,i]
+  lev[i] = Z[1, 1:3,i] %*% marssfit1$states[1:3,i]
 }
 plot(lev)
 apply(Z,2,function(x){any(is.na(x))})
 
 plot(Daily$waterYear)
-poly() #use this for making yearly effects 
-#otherwise they will be highly correlated 
 ```
-MARSS DLM Residuals: 
+
+## Allow the level to vary
+
+The problem with `modlist2` is that the mean level of the data is not being tracked. The best model (per AIC) is a flat level. But we can clearly see that the mean level is changing. So we can force a time-varying level but we need to use a small enough Q so that it doesn't track the seasonal cycles.
+
+A Q of `1e-6` seems roughly right.
+```
+modlist1 = list( #all other arguments are left at default
+  Z = Z,
+  U = "zero",
+  A = "zero",
+  B = "identity",
+  Q = ldiag(list(1e-6,"q2","q3","q4","q5"))
+)
+```
+
+Now that we are tracking the mean level, we see something interesting. The timing of the peak is shifting (X4) and something odd happened in the amplitude of the seasonal cycle around time 200. I think that you can remove the linear year effect (X2). That will be captured by the time-varying level (X1). Regarding X3, the inference is that yes, this variable has an effect but that effect is not changing over time.
+
+```{r}
+autoplot.marssMLE(marssfit1, plot.type="xtT")
+```
+
+## MARSS DLM Residuals: 
+
 (1976-2009) Response residuals appear to have tails indicating the error distribution is not Gaussian. States (the effects matrix for covariates) appear to be mostly constant except for x3 (log-discharge) and x5 (cosine seasonality). x5 residuals have a significant tail at the lower end. This appears to be caused by the large dip around time point 350
 
 (1985-2022) Both ends of the response residuals are low
