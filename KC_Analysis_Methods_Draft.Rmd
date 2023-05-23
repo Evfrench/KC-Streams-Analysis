@@ -335,6 +335,46 @@ Now that we are tracking the mean level, we see something interesting. The timin
 ```{r}
 autoplot.marssMLE(marssfit1, plot.type="xtT")
 ```
+## Compute how the peak is moving
+
+Peaks are when the derivative is equal to zero. So we want to solve for the $t$ where
+
+$$(a \times sin(2 \pi t/12) + b \times cos(2 \pi t/12) )^\prime = 0$$
+$$ a \times cos(2 \pi t /12) - b \times sin(2 \pi t/12) = 0$$
+
+$$tan(2 \pi t/12) = a/b$$
+
+$$t = \frac{12 \times atan(a/b)}{2 \pi}$$
+Solving for this is a bit odd because as the angle changes through $\pi/2$ the `atan()` keeps jumping around. This function gets the location of the peak given $a$ and $b$ where seasonal model is $a sin() + b cos()$.
+
+```{r}
+# x is a vector of 2 numbers
+findpeak <- function(x){
+  a <- x[1]; b <- x[2]
+  if(a > 0 & b > 0) angle <- atan(a/b)
+  if(a > 0 & b < 0) angle <- pi/2 + atan(a/-b)
+  if(a < 0 & b < 0) angle <- pi + atan(-a/-b)
+  if(a < 0 & b > 0) angle <- 3*pi/2 + atan(-a/b)
+  if(a == 0 & b > 0) angle <- 0
+  if(a == 0 & b < 0) angle <- pi
+  if(b == 0 & a > 0) angle <- pi/2
+  if(b == 0 & a < 0) angle <- 3*pi/2
+  if(a == 0 & b == 0) angle <- NA
+  return(12*angle/(2*pi))
+}
+```
+
+So it looks like something happened and the peak shifted by a few days. Scale is on y axis is months.
+```{r}
+peak <- apply(marssfit1$states[4:5,],2,findpeak)
+plot(peak, type="l")
+```
+
+You can also look now at the amplitude: low to high. This one is easy. Amplitude is $a^2 + b^2$. This one shows that the cycle amplitude has generally stayed the same except whatever weird thing happened.
+```{r}
+amplitude <- sqrt(marssfit1$states[4,]^2 + marssfit1$states[5,]^2)
+plot(amplitude, type="l")
+```
 
 ## MARSS DLM Residuals: 
 
