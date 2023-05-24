@@ -1,0 +1,159 @@
+This file will be used to perform the same WRTDS and DLM analysis done to the dissolved oxygen concentration. This will also use Henry's Law 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(forecast)
+library(EGRET)
+library(EGRETci)
+library(MARSS)
+library(marssTMB)
+library(tidyverse)
+library(dplyr)
+library(data.table)
+library(smwrBase)
+library(timetk)
+library(miscTools)
+library(RSocrata)
+source('./functions/get_socrata_data_func.R')
+```
+
+This file will not bother assigning some of the data as it assumes all the oxygen code has been run and everything is already in the environment
+
+```{r Temperature Plots}
+# Do a quick plot of the data
+GreenRiverDataExpanded %>%
+  ggplot(aes(x=CollectDate, y=Temperature)) +
+  geom_line() +
+  ggtitle("Green River Temperature")
+
+```
+
+
+```{r Treat Data}
+# Pull out Just the stuff we need and replace the 0's with empty values
+GreenTemp <- subset(GreenRiverDataExpanded, select = c(CollectDate, Year, Month, Temperature))
+GreenTemp <- replace(GreenTemp, GreenTemp==0.00, NA)
+GreenTemp <- GreenTemp %>% 
+  rename(Date = CollectDate,
+         ConcAve = Temperature)
+
+# Add all of the missing fields for WRTDS
+GreenTemp$ConcLow <- GreenTemp$ConcAve
+GreenTemp$ConcHigh <- GreenTemp$ConcAve
+GreenTemp$DecYear <- decimal_date(GreenTemp$Date)
+GreenTemp$SinDY <- sin(2*pi*GreenTemp$DecYear)
+GreenTemp$CosDY <- cos(2*pi*GreenTemp$DecYear)
+GreenTemp$Uncen <- NA
+GreenTemp$Uncen <- c(1)
+GreenTemp$Date <- as_date(GreenTemp$Date)
+GreenTemp$RefDate <- as_date("1850-01-01")
+GreenTemp$Julian<- difftime(GreenTemp$Date, GreenTemp$RefDate, units = "days")
+GreenTemp$Julian <- as.integer(GreenTemp$Julian)
+GreenTemp$MonthSeq <- interval(GreenTemp$RefDate, GreenTemp$Date) %/% months(1)
+GreenTemp$waterYear <- waterYear(GreenTemp$Date, numeric = FALSE)
+
+# Set the window to be analyized
+yr_frst <- as_date("1980-01-01")
+yr_last <- as_date("2022-12-31")
+GreenTemp <- GreenTemp[GreenTemp[, "Date"] >= yr_frst & GreenTemp[, "Date"] <= yr_last,]
+row.names(GreenTemp) <- NULL
+
+#Quick plot of new data
+GreenTemp %>%
+  ggplot(aes(x=Date, y=ConcAve)) +
+  geom_line() +
+  ggtitle("Green River Temp")
+```
+
+
+
+
+The WRTDS/EGRET model is intended to be used on dissolved nutrients. It will be interesting to see how it handles temperature.
+```{r WRTDS/EGRET model}
+Sample2 <- na.omit(GreenTemp) # Create the sample data frame
+row.names(Sample2) <- NULL
+
+eList2 <- mergeReport(INFO, Daily, Sample2) # Merge the data with the special EGRET function
+
+# Run WRTDS/EGRET model:
+eList2 <- modelEstimation(eList2)
+
+# Test some of the plotting functions:
+plotConcTimeDaily(eList2)
+plotConcHist(eList2)
+multiPlotDataOverview(eList = eList)
+errorStats(eList2) 
+```
+
+
+
+
+
+
+
+
+
+```{r }
+# Merge the water quality (Sample) and the discharge (Daily) frames
+# Discharge dataframe has daily records, while the quality frame has bi-monthly
+# This means the response variable will have lots of missing entries
+tempFrame <- data_frame()
+tempFrame <- full_join(Sample, Daily, by = "Date") 
+tempFrame <- arrange(tempFrame,tempFrame$Date)
+tempFrame$SinDY <- sin(2*pi*tempFrame$DecYear.y) 
+tempFrame$CosDY <- cos(2*pi*tempFrame$DecYear.y) 
+
+# Compress all the data into monthly averages
+yearFrame2 <- tempFrame %>% mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(decyear = as.double((mean(DecYear.y))))
+QFrame2 <- tempFrame %>% mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(LogQ = as.double(mean(LogQ))) 
+sineFrame2 <- tempFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(SinDY = as.double(mean(SinDY)))
+cosFrame2 <- tempFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(CosDY = as.double(mean(CosDY)))
+TFrame<- tempFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
+  group_by(MonthSeq.y) %>%
+    summarize(logTemp = as.double(log(mean(ConcAve, na.rm = TRUE))))
+
+TT = nrow(TFrame)
+
+# Response variable: log(Dissolved Oxygen)
+TFrame$logTemp[is.nan(TFrame$logTemp)] <- NA
+Temp = t(TFrame$logTemp)
+
+#Covariates: Time(as the decimal year), Daily ave discharge (logQ), seasonal effects (sin and cos of the decimal year)
+Z = array(NA,c(1,5,TT))
+Z[1,1,] = c(1)
+Z[1,2,] = yearFrame2$decyear
+Z[1,3,] = QFrame2$LogQ
+Z[1,4,] = sineFrame2$SinDY
+Z[1,5,] = cosFrame2$CosDY
+
+modlistT = list( #all other arguments are left at default
+  Z = Z,
+  U = "zero",
+  A = "zero",
+  B = "identity",
+  Q = ldiag(list("q1","q2","q3","q4","q5"))
+)
+
+# initial effects were set to 0, maybe 1 would be better
+# EEH: This approach is not working; need to use a year effect; see below
+marssfitT <- MARSS(Temp, model = modlistT, inits = list(x0 = matrix(c(0),5,1)),  control = list(maxit=3000)
+                , method = "TMB"
+                 )
+```
+
+```{r Residuals}
+autoplot.marssMLE(marssfitT,silent = TRUE)
+
+
+```
+
+

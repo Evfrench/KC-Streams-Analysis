@@ -90,7 +90,7 @@ From the WRTDS_Sample_Workflow file, it looks like the sample dataframe
 needs a number of fields that were not imported from the KC database, so
 they have to be added manually
 
-The initial window 
+The initial window
 
 ```{r format data for WRTDS}
 # Pull out Just the stuff we need and replace the 0's with empty values
@@ -131,7 +131,7 @@ The model appears to converge. I still need to do some diagnostics
 
 ```{r WRTDS Attempt}
 
-yr_frst <- as_date("1985-01-01")
+yr_frst <- as_date("1980-01-01")
 yr_last <- as_date("2022-12-31")
 GreenDO <- GreenDO[GreenDO[, "Date"] >= yr_frst & GreenDO[, "Date"] <= yr_last,]
 row.names(GreenDO) <- NULL
@@ -185,30 +185,38 @@ egretsurfaces <- eList[["surfaces"]]
 EGRET::multiPlotDataOverview(eList = eList)
 EGRET::dataOverview(Daily, Sample)
 EGRET::plot15(eList, yr_frst, yr_last) #This function is not working currently
-EGRET::errorStats(eList) #Neither is thnis one
+EGRET::errorStats(eList) 
 ```
-The model has converged, excellent!
-Next steps: Dig into the "surfaces" array and extract any data available.
-Targets: response variable estimates, coefficient values, R-squared or other model fit data, confidence intervals, residuals.
 
+The model has converged, excellent! Next steps: Dig into the "surfaces"
+array and extract any data available. Targets: response variable
+estimates, coefficient values, R-squared or other model fit data,
+confidence intervals, residuals.
 
-
-
+Stats known: R-squared = 0.792 for logDO concentration, R-squared =
+0.997 for LogDO flux (how does this get calculated?)
 
 # DLM
 
 Everything should be in the correct form? The model took about half an
 hour to run 1000 iterations but it failed to converge.
 
-1st Attempt to fix: switch to marssTMB with the same data structure, using TMB prevents me from setting the intercept to be constant
-  Results: MARSS still ran for 20 plus minutes so I quit before it finished
+1st Attempt to fix: switch to marssTMB with the same data structure,
+using TMB prevents me from setting the intercept to be constant Results:
+MARSS still ran for 20 plus minutes so I quit before it finished
 
-2nd Attempt: Use marssTMB and compress covariates down to monthly averages
-  Results: The model has converged! This does use only monthly averages. I am a little concerned this model may be too "flattened" but we will see
-  
-3rd Attempt: Changed window to 1975-2022, this is essentially the entire record of Green River. The model output gave multiple NaN warnings and failed to converge. (specifically, it gave a false convergence warning). 
+2nd Attempt: Use marssTMB and compress covariates down to monthly
+averages Results: The model has converged! This does use only monthly
+averages. I am a little concerned this model may be too "flattened" but
+we will see
 
-4th Attempt: Changed window to 1985-2022 in order to cut off some empty fields. I need to get records of exactly when the tech boom and urban consolidation. Best guess is 1990s? 5 years prior should work
+3rd Attempt: Changed window to 1975-2022, this is essentially the entire
+record of Green River. The model output gave multiple NaN warnings and
+failed to converge. (specifically, it gave a false convergence warning).
+
+4th Attempt: Changed window to 1985-2022 in order to cut off some empty
+fields. I need to get records of exactly when the tech boom and urban
+consolidation. Best guess is 1990s? 5 years prior should work
 
 ```{r DLM Attempt}
 # Merge the water quality (Sample) and the discharge (Daily) frames
@@ -256,7 +264,7 @@ modlist1 = list( #all other arguments are left at default
   U = "zero",
   A = "zero",
   B = "identity",
-  Q = ldiag(list(1e-6,"q2","q3","q4","q5"))
+  Q = ldiag(list(5e-6,"q2","q3","q4","q5"))
 )
 
 modlist2 = list( #all other arguments are left at default
@@ -276,22 +284,14 @@ marssfit2 <- MARSS(DO, model = modlist2, inits = list(x0 = matrix(c(0),5,1)),  c
                 , method = "TMB"
                  )
 ```
-The Model has successfully converged, I would like to get a visual comparison, look at r-squared values, and compare the change in effects over time. (1976-2009)
 
-```{r}
-QFrame %>%
-  ggplot(aes(x=MonthSeq.y, y=LogQ)) +
-  geom_line() +
-  ggtitle("Monthly Discharge")
+The Model has successfully converged, I would like to get a visual
+comparison, look at r-squared values, and compare the change in effects
+over time. (1976-2009)
 
-marsFrame %>%
-  ggplot(aes(x=Date, y=LogQ)) +
-  geom_line() +
-  ggtitle("Daily Discharge")
-
-```
-
-Problem: With the fixed mean (level) in modlist1, there is no way to track the changing mean yearly level. When I tried to force the mean to vary.
+Problem: With the fixed mean (level) in modlist1, there is no way to
+track the changing mean yearly level. When I tried to force the mean to
+vary.
 
 ```{r Residuals}
 plotResidPred(eList)
@@ -312,15 +312,20 @@ for (i in 1:TT){
 plot(lev)
 apply(Z,2,function(x){any(is.na(x))})
 
-plot(Daily$waterYear)
+rSquared() #use this to calculate R-squared value for each
 ```
 
 ## Allow the level to vary
 
-The problem with `modlist2` is that the mean level of the data is not being tracked. The best model (per AIC) is a flat level. But we can clearly see that the mean level is changing. So we can force a time-varying level but we need to use a small enough Q so that it doesn't track the seasonal cycles.
+The problem with `modlist2` is that the mean level of the data is not
+being tracked. The best model (per AIC) is a flat level. But we can
+clearly see that the mean level is changing. So we can force a
+time-varying level but we need to use a small enough Q so that it
+doesn't track the seasonal cycles.
 
 A Q of `1e-6` seems roughly right.
-```
+
+```         
 modlist1 = list( #all other arguments are left at default
   Z = Z,
   U = "zero",
@@ -330,22 +335,32 @@ modlist1 = list( #all other arguments are left at default
 )
 ```
 
-Now that we are tracking the mean level, we see something interesting. The timing of the peak is shifting (X4) and something odd happened in the amplitude of the seasonal cycle around time 200. I think that you can remove the linear year effect (X2). That will be captured by the time-varying level (X1). Regarding X3, the inference is that yes, this variable has an effect but that effect is not changing over time.
+Now that we are tracking the mean level, we see something interesting.
+The timing of the peak is shifting (X4) and something odd happened in
+the amplitude of the seasonal cycle around time 200. I think that you
+can remove the linear year effect (X2). That will be captured by the
+time-varying level (X1). Regarding X3, the inference is that yes, this
+variable has an effect but that effect is not changing over time.
 
 ```{r}
 autoplot.marssMLE(marssfit1, plot.type="xtT")
+autoplot.marssMLE(marssfit2, plot.type="xtT")
 ```
+
 ## Compute how the peak is moving
 
-Peaks are when the derivative is equal to zero. So we want to solve for the $t$ where
+Peaks are when the derivative is equal to zero. So we want to solve for
+the $t$ where
 
 $$(a \times sin(2 \pi t/12) + b \times cos(2 \pi t/12) )^\prime = 0$$
 $$ a \times cos(2 \pi t /12) - b \times sin(2 \pi t/12) = 0$$
 
 $$tan(2 \pi t/12) = a/b$$
 
-$$t = \frac{12 \times atan(a/b)}{2 \pi}$$
-Solving for this is a bit odd because as the angle changes through $\pi/2$ the `atan()` keeps jumping around. This function gets the location of the peak given $a$ and $b$ where seasonal model is $a sin() + b cos()$.
+$$t = \frac{12 \times atan(a/b)}{2 \pi}$$ Solving for this is a bit odd
+because as the angle changes through $\pi/2$ the `atan()` keeps jumping
+around. This function gets the location of the peak given $a$ and $b$
+where seasonal model is $a sin() + b cos()$.
 
 ```{r}
 # x is a vector of 2 numbers
@@ -364,23 +379,41 @@ findpeak <- function(x){
 }
 ```
 
-So it looks like something happened and the peak shifted by a few days. Scale is on y axis is months.
+So it looks like something happened and the peak shifted by a few days.
+Scale is on y axis is months.
+
 ```{r}
 peak <- apply(marssfit1$states[4:5,],2,findpeak)
 plot(peak, type="l")
 ```
 
-You can also look now at the amplitude: low to high. This one is easy. Amplitude is $a^2 + b^2$. This one shows that the cycle amplitude has generally stayed the same except whatever weird thing happened.
+You can also look now at the amplitude: low to high. This one is easy.
+Amplitude is $a^2 + b^2$. This one shows that the cycle amplitude has
+generally stayed the same except whatever weird thing happened.
+
 ```{r}
 amplitude <- sqrt(marssfit1$states[4,]^2 + marssfit1$states[5,]^2)
 plot(amplitude, type="l")
 ```
 
-## MARSS DLM Residuals: 
+## MARSS DLM Residuals:
 
-(1976-2009) Response residuals appear to have tails indicating the error distribution is not Gaussian. States (the effects matrix for covariates) appear to be mostly constant except for x3 (log-discharge) and x5 (cosine seasonality). x5 residuals have a significant tail at the lower end. This appears to be caused by the large dip around time point 350
+(1976-2009) Response residuals appear to have tails indicating the error
+distribution is not Gaussian. States (the effects matrix for covariates)
+appear to be mostly constant except for x3 (log-discharge) and x5
+(cosine seasonality). x5 residuals have a significant tail at the lower
+end. This appears to be caused by the large dip around time point 350
 
-(1985-2022) Both ends of the response residuals are low
-Further plan: This analysis will focus on temperature and DO of KC water bodies. Our hypothesis is that water quality metrics have been staying constant despite increasing temperature, and this is due to improvements in water management practices such as increased stormwater infrastrucure, more awareness of water quality by locals, etc. (quantifying this will be challenging, as of now we need to determine if there even is a long term trend)
+(1985-2022) Both ends of the response residuals are low Further plan:
+This analysis will focus on temperature and DO of KC water bodies. Our
+hypothesis is that water quality metrics have been staying constant
+despite increasing temperature, and this is due to improvements in water
+management practices such as increased stormwater infrastrucure, more
+awareness of water quality by locals, etc. (quantifying this will be
+challenging, as of now we need to determine if there even is a long term
+trend)
 
-Addendum: Move the window of years you want to analyze to more recent times. Apparently the missing 4 years should not bias the data too much, at least for the MARSS model. Need to check how this missing data will affect the WRTDS model.
+Addendum: Move the window of years you want to analyze to more recent
+times. Apparently the missing 4 years should not bias the data too much,
+at least for the MARSS model. Need to check how this missing data will
+affect the WRTDS model.
