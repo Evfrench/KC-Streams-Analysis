@@ -74,7 +74,11 @@ The WRTDS/EGRET model is intended to be used on dissolved nutrients. It will be 
 Sample2 <- na.omit(GreenTemp) # Create the sample data frame
 row.names(Sample2) <- NULL
 
-eList2 <- mergeReport(INFO, Daily, Sample2) # Merge the data with the special EGRET function
+INFO2<- readNWISInfo(siteID,"00010")
+INFO2$shortName <- "Green River at Aurburn, WA"
+
+
+eList2 <- mergeReport(INFO2, Daily, Sample2) # Merge the data with the special EGRET function
 
 # Run WRTDS/EGRET model:
 eList2 <- modelEstimation(eList2)
@@ -82,10 +86,10 @@ eList2 <- modelEstimation(eList2)
 # Test some of the plotting functions:
 plotConcTimeDaily(eList2)
 plotConcHist(eList2)
-multiPlotDataOverview(eList = eList)
+multiPlotDataOverview(eList = eList2)
 errorStats(eList2) 
 ```
-
+R-Squared Value is 0.835, the flux is 0.925
 
 
 
@@ -99,7 +103,7 @@ errorStats(eList2)
 # Discharge dataframe has daily records, while the quality frame has bi-monthly
 # This means the response variable will have lots of missing entries
 tempFrame <- data_frame()
-tempFrame <- full_join(Sample, Daily, by = "Date") 
+tempFrame <- full_join(Sample2, Daily, by = "Date") 
 tempFrame <- arrange(tempFrame,tempFrame$Date)
 tempFrame$SinDY <- sin(2*pi*tempFrame$DecYear.y) 
 tempFrame$CosDY <- cos(2*pi*tempFrame$DecYear.y) 
@@ -140,7 +144,7 @@ modlistT = list( #all other arguments are left at default
   U = "zero",
   A = "zero",
   B = "identity",
-  Q = ldiag(list("q1","q2","q3","q4","q5"))
+  Q = ldiag(list(5e-6,"q2","q3","q4","q5"))
 )
 
 # initial effects were set to 0, maybe 1 would be better
@@ -152,8 +156,52 @@ marssfitT <- MARSS(Temp, model = modlistT, inits = list(x0 = matrix(c(0),5,1)), 
 
 ```{r Residuals}
 autoplot.marssMLE(marssfitT,silent = TRUE)
+Z2=Z
+dim(Z2)= c(5,dim(Z)[3])
+A = Z2[,1:3] %*% marssfit1$states[1:3,]
+plot(diag(A))
 
+TT=dim(Z)[3]
+lev = rep(NA, TT)
+for (i in 1:TT){
+  lev[i] = Z[1, 1:3,i] %*% marssfitT$states[1:3,i]
+}
+plot(lev)
+apply(Z,2,function(x){any(is.na(x))})
 
 ```
 
+```{r}
+# x is a vector of 2 numbers
+findpeak <- function(x){
+  a <- x[1]; b <- x[2]
+  if(a > 0 & b > 0) angle <- atan(a/b)
+  if(a > 0 & b < 0) angle <- pi/2 + atan(a/-b)
+  if(a < 0 & b < 0) angle <- pi + atan(-a/-b)
+  if(a < 0 & b > 0) angle <- 3*pi/2 + atan(-a/b)
+  if(a == 0 & b > 0) angle <- 0
+  if(a == 0 & b < 0) angle <- pi
+  if(b == 0 & a > 0) angle <- pi/2
+  if(b == 0 & a < 0) angle <- 3*pi/2
+  if(a == 0 & b == 0) angle <- NA
+  return(12*angle/(2*pi))
+}
+```
 
+So it looks like something happened and the peak shifted by a few days.
+Scale is on y axis is months.
+
+```{r}
+peak <- apply(marssfitT$states[4:5,],2,findpeak)
+plot(peak, type="l")
+```
+
+
+You can also look now at the amplitude: low to high. This one is easy.
+Amplitude is $a^2 + b^2$. This one shows that the cycle amplitude has
+generally stayed the same except whatever weird thing happened.
+
+```{r}
+amplitude <- sqrt(marssfitT$states[4,]^2 + marssfitT$states[5,]^2)
+plot(amplitude, type="l")
+```
