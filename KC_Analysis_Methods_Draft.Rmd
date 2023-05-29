@@ -143,6 +143,7 @@ parameter_cd<-"00300" #5 digit USGS code, this is the dissolved oxygen
 #Sample <- readNWISSample(siteID,parameter_cd,startDate,endDate) We collected this from the 
 #Sample <- generate_egret_sample_from_water_quality_data(GreenRiverDataExpanded, unique(GreenRiverData$Parameter)) Commenting out until it works
 Sample <- na.omit(GreenDO) #The sample data cannot be retrieve from the NWIS because it 
+Sample <- distinct(Sample)
 # comes from King County
 # Example of generating egret sample data from the expanded ds
 #Sample = NULL
@@ -175,10 +176,22 @@ eList <- mergeReport(INFO, Daily, Sample)
 # Run WRTDS model:
 eList <- modelEstimation(eList)
 
+yeartest <- setupYears(eList$Daily)
 # Test some of the plotting functions:
 plotConcTimeDaily(eList)
-
-plotConcHist(eList)
+genericEGRETDotPlot(x = yeartest$DecYear,
+                    y = c(yeartest$Conc),
+                    xlim = c(1995, 2022),
+                    ylim = c(10, 12),
+                    xlab = "Date",
+                    ylab = "DO concentration")
+genericEGRETDotPlot(x = yeartest$DecYear,
+                    y = c(yeartest$FNConc),
+                    xlim = c(1995, 2022),
+                    ylim = c(10, 12),
+                    xlab = "Date",
+                    ylab = "Flow-normalized DO")
+plotConcHist(eList, "1995","2015")
 
 # Why aren't some of these working?
 egretsurfaces <- eList[["surfaces"]]
@@ -312,8 +325,14 @@ for (i in 1:TT){
 plot(lev)
 apply(Z,2,function(x){any(is.na(x))})
 
-rSquared() #use this to calculate R-squared value for each
+DOFrame$States <- t(marssfit1$states)
+DOFrame$Est <- DOFrame$States[,"X1"]*Z[1,1,] + DOFrame$States[,"X2"]*yearFrame$decyear + DOFrame$States[,"X3"]*QFrame$LogQ + 
+DOFrame$States[,"X4"]*sineFrame$SinDY + DOFrame$States[,"X5"]*cosFrame$CosDY
+DOFrame2 <- na.omit(DOFrame)
+rSquared(DOFrame2$logDO, DOFrame2$logDO - DOFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
 ```
+Note: R-squared for DLM is 0.7988926, this is better than the EGRET model
+
 
 ## Allow the level to vary
 
