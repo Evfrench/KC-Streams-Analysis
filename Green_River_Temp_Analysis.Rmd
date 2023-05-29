@@ -72,6 +72,7 @@ GreenTemp %>%
 The WRTDS/EGRET model is intended to be used on dissolved nutrients. It will be interesting to see how it handles temperature.
 ```{r WRTDS/EGRET model}
 Sample2 <- na.omit(GreenTemp) # Create the sample data frame
+Sample2 <- distinct(Sample2)
 row.names(Sample2) <- NULL
 
 eList2 <- mergeReport(INFO, Daily, Sample2) # Merge the data with the special EGRET function
@@ -157,3 +158,31 @@ autoplot.marssMLE(marssfitT,silent = TRUE)
 ```
 
 
+
+# Ideal DO Estimation Using Henry's Law
+To test the hypothesis that the DO is following fluxuations in temperature, I will use the temperature data to calculate estimates of DO according to Henry's Gas law. I will use the following equations, provided by D. Tromans (2000)
+$$ln(k)=[0.046T^2 + 203.35T \times ln(T/298) - (299.378 + 0.092T)(T-298)-20.591 \times 10^3]/[8.3144\times T]$$
+$$ C=k\times P(O2) \space | \space C(molO2/kgH2O),\space P(atm)$$
+$$ DO(mg/L) = C \times 32,000 mg/mol \space O2 \times 0.99975 kg/L \space H2O $$
+
+
+```{r Henry's Law}
+# Start with the raw temperature data, We will assume the partial oxygen pressure remains constant at 0.21 atm to keep from overcomplicating things
+Sample2$KelvinTemp <- Sample2$ConcAve + 273.15
+
+Sample2$HenryK <- exp((0.046*(Sample2$KelvinTemp^2) + 203.35*Sample2$KelvinTemp*log(Sample2$KelvinTemp/298) - (299.378 + 0.092*Sample2$KelvinTemp)*(Sample2$KelvinTemp - 298) - 20.591*10^3)/(8.3144*Sample2$KelvinTemp))
+
+Sample2$DOest <- Sample2$HenryK * 0.21 * 32000 * 0.99975
+
+ggplot() +
+  geom_point(data = Sample, aes(x = Date, y = ConcAve), color = "blue") + # must include argument label "data"
+  geom_point(data = Sample2, aes(x = Date, y = DOest), color = "red") +
+  ggtitle("Green River DO, Observed vs Henry's law Estimate")
+
+```
+A couple of things stick out of this plot:
+1. There are a few instances where the water is apparently supersaturated with oxygen. This is interesting but I am not sure how important it is to what I need to get done right now
+2. The maximum concentrations line up pretty closely until 2005 when observed maximum values become lower more consistently. I would like to ask some of the Fish folks if they can help me use some sort of method to determine if this behavior is statistically significant. There seems to be a change to the eye, but the eye is unreliable.
+3. The minimum observed concentrations are consistently lower than the predicted concentrations. These are during the warmest times on the year. It could be attributable to a few things. The low flow could lead to the water not being mixed as well, and therefor hampering gas exchange. The warmer water could have a higher contaminant concentration in it and therefor a larger BOD and more respiration. There could be a higher concentration of ions and metals that reduce the solubility of oxygen
+
+In-phase with Henry's law and the more out-of-phase as we continue?
