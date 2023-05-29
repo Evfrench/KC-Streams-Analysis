@@ -104,7 +104,7 @@ R-Squared Value is 0.835, the flux is 0.925
 # Discharge dataframe has daily records, while the quality frame has bi-monthly
 # This means the response variable will have lots of missing entries
 tempFrame <- data_frame()
-tempFrame <- full_join(Sample, Daily, by = "Date") 
+tempFrame <- full_join(Sample2, Daily, by = "Date") 
 tempFrame <- arrange(tempFrame,tempFrame$Date)
 tempFrame$SinDY <- sin(2*pi*tempFrame$DecYear.y) 
 tempFrame$CosDY <- cos(2*pi*tempFrame$DecYear.y) 
@@ -189,8 +189,6 @@ findpeak <- function(x){
 }
 ```
 
-<<<<<<< HEAD
-
 # Ideal DO Estimation Using Henry's Law
 To test the hypothesis that the DO is following fluxuations in temperature, I will use the temperature data to calculate estimates of DO according to Henry's Gas law. I will use the following equations, provided by D. Tromans (2000)
 $$ln(k)=[0.046T^2 + 203.35T \times ln(T/298) - (299.378 + 0.092T)(T-298)-20.591 \times 10^3]/[8.3144\times T]$$
@@ -217,8 +215,11 @@ A couple of things stick out of this plot:
 2. The maximum concentrations line up pretty closely until 2005 when observed maximum values become lower more consistently. I would like to ask some of the Fish folks if they can help me use some sort of method to determine if this behavior is statistically significant. There seems to be a change to the eye, but the eye is unreliable.
 3. The minimum observed concentrations are consistently lower than the predicted concentrations. These are during the warmest times on the year. It could be attributable to a few things. The low flow could lead to the water not being mixed as well, and therefor hampering gas exchange. The warmer water could have a higher contaminant concentration in it and therefor a larger BOD and more respiration. There could be a higher concentration of ions and metals that reduce the solubility of oxygen
 
-In-phase with Henry's law and the more out-of-phase as we continue?
-=======
+In-phase with Henry's law and the more out-of-phase as we continue
+
+So it looks like something happened and the peak shifted by a few days.
+Scale is on y axis is months.
+
 So it looks like something happened and the peak shifted by a few days.
 Scale is on y axis is months.
 
@@ -236,4 +237,4 @@ generally stayed the same except whatever weird thing happened.
 amplitude <- sqrt(marssfitT$states[4,]^2 + marssfitT$states[5,]^2)
 plot(amplitude, type="l")
 ```
->>>>>>> b3126308f8737234ead125cdabd4ec1cc25991b6
+
