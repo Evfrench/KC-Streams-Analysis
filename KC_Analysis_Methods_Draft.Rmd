@@ -181,23 +181,21 @@ yeartest <- setupYears(eList$Daily)
 plotConcTimeDaily(eList)
 genericEGRETDotPlot(x = yeartest$DecYear,
                     y = c(yeartest$Conc),
-                    xlim = c(1995, 2022),
+                    xlim = c(1980, 2022),
                     ylim = c(10, 12),
                     xlab = "Date",
                     ylab = "DO concentration")
 genericEGRETDotPlot(x = yeartest$DecYear,
                     y = c(yeartest$FNConc),
-                    xlim = c(1995, 2022),
+                    xlim = c(1980, 2022),
                     ylim = c(10, 12),
                     xlab = "Date",
                     ylab = "Flow-normalized DO")
-plotConcHist(eList, "1995","2015")
+plotConcHist(eList, "1985","2015")
 
 # Why aren't some of these working?
-egretsurfaces <- eList[["surfaces"]]
 EGRET::multiPlotDataOverview(eList = eList)
 EGRET::dataOverview(Daily, Sample)
-EGRET::plot15(eList, yr_frst, yr_last) #This function is not working currently
 EGRET::errorStats(eList) 
 ```
 
@@ -208,6 +206,9 @@ confidence intervals, residuals.
 
 Stats known: R-squared = 0.792 for logDO concentration, R-squared =
 0.997 for LogDO flux (how does this get calculated?)
+
+If we look at the annual DO, annual average is decreasing 
+
 
 # DLM
 
@@ -325,10 +326,12 @@ for (i in 1:TT){
 plot(lev)
 apply(Z,2,function(x){any(is.na(x))})
 
+
 DOFrame$States <- t(marssfit1$states)
-DOFrame$Est <- DOFrame$States[,"X1"]*Z[1,1,] + DOFrame$States[,"X2"]*yearFrame$decyear + DOFrame$States[,"X3"]*QFrame$LogQ + 
-DOFrame$States[,"X4"]*sineFrame$SinDY + DOFrame$States[,"X5"]*cosFrame$CosDY
+DOFrame$Est <- DOFrame$States[,"X1"]*Z[1,1,] + DOFrame$States[,"X2"]*yearFrame$decyear + DOFrame$States[,"X3"]*QFrame$LogQ + DOFrame$States[,"X4"]*sineFrame$SinDY + DOFrame$States[,"X5"]*cosFrame$CosDY
 DOFrame2 <- na.omit(DOFrame)
+DOFrame2 <- left_join(DOFrame2, marsFrame, by = "MonthSeq.y")
+DOFrame2 <- distinct(DOFrame2)
 rSquared(DOFrame2$logDO, DOFrame2$logDO - DOFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
 ```
 Note: R-squared for DLM is 0.7988926, this is better than the EGRET model

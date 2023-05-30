@@ -84,19 +84,27 @@ eList2 <- mergeReport(INFO2, Daily, Sample2) # Merge the data with the special E
 # Run WRTDS/EGRET model:
 eList2 <- modelEstimation(eList2)
 
+yeartest2 <- setupYears(eList2$Daily)
+
+genericEGRETDotPlot(x = yeartest2$DecYear,
+                    y = c(yeartest2$Conc),
+                    xlim = c(1985, 2022),
+                    ylim = c(9, 11),
+                    xlab = "Date",
+                    ylab = "Average Stream Temp (Celcius)")
+genericEGRETDotPlot(x = yeartest2$DecYear,
+                    y = c(yeartest2$FNConc),
+                    xlim = c(1985, 2022),
+                    ylim = c(9, 11),
+                    xlab = "Date",
+                    ylab = "Flow-Normalized Stream Temp")
 # Test some of the plotting functions:
 plotConcTimeDaily(eList2)
 plotConcHist(eList2)
 multiPlotDataOverview(eList = eList2)
 errorStats(eList2) 
 ```
-R-Squared Value is 0.835, the flux is 0.925
-
-
-
-
-
-
+R-Squared Value is 0.831, the flux is 0.925
 
 
 ```{r }
@@ -124,13 +132,13 @@ cosFrame2 <- tempFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
     summarize(CosDY = as.double(mean(CosDY)))
 TFrame<- tempFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
   group_by(MonthSeq.y) %>%
-    summarize(logTemp = as.double(log(mean(ConcAve, na.rm = TRUE))))
+    summarize(Temp = as.double(mean(ConcAve, na.rm = TRUE)))
 
 TT = nrow(TFrame)
 
 # Response variable: log(Dissolved Oxygen)
-TFrame$logTemp[is.nan(TFrame$logTemp)] <- NA
-Temp = t(TFrame$logTemp)
+TFrame$Temp[is.nan(TFrame$Temp)] <- NA
+Temp = t(TFrame$Temp)
 
 #Covariates: Time(as the decimal year), Daily ave discharge (logQ), seasonal effects (sin and cos of the decimal year)
 Z = array(NA,c(1,5,TT))
@@ -159,7 +167,7 @@ marssfitT <- MARSS(Temp, model = modlistT, inits = list(x0 = matrix(c(0),5,1)), 
 autoplot.marssMLE(marssfitT,silent = TRUE)
 Z2=Z
 dim(Z2)= c(5,dim(Z)[3])
-A = Z2[,1:3] %*% marssfit1$states[1:3,]
+A = Z2[,1:3] %*% marssfitT$states[1:3,]
 plot(diag(A))
 
 TT=dim(Z)[3]
@@ -170,7 +178,19 @@ for (i in 1:TT){
 plot(lev)
 apply(Z,2,function(x){any(is.na(x))})
 
+TFrame$States <- t(marssfitT$states)
+TFrame$Est <- TFrame$States[,"X1"]*Z[1,1,] + TFrame$States[,"X2"]*yearFrame$decyear + TFrame$States[,"X3"]*QFrame$LogQ + 
+TFrame$States[,"X4"]*sineFrame$SinDY + TFrame$States[,"X5"]*cosFrame$CosDY
+TFrame2 <- na.omit(TFrame)
+rSquared(TFrame2$Temp, TFrame2$Temp - TFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
+
+
+errtest <- na.omit(full_join(Sample2, eList2$Daily, by = "Date"))
+errtest$reds <- errtest$ConcAve - errtest$ConcDay
+rSquared(errtest$ConcAve, errtest$reds)
+
 ```
+R-squared for DLM T model is 0.863, R-square for EGRET T is 0.912
 
 ```{r}
 # x is a vector of 2 numbers
@@ -190,7 +210,8 @@ findpeak <- function(x){
 ```
 
 # Ideal DO Estimation Using Henry's Law
-To test the hypothesis that the DO is following fluxuations in temperature, I will use the temperature data to calculate estimates of DO according to Henry's Gas law. I will use the following equations, provided by D. Tromans (2000)
+To test the hypothesis that the DO is following fluctuation in temperature, I will use the temperature data to calculate estimates of DO according to Henry's Gas law. I will use the following equations, provided by D. Tromans (2000)
+
 $$ln(k)=[0.046T^2 + 203.35T \times ln(T/298) - (299.378 + 0.092T)(T-298)-20.591 \times 10^3]/[8.3144\times T]$$
 $$ C=k\times P(O2) \space | \space C(molO2/kgH2O),\space P(atm)$$
 $$ DO(mg/L) = C \times 32,000 mg/mol \space O2 \times 0.99975 kg/L \space H2O $$
@@ -206,11 +227,14 @@ Sample2$DOest <- Sample2$HenryK * 0.21 * 32000 * 0.99975
 
 ggplot() +
   geom_point(data = Sample, aes(x = Date, y = ConcAve), color = "blue") + # must include argument label "data"
-  geom_point(data = Sample2, aes(x = Date, y = DOest), color = "red") +
-  ggtitle("Green River DO, Observed vs Henry's law Estimate")
+  geom_line(data = Sample2, aes(x = Date, y = DOest), color = "red") +
+  geom_line(data = eList$Daily, aes(x = Date, y = ConcDay), color = "darkgreen") +
+   geom_line(data = DOFrame, aes(x = Date, y = Est), color = "darkgreen") +
+  ggtitle("Green River DO, Observed vs Henry's law Estimate & 2 Models")
 
 ```
 A couple of things stick out of this plot:
+
 1. There are a few instances where the water is apparently supersaturated with oxygen. This is interesting but I am not sure how important it is to what I need to get done right now
 2. The maximum concentrations line up pretty closely until 2005 when observed maximum values become lower more consistently. I would like to ask some of the Fish folks if they can help me use some sort of method to determine if this behavior is statistically significant. There seems to be a change to the eye, but the eye is unreliable.
 3. The minimum observed concentrations are consistently lower than the predicted concentrations. These are during the warmest times on the year. It could be attributable to a few things. The low flow could lead to the water not being mixed as well, and therefor hampering gas exchange. The warmer water could have a higher contaminant concentration in it and therefor a larger BOD and more respiration. There could be a higher concentration of ions and metals that reduce the solubility of oxygen
@@ -218,10 +242,8 @@ A couple of things stick out of this plot:
 In-phase with Henry's law and the more out-of-phase as we continue
 
 So it looks like something happened and the peak shifted by a few days.
-Scale is on y axis is months.
+Scale is on y axis is months.   
 
-So it looks like something happened and the peak shifted by a few days.
-Scale is on y axis is months.
 
 ```{r}
 peak <- apply(marssfitT$states[4:5,],2,findpeak)
