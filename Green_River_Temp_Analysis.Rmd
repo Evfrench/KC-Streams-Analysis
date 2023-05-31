@@ -63,7 +63,7 @@ row.names(GreenTemp) <- NULL
 GreenTemp %>%
   ggplot(aes(x=Date, y=ConcAve)) +
   geom_line() +
-  ggtitle("Green River Temp")
+  ggtitle("Green River Temp (Celcius)")
 ```
 
 
@@ -104,7 +104,7 @@ plotConcHist(eList2)
 multiPlotDataOverview(eList = eList2)
 errorStats(eList2) 
 ```
-R-Squared Value is 0.831, the flux is 0.925
+R-Squared Value (for log temp) is 0.831, the flux is 0.925
 
 
 ```{r }
@@ -153,7 +153,7 @@ modlistT = list( #all other arguments are left at default
   U = "zero",
   A = "zero",
   B = "identity",
-  Q = ldiag(list(5e-6,"q2","q3","q4","q5"))
+  Q = ldiag(list(1e-7,"q2","q3","q4","q5"))
 )
 
 # initial effects were set to 0, maybe 1 would be better
@@ -187,10 +187,10 @@ rSquared(TFrame2$Temp, TFrame2$Temp - TFrame2$Est) #use this to calculate R-squa
 
 errtest <- na.omit(full_join(Sample2, eList2$Daily, by = "Date"))
 errtest$reds <- errtest$ConcAve - errtest$ConcDay
-rSquared(errtest$ConcAve, errtest$reds)
+rSquared(errtest$ConcAve, errtest$reds) # rsquared value for the non-log space temperature in the WRTDS model
 
 ```
-R-squared for DLM T model is 0.863, R-square for EGRET T is 0.912
+R-squared for DLM T model is 0.863, R-squared for EGRET T is 0.912
 
 ```{r}
 # x is a vector of 2 numbers
@@ -226,12 +226,18 @@ Sample2$HenryK <- exp((0.046*(Sample2$KelvinTemp^2) + 203.35*Sample2$KelvinTemp*
 Sample2$DOest <- Sample2$HenryK * 0.21 * 32000 * 0.99975
 
 ggplot() +
-  geom_point(data = Sample, aes(x = Date, y = ConcAve), color = "blue") + # must include argument label "data"
-  geom_line(data = Sample2, aes(x = Date, y = DOest), color = "red") +
-  geom_line(data = eList$Daily, aes(x = Date, y = ConcDay), color = "darkgreen") +
-   geom_line(data = DOFrame, aes(x = Date, y = Est), color = "darkgreen") +
+  geom_point(data = Sample, aes(x = Date, y = ConcAve), color = "black") + # must include argument label "data"
+  geom_line(data = Sample2, aes(x = Date, y = DOest), color = "darkgreen") +
+  geom_line(data = eList$Daily, aes(x = Date, y = ConcDay), color = "blue") +
+  geom_line(data = DOFrame, aes(x = date, y = Est), color = "maroon") +
   ggtitle("Green River DO, Observed vs Henry's law Estimate & 2 Models")
 
+# r-squared value of the henry's law estimation
+HErr <- left_join(Sample, Sample2, by= "Date")
+HErr <- na.omit(HErr)
+HErr$resids <- HErr$DOest - HErr$ConcAve.x 
+HErr <- distinct(HErr)
+rSquared(HErr$ConcAve.x, HErr$resids)
 ```
 A couple of things stick out of this plot:
 

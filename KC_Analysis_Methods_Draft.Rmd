@@ -257,7 +257,7 @@ cosFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
     summarize(CosDY = as.double(mean(CosDY)))
 DOFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
   group_by(MonthSeq.y) %>%
-    summarize(logDO = as.double(log(mean(ConcAve, na.rm = TRUE))))
+    summarize(logDO = as.double(mean(ConcAve, na.rm = TRUE)))
 
 TT = nrow(DOFrame)
 
@@ -311,26 +311,32 @@ vary.
 plotResidPred(eList)
 #resids <- MARSSresiduals(marsfit)
 plotConcTimeDaily(eList)
-autoplot.marssMLE(marssfit1,silent = TRUE)
+autoplot.marssMLE(marssfit2,silent = TRUE)
 
 Z2=Z
 dim(Z2)= c(5,dim(Z)[3])
-A = Z2[,1:3] %*% marssfit1$states[1:3,]
+A = Z2[,1:3] %*% marssfit2$states[1:3,]
 plot(diag(A))
 
 TT=dim(Z)[3]
 lev = rep(NA, TT)
 for (i in 1:TT){
-  lev[i] = Z[1, 1:3,i] %*% marssfit1$states[1:3,i]
+  lev[i] = Z[1, 1:3,i] %*% marssfit2$states[1:3,i]
 }
 plot(lev)
 apply(Z,2,function(x){any(is.na(x))})
 
 
-DOFrame$States <- t(marssfit1$states)
+dateFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
+    group_by(MonthSeq.y) %>%
+    summarize(date = mean(Date))
+
+
+
+DOFrame$States <- t(marssfit2$states)
 DOFrame$Est <- DOFrame$States[,"X1"]*Z[1,1,] + DOFrame$States[,"X2"]*yearFrame$decyear + DOFrame$States[,"X3"]*QFrame$LogQ + DOFrame$States[,"X4"]*sineFrame$SinDY + DOFrame$States[,"X5"]*cosFrame$CosDY
+DOFrame <- left_join(DOFrame, dateFrame, by = "MonthSeq.y")
 DOFrame2 <- na.omit(DOFrame)
-DOFrame2 <- left_join(DOFrame2, marsFrame, by = "MonthSeq.y")
 DOFrame2 <- distinct(DOFrame2)
 rSquared(DOFrame2$logDO, DOFrame2$logDO - DOFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
 ```
@@ -405,7 +411,7 @@ So it looks like something happened and the peak shifted by a few days.
 Scale is on y axis is months.
 
 ```{r}
-peak <- apply(marssfit1$states[4:5,],2,findpeak)
+peak <- apply(marssfit2$states[4:5,],2,findpeak)
 plot(peak, type="l")
 ```
 
@@ -414,7 +420,7 @@ Amplitude is $a^2 + b^2$. This one shows that the cycle amplitude has
 generally stayed the same except whatever weird thing happened.
 
 ```{r}
-amplitude <- sqrt(marssfit1$states[4,]^2 + marssfit1$states[5,]^2)
+amplitude <- sqrt(marssfit2$states[4,]^2 + marssfit2$states[5,]^2)
 plot(amplitude, type="l")
 ```
 
