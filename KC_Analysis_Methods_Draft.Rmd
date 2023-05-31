@@ -119,6 +119,11 @@ GreenDO$waterYear <- waterYear(GreenDO$Date, numeric = FALSE)
 GreenDO %>%
   ggplot(aes(x=Date, y=ConcAve)) +
   geom_line() +
+  scale_x_date(date_labels = "%Y", date_breaks = "5 year") +
+#  geom_vline(xintercept = GreenDO[346,1], color = "red") +
+  geom_vline(xintercept = GreenDO[368,1], color = "red") +
+#  geom_vline(xintercept = GreenDO[418,1], color = "red") +
+#  geom_vline(xintercept = GreenDO[438,1], color = "red") +
   ggtitle("Green River DO")
 ```
 
