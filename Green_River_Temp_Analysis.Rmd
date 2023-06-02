@@ -228,9 +228,9 @@ Sample2$DOest <- Sample2$HenryK * 0.21 * 32000 * 0.99975
 ggplot() +
   geom_point(data = Sample, aes(x = Date, y = ConcAve), color = "black") + # must include argument label "data"
   geom_line(data = Sample2, aes(x = Date, y = DOest), color = "darkgreen") +
-  geom_line(data = eList$Daily, aes(x = Date, y = ConcDay), color = "blue") +
-  geom_line(data = DOFrame, aes(x = date, y = Est), color = "maroon") +
-  ggtitle("Green River DO, Observed vs Henry's law Estimate & 2 Models")
+  #geom_line(data = eList$Daily, aes(x = Date, y = ConcDay), color = "blue") +
+  #geom_line(data = DOFrame, aes(x = date, y = Est), color = "maroon") +
+  ggtitle("Green River DO, Observed vs Henry's Law Estimates")
 
 # r-squared value of the henry's law estimation
 HErr <- left_join(Sample, Sample2, by= "Date")

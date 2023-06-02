@@ -62,6 +62,7 @@ GreenRiverDataExpanded$Dissolved_Oxygen_log[267] <- GreenRiverDataExpanded$Disso
 # Load discharge records from cached CSV
 green_river_daily_averages <- fread('./data_cache/green_river_daily_averages.csv')
 
+  eList$surfaces
 ```
 
 # Initial Plots
@@ -121,7 +122,7 @@ GreenDO %>%
   geom_line() +
   scale_x_date(date_labels = "%Y", date_breaks = "5 year") +
 #  geom_vline(xintercept = GreenDO[346,1], color = "red") +
-  geom_vline(xintercept = GreenDO[368,1], color = "red") +
+#  geom_vline(xintercept = GreenDO[368,1], color = "red") +
 #  geom_vline(xintercept = GreenDO[418,1], color = "red") +
 #  geom_vline(xintercept = GreenDO[438,1], color = "red") +
   ggtitle("Green River DO")
@@ -183,25 +184,7 @@ eList <- modelEstimation(eList)
 
 yeartest <- setupYears(eList$Daily)
 # Test some of the plotting functions:
-plotConcTimeDaily(eList)
-genericEGRETDotPlot(x = yeartest$DecYear,
-                    y = c(yeartest$Conc),
-                    xlim = c(1980, 2022),
-                    ylim = c(10, 12),
-                    xlab = "Date",
-                    ylab = "DO concentration")
-genericEGRETDotPlot(x = yeartest$DecYear,
-                    y = c(yeartest$FNConc),
-                    xlim = c(1980, 2022),
-                    ylim = c(10, 12),
-                    xlab = "Date",
-                    ylab = "Flow-normalized DO")
-plotConcHist(eList, "1985","2015")
-
-# Why aren't some of these working?
-EGRET::multiPlotDataOverview(eList = eList)
-EGRET::dataOverview(Daily, Sample)
-EGRET::errorStats(eList) 
+eList <- EGRET::makeAugmentedSample(eList)
 ```
 
 The model has converged, excellent! Next steps: Dig into the "surfaces"
@@ -262,7 +245,7 @@ cosFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
     summarize(CosDY = as.double(mean(CosDY)))
 DOFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
   group_by(MonthSeq.y) %>%
-    summarize(logDO = as.double(mean(ConcAve, na.rm = TRUE)))
+    summarize(logDO = as.double(log(mean(ConcAve, na.rm = TRUE))))
 
 TT = nrow(DOFrame)
 
@@ -313,10 +296,41 @@ track the changing mean yearly level. When I tried to force the mean to
 vary.
 
 ```{r Residuals}
+plotConcTimeDaily(eList)
+genericEGRETDotPlot(x = yeartest$DecYear,
+                    y = c(yeartest$Conc),
+                    xlim = c(1980, 2022),
+                    ylim = c(10, 12),
+                    xlab = "Date",
+                    ylab = "Dissolved Oxygen (mg/L)",
+                    plotTitle = "Green River DO, Estimated Yearly Average")
+genericEGRETDotPlot(x = yeartest$DecYear,
+                    y = c(yeartest$FNConc),
+                    xlim = c(1980, 2022),
+                    ylim = c(10, 12),
+                    xlab = "Date",
+                    ylab = "Flow-normalized DO")
+plotConcHist(eList, "1985","2015")
+
+# Why aren't some of these working?
+EGRET::multiPlotDataOverview(eList = eList)
+EGRET::dataOverview(Daily, Sample)
+EGRET::errorStats(eList) 
+EGRET::getSurfaces(eList)
+
+genericEGRETDotPlot(x = eList$Sample$DecYear,
+                    y = eList$Sample$rResid,
+                    xlim = c(1980, 2022),
+                    ylim = c(-.3, .3),
+                    xlab = "Date",
+                    ylab = "Residuals",
+                    plotTitle = "Green River Dissolved Oxygen Residuals on Log Scale")
+acf(eList$Sample$rResid)
+
 plotResidPred(eList)
 #resids <- MARSSresiduals(marsfit)
 plotConcTimeDaily(eList)
-autoplot.marssMLE(marssfit2,silent = TRUE)
+autoplot.marssMLE(marssfit1,silent = TRUE)
 
 Z2=Z
 dim(Z2)= c(5,dim(Z)[3])
@@ -338,12 +352,18 @@ dateFrame <- marsFrame %>%  mutate(month = as.Date(Date, "%B")) %>%
 
 
 
+errtest2 <- na.omit(full_join(Sample, eList$Daily, by = "Date"))
+errtest2$reds <- errtest2$ConcDay - errtest2$ConcAve
+rSquared(errtest2$ConcAve, errtest2$reds) # rsquared value for the non-log space temperature in the WRTDS model
+
+
 DOFrame$States <- t(marssfit2$states)
-DOFrame$Est <- DOFrame$States[,"X1"]*Z[1,1,] + DOFrame$States[,"X2"]*yearFrame$decyear + DOFrame$States[,"X3"]*QFrame$LogQ + DOFrame$States[,"X4"]*sineFrame$SinDY + DOFrame$States[,"X5"]*cosFrame$CosDY
+DOFrame$Est <- exp(DOFrame$States[,"X1"]*Z[1,1,] + DOFrame$States[,"X2"]*yearFrame$decyear + DOFrame$States[,"X3"]*QFrame$LogQ + DOFrame$States[,"X4"]*sineFrame$SinDY + DOFrame$States[,"X5"]*cosFrame$CosDY)
+DOFrame$DO <- exp(DOFrame$logDO)
 DOFrame <- left_join(DOFrame, dateFrame, by = "MonthSeq.y")
 DOFrame2 <- na.omit(DOFrame)
 DOFrame2 <- distinct(DOFrame2)
-rSquared(DOFrame2$logDO, DOFrame2$logDO - DOFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
+rSquared(DOFrame2$DO, DOFrame2$DO - DOFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
 ```
 Note: R-squared for DLM is 0.7988926, this is better than the EGRET model
 
