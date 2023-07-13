@@ -5,7 +5,7 @@ library(readr)
 library(miscTools)
 library(zoo)
 
-# for dataRetrieval help, visit https://waterdata.usgs.gov/blog/dataretrieval/
+# for dataRetrieval help, visit https://waterdata.usgs.gov/blog/dataretrieval/?
 
 # Getting data for just Green River
 gages<-c(12113000,12112600)

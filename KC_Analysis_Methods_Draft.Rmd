@@ -316,7 +316,6 @@ plotConcHist(eList, "1985","2015")
 EGRET::multiPlotDataOverview(eList = eList)
 EGRET::dataOverview(Daily, Sample)
 EGRET::errorStats(eList) 
-EGRET::getSurfaces(eList)
 
 genericEGRETDotPlot(x = eList$Sample$DecYear,
                     y = eList$Sample$rResid,
@@ -364,6 +363,10 @@ DOFrame <- left_join(DOFrame, dateFrame, by = "MonthSeq.y")
 DOFrame2 <- na.omit(DOFrame)
 DOFrame2 <- distinct(DOFrame2)
 rSquared(DOFrame2$DO, DOFrame2$DO - DOFrame2$Est) #use this to calculate R-squared value for the MARSS Model(I hope)
+
+# QQ plot
+qqnorm(eList$Sample$rObserved-eList$Sample$ConcHat, main = "EGRET Q-Q Plot", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles")
+qqline(eList$Sample$rObserved-eList$Sample$ConcHat)
 ```
 Note: R-squared for DLM is 0.7988926, this is better than the EGRET model
 

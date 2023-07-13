@@ -264,4 +264,4 @@ get_socrata_data_func <- function(locns = c('0852'),
   return(data_out)
 }
   
-# Everything past here has been moved to a methods files
+# Everything past here has been moved to a methods file
