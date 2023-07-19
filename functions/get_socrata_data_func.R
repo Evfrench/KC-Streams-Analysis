@@ -265,3 +265,34 @@ get_socrata_data_func <- function(locns = c('0852'),
 }
   
 # Everything past here has been moved to a methods file
+
+get_annual_median <- function(input.data = data.frame(), params)
+{
+  # Begin by making a vector of all the unique locator codes
+  
+  locs <- unique(input.data$Locator) 
+  
+  median_out <- as.data.frame(unique(input.data$Year))
+  names(median_out) <- c('Year')
+  median_out <- arrange(median_out, median_out$Year)
+  df1 <- tibble()
+  df2 <- tibble()
+  # Fill out columns for every location in the data set
+  for (loc in locs) {
+    df1 <- data.frame(input.data$Year[input.data$Locator == loc], 
+                      input.data[, ..params][input.data$Locator == loc])
+    names(df1) <- c('Year','Conc')
+    df2 <- df1 %>%
+      group_by(Year) %>%
+      summarise(med = median(Conc))
+    
+    median_out <- full_join(median_out,df2, by = 'Year')
+   }
+  names(median_out) <- c('Year',locs) # rename all columns to match their locations
+
+  #save data frame for later usage
+  cache_name = paste0('./data_cache/median_annual_',paste0(params),'.csv')
+  write_csv(median_out, cache_name, col_name=TRUE)
+  
+  return(median_out)
+}
