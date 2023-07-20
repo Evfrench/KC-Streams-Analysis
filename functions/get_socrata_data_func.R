@@ -1,4 +1,5 @@
 ## function to extract water quality data from Socrata
+# contains additional functions to format the water quality data for different purposes
 
 library(tidyverse)
 library(RSocrata)
@@ -272,19 +273,22 @@ get_annual_median <- function(input.data = data.frame(), params)
   
   locs <- unique(input.data$Locator) 
   
-  median_out <- as.data.frame(unique(input.data$Year))
+  median_out <- as.data.frame(unique(input.data$Year)) # creates a data frame of every year in the data
   names(median_out) <- c('Year')
   median_out <- arrange(median_out, median_out$Year)
+  
+  # Initialize empty frames for use in the for loop
   df1 <- tibble()
   df2 <- tibble()
-  # Fill out columns for every location in the data set
+ 
+   # Fill out columns for every location in the data set
   for (loc in locs) {
     df1 <- data.frame(input.data$Year[input.data$Locator == loc], 
                       input.data[, ..params][input.data$Locator == loc])
     names(df1) <- c('Year','Conc')
     df2 <- df1 %>%
       group_by(Year) %>%
-      summarise(med = median(Conc))
+      summarise(med = median(Conc, na.rm = TRUE))
     
     median_out <- full_join(median_out,df2, by = 'Year')
    }

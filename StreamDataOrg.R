@@ -52,5 +52,5 @@ WRIA15<- get_socrata_data_func(locns = c('VA23A','VA41A','VA65A','VA42A','VA45A'
 WRIA_Combined <- rbind(WRIA7,WRIA8_1,WRIA8_2,WRIA9,WRIA10,WRIA15)
 
 All_KC_WQ_Data <- normalize_water_quality_data_parameters(WRIA_Combined)  
-
+All_KC_WQ_Data[All_KC_WQ_Data == 0] <- NA
 write_csv(All_KC_WQ_Data, './data_cache/KC_WQ_Data', col_name=TRUE)
