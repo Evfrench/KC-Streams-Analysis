@@ -300,3 +300,18 @@ get_annual_median <- function(input.data = data.frame(), params)
   
   return(median_out)
 }
+
+demedian <- function(x = data.frame())
+{
+  cname<- colnames(x)
+  rname<- rownames(x)
+  out <- data.frame(row.names = rname)
+  med <- colMedians(x, na.rm = TRUE)
+  for (i in 1:ncol(x))
+  {
+    out[,i] <- x[,i] - med[i]
+  }
+  colnames(out) <- cname
+  rownames(out) <- rname
+  return(out)
+}
