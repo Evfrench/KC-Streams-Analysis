@@ -1,6 +1,6 @@
-library(data.table)
 library(plyr)
 library(dplyr)
+library(data.table)
 source('./functions/get_socrata_data_func.R')  
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
@@ -51,6 +51,15 @@ for (site in colnames(Annual_OrthoP))
   }
 }
 
+# Orders the columns alphabetically, this will be helpful for later data QC
+siteorder <- order(colnames(NOx_filtered))
+NOx_filtered <- NOx_filtered[,siteorder]
+PO4_filtered <- PO4_filtered[,siteorder]
+
+
+# This creates a plot with the number sites with non-empty readings every year of the filtered data
+# Note: The number of entries each year never drops below 40/46, so every year should be well-represented, except for 1979 in the orthophosphate data
+# NOTE: In the future, determine the following site characteristics: Land use category,land cover category, seasonal distribution of data collected, geographic distribution
 datSelect2 <- tibble(NOx_filtered[,"Year"], rowSums(!is.na(NOx_filtered[,-1])),rowSums(!is.na(PO4_filtered[,-1])))
 names(datSelect2) <- c('Year','NOx_Entries','PO4_Entries')
 
@@ -59,9 +68,6 @@ ggplot() +
 
 ggplot() +
   geom_col(data = datSelect2, aes(x = Year, y = PO4_Entries, color = 'Phosphorus'))
-# This creates a plot with the number sites with non-empty readings every year of the filtered data
-# Note: The number of entries each year never drops below 40/46, so every year should be well-represented, except for 1979 in the orthophosphate data
-# NOTE: In the future, determine the following site characteristics: Land use category,land cover category, seasonal distribution of data collected, geographic distribution
 
 
 ###############################################################################
@@ -69,31 +75,34 @@ ggplot() +
 
 # This center the data around each site's median, and convert it into a long table for plotting
 NOx_filtered2 <- NOx_filtered %>%
+  remove_rownames() %>%
   column_to_rownames(var = 'Year') %>%
   demedian() %>%
   rownames_to_column(var = 'Year') %>%
-  reshape2::melt(id.var="Year")
+  reshape2::melt(id.var="Year") 
 NOx_filtered2$Year <- as.integer(NOx_filtered2$Year)
 
-NOx_filtered3 <- NOx_filtered %>% reshape2::melt(id.var="Year") # Creates a long frame of absolute values
+# Creates a long frame of absolute values
+NOx_filtered3 <- NOx_filtered %>% reshape2::melt(id.var="Year") 
 
 # Each site is plotted by itself and presented in a grid of time series
 ggplot(NOx_filtered2, aes(Year, value)) + 
   facet_wrap(. ~ variable, shrink = FALSE) + 
   geom_point() +
   geom_line() +
-  ggtitle("Annual Median NOx, Median-Centered") +
+  ggtitle("Annual Median NO2-3, Median-Centered") +
   scale_y_continuous(name = "NO2/NO3, mg/L")
 
 ggplot(NOx_filtered3, aes(Year, value)) + 
   facet_wrap(. ~ variable, shrink = FALSE) + 
   geom_point() +
   geom_line() +
-  ggtitle("Annual Median NOx, Absolute Values") +
+  ggtitle("Annual Median NO2-3, Absolute Values") +
   scale_y_continuous(name = "NO2/NO3, mg/L")
 
 # Does the same for orthophosphate
 PO4_filtered2 <- PO4_filtered %>%
+  remove_rownames() %>%
   column_to_rownames(var = 'Year') %>% # avoids taking the median year
   demedian() %>%
   rownames_to_column(var = 'Year') %>%
@@ -108,7 +117,7 @@ ggplot(PO4_filtered2, aes(Year, value)) +
   geom_point() +
   geom_line() +
   ggtitle("Annual Median Orthophosphate, Median-Centered and Zoomed In") +
-  scale_y_continuous(name = "PO4, mg/L")
+  scale_y_continuous(name = "PO4, mg/L", limits = c(-0.05,0.05))
 
 ggplot(PO4_filtered3, aes(Year, value)) + 
   facet_wrap(. ~ variable, shrink = FALSE) + 
@@ -116,3 +125,10 @@ ggplot(PO4_filtered3, aes(Year, value)) +
   geom_line() +
   ggtitle("Annual Median Orthophosphate, Absolute Values") +
   scale_y_continuous(name = "PO4, mg/L")
+
+
+
+# Saves list of sites for use in other scripts and to add information, run again if the sites are changed
+#locs <- as_data_frame(unique(NOx_filtered2$variable))
+#colnames(locs) <- c('Locator')
+#write.csv(locs, './data_cache/Selected_Monitoring_Stations.csv')
