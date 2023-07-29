@@ -56,6 +56,9 @@ siteorder <- order(colnames(NOx_filtered))
 NOx_filtered <- NOx_filtered[,siteorder]
 PO4_filtered <- PO4_filtered[,siteorder]
 
+# Saves the tables into csv files
+write.csv(NOx_filtered, './data_cache/filtered_Nitrite_+_Nitrate_Nitrogen.csv', col.names = TRUE)
+write.csv(PO4_filtered, './data_cache/filtered_Orthophosphate_Phosphorus.csv', col.names = TRUE)
 
 # This creates a plot with the number sites with non-empty readings every year of the filtered data
 # Note: The number of entries each year never drops below 40/46, so every year should be well-represented, except for 1979 in the orthophosphate data
