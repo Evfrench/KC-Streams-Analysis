@@ -280,17 +280,25 @@ get_annual_median <- function(input.data = data.frame(), params)
   # Initialize empty frames for use in the for loop
   df1 <- tibble()
   df2 <- tibble()
- 
+  df3 <- tibble()
+  
    # Fill out columns for every location in the data set
   for (loc in locs) {
     df1 <- data.frame(input.data$Year[input.data$Locator == loc], 
+                      input.data$Month[input.data$Locator == loc],
                       input.data[, ..params][input.data$Locator == loc])
-    names(df1) <- c('Year','Conc')
-    df2 <- df1 %>%
-      group_by(Year) %>%
-      summarise(med = median(Conc, na.rm = TRUE))
+    names(df1) <- c('Year','Month','Conc')
     
-    median_out <- full_join(median_out,df2, by = 'Year')
+    df2 <- df1 %>%
+      group_by(Year, Month) %>%
+      summarise(ave = mean(Conc, na.rm = TRUE))
+    
+    df3 <- df2 %>%
+      select(- all_of('Month')) %>%
+      group_by(Year) %>% 
+      summarise(med = median(ave, na.rm = TRUE))
+    
+    median_out <- full_join(median_out,df3, by = 'Year')
    }
   names(median_out) <- c('Year',locs) # rename all columns to match their locations
 
