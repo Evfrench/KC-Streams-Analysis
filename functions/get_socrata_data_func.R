@@ -5,7 +5,6 @@ library(tidyverse)
 library(RSocrata)
 library(lubridate)
 library(miscTools)
-library(ggplot2)
 library(forecast)
 library(readr)
 
@@ -270,8 +269,11 @@ get_socrata_data_func <- function(locns = c('0852'),
 get_annual_median <- function(input.data = data.frame(), params)
 {
   # Begin by making a vector of all the unique locator codes
+  paramconv <- c("Ammonia_Nitrogen", "Organic_Nitrogen", "Nitrite_+_Nitrate_Nitrogen", "Total_Kjeldahl_Nitrogen", "Total_Nitrogen",
+                 "Orthophosphate_Phosphorus", "Total_Phosphorus", "Total_Hydrolyzable Phosphorus")
   
-  locs <- unique(input.data$Locator) 
+  locs <- unique(bigTable$Locator)
+  locs <- locs[order(locs)]
   
   median_out <- as.data.frame(unique(input.data$Year)) # creates a data frame of every year in the data
   names(median_out) <- c('Year')
@@ -289,9 +291,13 @@ get_annual_median <- function(input.data = data.frame(), params)
                       input.data[, ..params][input.data$Locator == loc])
     names(df1) <- c('Year','Month','Conc')
     
+    if (params %in% paramconv) {
+      df1$Conc <- df1$Conc * 1000
+    }
+    
     df2 <- df1 %>%
       group_by(Year, Month) %>%
-      summarise(ave = mean(Conc, na.rm = TRUE))
+      summarise(ave = mean(Conc, na.rm = TRUE), .groups = 'drop_last')
     
     df3 <- df2 %>%
       select(- all_of('Month')) %>%
@@ -308,6 +314,8 @@ get_annual_median <- function(input.data = data.frame(), params)
   
   return(median_out)
 }
+
+
 
 demedian <- function(x = data.frame())
 {
