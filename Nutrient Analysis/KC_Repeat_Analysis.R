@@ -2,6 +2,7 @@ library(plyr)
 library(dplyr)
 library(data.table)
 library(mgcv)
+library(ggplot2)
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
 ################################################################################
@@ -144,7 +145,7 @@ ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/yr)`)) +
 
 # Slope distribution histogram, Modified limits
 ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/yr)`)) +
-  geom_histogram(binwidth = 2.5) + 
+  geom_histogram(binwidth = 0.1) + 
   ggtitle('PO4 Slope Distribution Histogram, Zoomed-in, bin-width = 0.1') +
   scale_x_continuous(breaks = c(-5:5 *0.2),limits = c(-1,1))
 
