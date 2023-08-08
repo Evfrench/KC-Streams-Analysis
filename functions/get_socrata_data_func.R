@@ -6,6 +6,7 @@ library(RSocrata)
 library(lubridate)
 library(miscTools)
 library(forecast)
+library(zoo)
 library(readr)
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
@@ -266,24 +267,28 @@ get_socrata_data_func <- function(locns = c('0852'),
   
 # Everything past here has been moved to a methods file
 
-get_annual_median <- function(input.data = data.frame(), params)
+summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
 {
+  # Returns either the annual median or the monthly arithmetic average for the data, depending on the input
   # Begin by making a vector of all the unique locator codes
   paramconv <- c("Ammonia_Nitrogen", "Organic_Nitrogen", "Nitrite_+_Nitrate_Nitrogen", "Total_Kjeldahl_Nitrogen", "Total_Nitrogen",
                  "Orthophosphate_Phosphorus", "Total_Phosphorus", "Total_Hydrolyzable Phosphorus")
   
+  
   locs <- unique(bigTable$Locator)
   locs <- locs[order(locs)]
-  
-  median_out <- as.data.frame(unique(input.data$Year)) # creates a data frame of every year in the data
-  names(median_out) <- c('Year')
-  median_out <- arrange(median_out, median_out$Year)
   
   # Initialize empty frames for use in the for loop
   df1 <- tibble()
   df2 <- tibble()
   df3 <- tibble()
   
+  if (timeframe == 'annual'){
+  median_out <- as.data.frame(unique(input.data$Year)) # creates a data frame of every year in the data
+  names(median_out) <- c('Year')
+  median_out <- arrange(median_out, median_out$Year)
+  
+
    # Fill out columns for every location in the data set
   for (loc in locs) {
     df1 <- data.frame(input.data$Year[input.data$Locator == loc], 
@@ -313,6 +318,38 @@ get_annual_median <- function(input.data = data.frame(), params)
   write_csv(median_out, cache_name, col_name=TRUE)
   
   return(median_out)
+  }
+  
+  if (timeframe == 'monthly'){
+    input.data$Year_mon <- as.yearmon(input.data$Decimal_year)
+    
+    median_out <- as.data.frame(unique(input.data$Year_mon)) # creates a data frame of every year in the data
+    names(median_out) <- c('Year_mon')
+    median_out <- arrange(median_out, median_out$Year_mon)
+    
+    
+    # Fill out columns for every location in the data set
+    for (loc in locs) {
+      df1 <- data.frame(input.data$Year_mon[input.data$Locator == loc], 
+                        input.data[, ..params][input.data$Locator == loc])
+      names(df1) <- c('Year_mon','Conc')
+      
+      if (params %in% paramconv) {
+        df1$Conc <- df1$Conc * 1000
+      }
+      
+      df2 <- df1 %>%
+        group_by(Year_mon) %>%
+        summarise(ave = mean(Conc, na.rm = TRUE))
+      
+      
+      median_out <- full_join(median_out,df2, by = 'Year_mon')
+    }
+    names(median_out) <- c('Year_mon',locs) # rename all columns to match their locations
+    
+    
+    return(median_out)
+  }
 }
 
 

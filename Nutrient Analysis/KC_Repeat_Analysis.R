@@ -3,6 +3,7 @@ library(dplyr)
 library(data.table)
 library(mgcv)
 library(ggplot2)
+source('./functions/get_socrata_data_func.R')
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
 ################################################################################
@@ -13,6 +14,8 @@ bigTable <- fread('./data_cache/KC_WQ_Data')
 
 NOx_annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv')
 PO4_annual <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv')
+
+NOx_monthly <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('monthly'))
 
 #Removes the year 2023 since it is an incomplete year
 NOx_annual <- subset(NOx_annual, Year < 2023)
@@ -108,8 +111,8 @@ P_avg_diffyr <- numeric()
 
 for (site in colnames(PO4_annual[,-1])) {
   pLoop <- PO4_annual[,c('Year',..site)] 
-  pLoop <- na.omit(pLoop)
-  pLoop <- pLoop[,'Year']
+  pLoop <- na.omit(pLoop) # removes years with empty nutrient values
+  pLoop <- pLoop[,'Year'] # removes the nutrient column and just keeps years
   pLoopdiff <- sapply(pLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(pLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
   P_avg_diffyr[site] <- pLoopdiff
   remove(pLoop, pLoopdiff)
@@ -120,10 +123,6 @@ PO4_avg_diff <- sapply(PO4_annual[Year > 2017], function(x) median(x, na.rm = TR
 PO4_avg_slp <- as.data.frame(PO4_avg_diff[-1]/P_avg_diffyr) #This is the average slope. Units are microgram/Liter/year
 colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/yr)')
 
-# Histogram of slope distributions
-ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/yr)`)) +
-  geom_histogram(binwidth = 0.1) +
-  ggtitle('PO4 Slope Distribution')
 
 # Slope distribution Curve 
 ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/yr)`)) +

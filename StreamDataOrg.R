@@ -1,9 +1,8 @@
 library(tidyverse)
+library(lubridate)
 library(dplyr)
-library(smwrBase)
-library(timetk)
 library(miscTools)
-library(RSocrata)
+library(zoo)
 source('./functions/get_socrata_data_func.R')
 
 WRIA7<- get_socrata_data_func(locns = c('AMES_1','CHERRY_1','GRIFFIN','HARRIS_1',
@@ -53,4 +52,6 @@ WRIA_Combined <- rbind(WRIA7,WRIA8_1,WRIA8_2,WRIA9,WRIA10,WRIA15)
 
 All_KC_WQ_Data <- normalize_water_quality_data_parameters(WRIA_Combined)  
 All_KC_WQ_Data[All_KC_WQ_Data == 0] <- NA
+All_KC_WQ_Data$Decimal_year <- decimal_date(All_KC_WQ_Data$CollectDate)
+All_KC_WQ_Data$Year_mon <- as.yearmon(All_KC_WQ_Data$Decimal_year)
 write_csv(All_KC_WQ_Data, './data_cache/KC_WQ_Data', col_name=TRUE)

@@ -10,8 +10,8 @@ bigTable <- fread('./data_cache/KC_WQ_Data')
 #
 ###############################################################################
 
-AnnualNO3_NO2 <- get_annual_median(bigTable, c('Nitrite_+_Nitrate_Nitrogen'))
-Annual_OrthoP <- get_annual_median(bigTable, c('Orthophosphate_Phosphorus'))
+AnnualNO3_NO2 <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('annual'))
+Annual_OrthoP <- summarize_WQ_data(bigTable, c('Orthophosphate_Phosphorus'), c('annual'))
 
 datSelect <- tibble(AnnualNO3_NO2[,"Year"], rowSums(!is.na(AnnualNO3_NO2[,-1])),rowSums(!is.na(Annual_OrthoP[,-1])))
 names(datSelect) <- c('Year','NOx_Entries','PO4_Entries')
