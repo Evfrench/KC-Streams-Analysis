@@ -317,7 +317,6 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
   cache_name = paste0('./data_cache/median_annual_',paste0(params),'.csv')
   write_csv(median_out, cache_name, col_name=TRUE)
   
-  return(median_out)
   }
   
   if (timeframe == 'monthly'){
@@ -340,16 +339,21 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
       
       df2 <- df1 %>%
         group_by(Year_mon) %>%
-        summarise(ave = mean(Conc, na.rm = TRUE))
+        summarise(ave = mean(Conc, na.rm = TRUE)) 
+        
       
       
       median_out <- full_join(median_out,df2, by = 'Year_mon')
     }
     names(median_out) <- c('Year_mon',locs) # rename all columns to match their locations
     
-    
-    return(median_out)
   }
+  
+  for(column in colnames(median_out)){
+    median_out[,column][is.nan(median_out[,column])] <- NA
+  }
+  
+  return(median_out)
 }
 
 
