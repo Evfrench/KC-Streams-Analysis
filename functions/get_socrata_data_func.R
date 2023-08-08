@@ -326,7 +326,6 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
     names(median_out) <- c('Year_mon')
     median_out <- arrange(median_out, median_out$Year_mon)
     
-    
     # Fill out columns for every location in the data set
     for (loc in locs) {
       df1 <- data.frame(input.data$Year_mon[input.data$Locator == loc], 
@@ -340,8 +339,6 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
       df2 <- df1 %>%
         group_by(Year_mon) %>%
         summarise(ave = mean(Conc, na.rm = TRUE)) 
-        
-      
       
       median_out <- full_join(median_out,df2, by = 'Year_mon')
     }
@@ -350,7 +347,7 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
   }
   
   for(column in colnames(median_out)){
-    median_out[,column][is.nan(median_out[,column])] <- NA
+    median_out[,column][is.nan(median_out[,column])] <- NA # Replaces all Nan's with NA for the sake of consistency
   }
   
   return(median_out)

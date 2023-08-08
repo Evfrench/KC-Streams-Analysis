@@ -6,12 +6,13 @@ library(ggplot2)
 source('./functions/get_socrata_data_func.R')
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
+# You should a lot of these operations into functions  ##################################
+
 ################################################################################
 #
 # Data Wrangling
 #
 ################################################################################
-
 NOx_annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv')
 PO4_annual <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv')
 
@@ -33,10 +34,10 @@ siteSelectPrecent <- sapply(PO4_annual[Year > 2017], function(x) sum(!is.na(x)))
 # Recent standard is 4 years, baseline standard is 15 years
 for (site in colnames(NOx_annual))
 {
-  if (siteSelectNbase[site] < 2 | siteSelectNrecent[site] < 2){
+  if (siteSelectNbase[site] < 1 | siteSelectNrecent[site] < 1){
     NOx_annual <- NOx_annual %>% select(- all_of(site))
   }
-  if (siteSelectPbase[site] < 2 | siteSelectPrecent[site] < 2){
+  if (siteSelectPbase[site] < 1 | siteSelectPrecent[site] < 1){
     PO4_annual <- PO4_annual %>% select(- all_of(site))
   }
 }
@@ -66,14 +67,14 @@ colnames(NOx_avg_slp) <- c('Avg Slope (μg/L/decade)')
 # Slope distribution Curve 
 ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
   geom_histogram(stat = 'density') + 
-  ggtitle('NO2/3 Slope Distribution Curve') +
-  scale_x_continuous(breaks = c(-20:2 *50))
+  ggtitle('NO2/3 Slope Distribution Curve') 
+#+  scale_x_continuous(breaks = c(-20:2 *50))
 
 # Slope distribution histogram
 ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 25) + 
-  ggtitle('NO2/3 Slope Distribution Histogram, bin-width = 25') +
-  scale_x_continuous(breaks = c(-20:2 *50))
+  ggtitle('NO2/3 Slope Distribution Histogram, bin-width = 25') 
+#+ scale_x_continuous(breaks = c(-20:2 *50))
 
 # Slope distribution Curve, Modified limits
 ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
@@ -137,16 +138,86 @@ ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
 
 ################################################################################
 #
-# Test GAM
+# Test GAM and monthly trends
 #
 ################################################################################
 
 NOx_monthly <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('monthly'))
 PO4_monthly <- summarize_WQ_data(bigTable, c('Orthophosphate_Phosphorus'), c('monthly'))
 
-# Creates a test GAM, need to create a for loop that creates a model for each locator and extracts the st dev into a vector or array
-test_mod <- gam(A320 ~ s(decimal_date(as.Date(Year_mon))), data = NOx_monthly)
-summary(test_mod)
-plot.gam(test_mod, residuals = TRUE)
+NOx_monthly <- subset(NOx_monthly, Year_mon < 'Jan 2023')
+PO4_monthly <- subset(PO4_monthly, Year_mon < 'Jan 2023')
 
+
+
+# this For loop does two things, it determines if there is at least 1 year of data in the baseline and recent years,
+# then it fits the data to a GAM, takes the standard deviation, and stores it in a vector
+# it then finds the central year/month in the baseline and recent sets and takes the difference between them in years
+PO4_sd <- numeric()
+P_month_diffyr <- numeric()
+
+for (loc in colnames(PO4_monthly[,-1])){
+  if (siteSelectPbase[loc] < 2 | siteSelectPrecent[loc] < 2){
+    
+    PO4_monthly <- PO4_monthly %>% select(- all_of(loc))
+    next
+    
+  }
+  
+  else {
+  
+    dat <- PO4_monthly %>%
+    subset(Year_mon <= 'Dec 2017') %>% 
+    select(all_of('Year_mon') | all_of(loc))
+    
+  pmod <- gam(dat[,2] ~ s(decimal_date(as.Date(dat[,1])))) # # Creates a GAM, need to create a for loop that creates a model for each locator and extracts the st dev into a vector or array
+  PO4_sd[loc] <- sd(pmod$residuals) # takes the detrended data (residuals) and calculates the standard deviation
+                                    # these values are much larger than any differences calculated between baseline and recent. This may mean that the response variable needs to be log-transformed
+
+  pLoop <- PO4_monthly[,c('Year_mon',loc)] 
+  pLoop <- na.omit(pLoop) # removes years with empty nutrient values
+  pLoop <- pLoop[,'Year_mon'] # removes the nutrient column and just keeps years
+  pLoopdiff <- decimal_date(as.Date(median(pLoop[pLoop > 'Dec 2017']))) - decimal_date(as.Date(median(pLoop[pLoop <= 'Dec 2017'])))
+  P_month_diffyr[loc] <- pLoopdiff
+  
+  remove(pLoop, pLoopdiff, dat, pmod)
+  }
+}
+
+# Divides the data into recent and baseline groups, then takes the median of each
+PO4_month_recent <- PO4_monthly %>% 
+  subset(Year_mon > 'Dec 2017') %>%
+  select(- all_of('Year_mon'))
+
+PO4_month_base <- PO4_monthly %>% 
+  subset(Year_mon <= 'Dec 2017') %>%
+  select(- all_of('Year_mon'))
+
+# Stores the difference between the recent and long-term medians. Perhaps these should be averages or geometric averages.. The medians ignore the spikes in nutrient concentration which may be important for telling the story? Or not, its hard to say
+PO4_month_diff <- sapply(PO4_month_recent, function(x) median(x, na.rm = TRUE)) - sapply(PO4_month_base, function(x) median(x, na.rm = TRUE))
+
+# Stores the difference if concentration, time, and the st.dev in one data frame, adds a slope and signifigance determination
+PO4_month_change <- data.frame(PO4_month_diff,P_month_diffyr,PO4_sd, row.names = colnames(PO4_monthly[-1]))
+colnames(PO4_month_change) <- c('Conc_diff','Time_diff','detrend_sd')
+PO4_month_change$`Avg Slope (μg/L/decade)` <- PO4_month_diff * 10 / P_month_diffyr
 # What element on the GAM object represents the model st dev? Did Kurtis use the model predictions as his slope basis?
+
+ggplot(PO4_month_change, aes(x = `Avg Slope (μg/L/decade)`)) +
+  geom_histogram(stat = 'density') +
+  ggtitle('PO4 Slope Distribution Curve') +
+  scale_x_continuous( breaks = )
+
+PO4_plot <- PO4_monthly %>%
+  remove_rownames() %>%
+  column_to_rownames(var = 'Year_mon') %>% # avoids taking the median Year_mon
+  demedian() %>%
+  rownames_to_column(var = 'Year_mon') %>%
+  reshape2::melt(id.var="Year_mon")
+PO4_plot$Year_mon <- as.yearmon(PO4_plot$Year_mon)
+
+ggplot(PO4_plot, aes(Year_mon, value)) + 
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Monthly average Orthophosphate, Median-Centered") + 
+  scale_y_continuous(name = "PO4, mg/L", limits = c(-50,100))
