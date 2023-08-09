@@ -1,0 +1,2 @@
+# This Urban gradient model is based on the findings of a 2005 Brett paper, where he fits a model of urban land cover to phosphate concentrations in the stream segments ##########################################
+# What counts as urban land cover? It is defined differently in the KC streams report

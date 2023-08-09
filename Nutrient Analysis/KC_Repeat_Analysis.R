@@ -34,10 +34,10 @@ siteSelectPrecent <- sapply(PO4_annual[Year > 2017], function(x) sum(!is.na(x)))
 # Recent standard is 4 years, baseline standard is 15 years
 for (site in colnames(NOx_annual))
 {
-  if (siteSelectNbase[site] < 1 | siteSelectNrecent[site] < 1){
+  if (siteSelectNbase[site] < 10 | siteSelectNrecent[site] < 4){
     NOx_annual <- NOx_annual %>% select(- all_of(site))
   }
-  if (siteSelectPbase[site] < 1 | siteSelectPrecent[site] < 1){
+  if (siteSelectPbase[site] < 10 | siteSelectPrecent[site] < 4){
     PO4_annual <- PO4_annual %>% select(- all_of(site))
   }
 }
@@ -65,26 +65,28 @@ NOx_avg_slp <- as.data.frame(NOx_avg_diff[-1]*10/N_avg_diffyr) #This is the aver
 colnames(NOx_avg_slp) <- c('Avg Slope (μg/L/decade)')
 
 # Slope distribution Curve 
-ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(stat = 'density') + 
-  ggtitle('NO2/3 Slope Distribution Curve') 
+# ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(stat = 'density') + 
+#  ggtitle('NO2/3 Slope Distribution Curve') 
 #+  scale_x_continuous(breaks = c(-20:2 *50))
 
 # Slope distribution histogram
 ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(binwidth = 25) + 
+  geom_histogram(binwidth = 50) + 
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
   ggtitle('NO2/3 Slope Distribution Histogram, bin-width = 25') 
 #+ scale_x_continuous(breaks = c(-20:2 *50))
 
 # Slope distribution Curve, Modified limits
-ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(stat = 'density') + 
-  ggtitle('NO2/3 Slope Distribution Curve, Zoomed-in') +
-  scale_x_continuous(breaks = c(-6:6 *50),limits = c(-300,300))
+#ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(stat = 'density') + 
+#  ggtitle('NO2/3 Slope Distribution Curve, Zoomed-in') +
+#  scale_x_continuous(breaks = c(-6:6 *50),limits = c(-300,300))
 
 # Slope distribution histogram, Modified limits
 ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 25) + 
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
   ggtitle('NO2/3 Slope Distribution Histogram, Zoomed-in, bin-width = 25') +
   scale_x_continuous(breaks = c(-6:6 *50),limits = c(-300,300))
 
@@ -112,26 +114,28 @@ colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/decade)')
 
 
 # Slope distribution Curve 
-ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(stat = 'density') +
-  ggtitle('PO4 Slope Distribution Curve') +
-  scale_x_continuous(breaks = )
+#ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(stat = 'density') +
+#  ggtitle('PO4 Slope Distribution Curve') +
+#  scale_x_continuous(breaks = )
 
 # Slope distribution histogram
 ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(binwidth = 1) + 
+  geom_histogram(binwidth = 1.0) +
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
   ggtitle('PO4 Slope Distribution Histogram, bin-width = 1') +
   scale_x_continuous(breaks = )
 
 # Slope distribution Curve, Modified limits
-ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(stat = 'density') + 
-  ggtitle('PO4 Slope Distribution Curve, Zoomed-in') +
-  scale_x_continuous(breaks = c(-5:5 *2),limits = c(-10,10))
+#ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(stat = 'density') + 
+#  ggtitle('PO4 Slope Distribution Curve, Zoomed-in') +
+#  scale_x_continuous(breaks = c(-5:5 *2),limits = c(-10,10))
 
 # Slope distribution histogram, Modified limits
 ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 1) + 
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
   ggtitle('PO4 Slope Distribution Histogram, Zoomed-in, bin-width = 1') +
   scale_x_continuous(breaks = c(-5:5 *2),limits = c(-10,10))
 
@@ -202,22 +206,22 @@ colnames(PO4_month_change) <- c('Conc_diff','Time_diff','detrend_sd')
 PO4_month_change$`Avg Slope (μg/L/decade)` <- PO4_month_diff * 10 / P_month_diffyr
 # What element on the GAM object represents the model st dev? Did Kurtis use the model predictions as his slope basis?
 
-ggplot(PO4_month_change, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(stat = 'density') +
-  ggtitle('PO4 Slope Distribution Curve') +
-  scale_x_continuous( breaks = )
+#ggplot(PO4_month_change, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(stat = 'density') +
+#  ggtitle('PO4 Slope Distribution Curve') +
+#  scale_x_continuous( breaks = )
 
-PO4_plot <- PO4_monthly %>%
-  remove_rownames() %>%
-  column_to_rownames(var = 'Year_mon') %>% # avoids taking the median Year_mon
-  demedian() %>%
-  rownames_to_column(var = 'Year_mon') %>%
-  reshape2::melt(id.var="Year_mon")
-PO4_plot$Year_mon <- as.yearmon(PO4_plot$Year_mon)
+#PO4_plot <- PO4_monthly %>%
+#  remove_rownames() %>%
+#  column_to_rownames(var = 'Year_mon') %>% # avoids taking the median Year_mon
+#  demedian() %>%
+#  rownames_to_column(var = 'Year_mon') %>%
+#  reshape2::melt(id.var="Year_mon")
+#PO4_plot$Year_mon <- as.yearmon(PO4_plot$Year_mon)
 
-ggplot(PO4_plot, aes(Year_mon, value)) + 
-  facet_wrap(. ~ variable, shrink = FALSE) + 
-  geom_point() +
-  geom_line() +
-  ggtitle("Monthly average Orthophosphate, Median-Centered") + 
-  scale_y_continuous(name = "PO4, mg/L", limits = c(-50,100))
+#ggplot(PO4_plot, aes(Year_mon, value)) + 
+#  facet_wrap(. ~ variable, shrink = FALSE) + 
+#  geom_point() +
+#  geom_line() +
+#  ggtitle("Monthly average Orthophosphate, Median-Centered") + 
+#  scale_y_continuous(name = "PO4, mg/L", limits = c(-50,100))
