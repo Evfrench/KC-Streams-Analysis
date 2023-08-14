@@ -34,10 +34,10 @@ siteSelectPrecent <- sapply(PO4_annual[Year > 2017], function(x) sum(!is.na(x)))
 # Recent standard is 4 years, baseline standard is 15 years
 for (site in colnames(NOx_annual))
 {
-  if (siteSelectNbase[site] < 10 | siteSelectNrecent[site] < 4){
+  if (siteSelectNbase[site] < 1 | siteSelectNrecent[site] < 1){
     NOx_annual <- NOx_annual %>% select(- all_of(site))
   }
-  if (siteSelectPbase[site] < 10 | siteSelectPrecent[site] < 4){
+  if (siteSelectPbase[site] < 1 | siteSelectPrecent[site] < 1){
     PO4_annual <- PO4_annual %>% select(- all_of(site))
   }
 }
