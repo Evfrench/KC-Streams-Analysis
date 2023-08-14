@@ -275,7 +275,7 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
                  "Orthophosphate_Phosphorus", "Total_Phosphorus", "Total_Hydrolyzable Phosphorus")
   
   
-  locs <- unique(bigTable$Locator)
+  locs <- unique(input.data$Locator)
   locs <- locs[order(locs)]
   
   # Initialize empty frames for use in the for loop
@@ -306,10 +306,15 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
     
     df3 <- df2 %>%
       select(- all_of('Month')) %>%
+      group_by(Year) %>%
+      mutate(num = n()) %>%
       group_by(Year) %>% 
-      summarise(med = median(ave, na.rm = TRUE))
+      summarise(med = median(ave, na.rm = TRUE), nums = mean(num, na.rm = TRUE)) %>%
+      subset(nums > 5) %>%
+      select(- all_of('nums')) 
     
     median_out <- full_join(median_out,df3, by = 'Year')
+    
    }
   names(median_out) <- c('Year',locs) # rename all columns to match their locations
 

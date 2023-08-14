@@ -6,19 +6,17 @@ library(ggplot2)
 source('./functions/get_socrata_data_func.R')
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
-# You should a lot of these operations into functions  ##################################
-
-################################################################################
-#
-# Data Wrangling
-#
-################################################################################
 NOx_annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv')
 PO4_annual <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv')
+  
+# You should a lot of these operations into functions  ##################################
 
-#Removes the year 2023 since it is an incomplete year
-NOx_annual <- subset(NOx_annual, Year < 2023)
-PO4_annual <- subset(PO4_annual, Year < 2023)
+# Option 1 ################################################################################
+#
+# Baseline: start-2017, 1 yr required
+# Current: 2018 - 2022, 1 yr required
+#
+
 
 
 # Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
@@ -225,3 +223,99 @@ PO4_month_change$`Avg Slope (μg/L/decade)` <- PO4_month_diff * 10 / P_month_dif
 #  geom_line() +
 #  ggtitle("Monthly average Orthophosphate, Median-Centered") + 
 #  scale_y_continuous(name = "PO4, mg/L", limits = c(-50,100))
+
+
+
+
+
+
+
+
+timeframe <- 'annual'
+loc <- 'A319'
+params <- c('Nitrite_+_Nitrate_Nitrogen')
+  # Returns either the annual median or the monthly arithmetic average for the data, depending on the input
+  # Begin by making a vector of all the unique locator codes
+  paramconv <- c("Ammonia_Nitrogen", "Organic_Nitrogen", "Nitrite_+_Nitrate_Nitrogen", "Total_Kjeldahl_Nitrogen", "Total_Nitrogen",
+                 "Orthophosphate_Phosphorus", "Total_Phosphorus", "Total_Hydrolyzable Phosphorus")
+  
+  
+  locs <- unique(bigTable$Locator)
+  locs <- locs[order(locs)]
+  
+  # Initialize empty frames for use in the for loop
+  df1 <- tibble()
+  df2 <- tibble()
+  df3 <- tibble()
+  
+  if (timeframe == 'annual'){
+    median_out <- as.data.frame(unique(bigTable$Year)) # creates a data frame of every year in the data
+    names(median_out) <- c('Year')
+    median_out <- arrange(median_out, median_out$Year)
+    
+    
+    # Fill out columns for every location in the data set
+    for (loc in locs) {
+      df1 <- data.frame(bigTable$Year[bigTable$Locator == loc], 
+                        bigTable$Month[bigTable$Locator == loc],
+                        bigTable[, ..params][bigTable$Locator == loc])
+      names(df1) <- c('Year','Month','Conc')
+      
+      if (params %in% paramconv) {
+        df1$Conc <- df1$Conc * 1000
+      }
+      
+      df2 <- df1 %>%
+        group_by(Year, Month) %>%
+        summarise(ave = mean(Conc, na.rm = TRUE), .groups = 'drop_last')
+      
+      df3 <- df2 %>%
+        select(- all_of('Month')) %>%
+        group_by(Year) %>%
+        mutate(num = n()) %>%
+        group_by(Year) %>% 
+        summarise(med = median(ave, na.rm = TRUE), nums = mean(num, na.rm = TRUE)) %>%
+        subset(nums > 5) %>%
+        select(- all_of('nums')) 
+      
+      median_out <- full_join(median_out,df3, by = 'Year')
+    }
+    names(median_out) <- c('Year',locs) # rename all columns to match their locations
+    
+    #save data frame for later usage
+    cache_name = paste0('./data_cache/median_annual_',paste0(params),'.csv')
+    write_csv(median_out, cache_name, col_name=TRUE)
+    
+  }
+  
+  if (timeframe == 'monthly'){
+    bigTable$Year_mon <- as.yearmon(bigTable$Decimal_year)
+    
+    median_out <- as.data.frame(unique(bigTable$Year_mon)) # creates a data frame of every year in the data
+    names(median_out) <- c('Year_mon')
+    median_out <- arrange(median_out, median_out$Year_mon)
+    
+    # Fill out columns for every location in the data set
+    for (loc in locs) {
+      df1 <- data.frame(bigTable$Year_mon[bigTable$Locator == loc], 
+                        bigTable[, ..params][bigTable$Locator == loc])
+      names(df1) <- c('Year_mon','Conc')
+      
+      if (params %in% paramconv) {
+        df1$Conc <- df1$Conc * 1000
+      }
+      
+      df2 <- df1 %>%
+        group_by(Year_mon) %>%
+        summarise(ave = mean(Conc, na.rm = TRUE)) 
+      
+      median_out <- full_join(median_out,df2, by = 'Year_mon')
+    }
+    names(median_out) <- c('Year_mon',locs) # rename all columns to match their locations
+    
+  }
+  
+  for(column in colnames(median_out)){
+    median_out[,column][is.nan(median_out[,column])] <- NA # Replaces all Nan's with NA for the sake of consistency
+  }
+  
