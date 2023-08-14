@@ -121,7 +121,7 @@ colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/decade)')
 # Slope distribution histogram
 ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 0.9) +
-  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'gray', size = 1) +
   ggtitle('PO4 Slope Distribution Histogram Option 1, bin-width = 0.9') +
   scale_x_continuous(breaks = )
 

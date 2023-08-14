@@ -61,16 +61,17 @@ ggplot() +
 
 
 
-
-PO4_mod <- glm(`PO4_(μg/L)` ~ `% Dev`, data = model_dat, family = gaussian())
+PO4_mod <- glm(PO4 ~ Dev, data = model_dat, family = gaussian())
 Px <- seq(0, 100, 1)
-Py <- predict(PO4_mod, list(`% Dev`= Px), type= 'response')
+Py <- predict(PO4_mod, list(Dev= Px), type= 'response')
 Pmod <- tibble(Px,Py)
 
 ggplot() +
-  geom_point(data= model_dat, aes(x= `% Dev`, y= `PO4 (μg/L)`)) +
+  geom_point(data= model_dat, aes(x= Dev, y= PO4)) +
   geom_line(data= Pmod, aes(x= Px, y= Py), size= 2, show.legend = FALSE) +
   ggtitle('PO4 recent concentrations and linear model')
 
+# The intercept for NOx md
 
-
+rSquared(NOx_mod$y, NOx_mod$residuals) 
+rSquared(PO4_mod$y, PO4_mod$residuals)
