@@ -1,0 +1,74 @@
+"","Locator","Descriptor","Land Use","Development Cat.","% Developed","% Agricultural"
+"1","0311","Green River","major river","major river",22,5
+"2","0317","Springbrook/Black River","urban","60's & 70's suburbanization",91,1
+"3","0321","Crisp Creek","rural","low development",27,3
+"4","0322","Newakum Creek","agricultural","low development",26,36
+"5","0430","Lyon Creek","urban","post WWII boom",90,0
+"6","0434","Thornton Creek","urban","post WWII boom",98,0
+"7","0438","Cedar River","major river","major river",15,0
+"8","0440","May Creek","suburban","60's & 70's suburbanization",52,0
+"9","0442","Coal Creek","suburban","60's & 70's suburbanization",57,0
+"10","0444","Kelsey Creek","urban","post WWII boom",87,0
+"11","0446","Juanita Creek","urban","60's & 70's suburbanization",91,0
+"12","0450CC","Sammamish River","major river","major river",46,2
+"13","0470","Swamp Creek","urban","60's & 70's suburbanization",89,0
+"14","0474","North Creek","urban","60's & 70's suburbanization",87,0
+"15","0478","Little Bear Creek","suburban","80's & 90's suburbanization",69,0
+"16","0484","Bear Creek","suburban","80's & 90's suburbanization",56,0
+"17","0486","Sammamish River","major river","major river",37,2
+"18","0631","Issaquah Creek","rural","low development",21,3
+"19","0632","Issaquah Creek","suburban",NA,47,0
+"20","3106","Green River","major river","major river",22,5
+"21","A315","Mill Creek","urban","60's & 70's suburbanization",81,4
+"22","A319","Green River","major river","major river",7,5
+"23","A320","Soos Creek","suburban","60's & 70's suburbanization",59,3
+"24","A432","McAleer Creek","urban","post WWII boom",93,0
+"25","A438","Cedar River","major river","major river",9,0
+"26","A456","Forbes Creek","urban",NA,91,0
+"27","A499","Cochran Springs","suburban","60's & 70's suburbanization",66,0
+"28","A617","Lewis Creek","suburban",NA,73,1
+"29","A620","Idylwood Creek","urban",NA,91,0
+"30","A631","Issaquah Creek","rural","low development",18,4
+"31","A670","Laughing Jacobs Creek","suburban",NA,75,0
+"32","A680","Pine Lake Creek","agricultural",NA,64,0
+"33","A685","Ebright Creek","suburban",NA,70,0
+"34","A687","Zackuse Creek","suburban",NA,66,0
+"35","A690","Eden Creek","suburban",NA,72,0
+"36","AMES_1","Ames Creek","agricultural",NA,19,18
+"37","B319","Green River","major river","major river",3,0
+"38","B484","Evans Creek","suburban","80's & 90's suburbanization",57,1
+"39","B499","Yarrow Creek","suburban",NA,73,0
+"40","BB470","Swamp Creek, Upper","urban",NA,91,0
+"41","BSE_1MUDMTNRD","Boise Creek","agricultural",NA,15,11
+"42","C320","Covington Creek","suburban","21st century suburbanization",57,2
+"43","C370","Longfellow Creek","urban","post WWII boom",94,0
+"44","C484","Bear Creek","suburban","80's & 90's suburbanization",55,0
+"45","CHERRY_1","Cherry Creek","forested",NA,6,0
+"46","D320","Jenkins Creek","suburban","60's & 70's suburbanization",68,1
+"47","D474","North Creek, Upper","urban",NA,88,0
+"48","FF321","Crisp Creek","rural",NA,28,0
+"49","G320","Little Soos Creek","suburban","low development",64,4
+"50","GRIFFIN","Griffin Creek","forested",NA,0,0
+"51","HARRIS_1","Harris Creek","rural",NA,19,0
+"52","KSHZ06","Pipers Creek","urban","post WWII boom",90,0
+"53","KTHA01","Pipers Creek, Upper","urban","post WWII boom",94,0
+"54","KTHA02","Pipers Creek","urban","post WWII boom",93,0
+"55","KTHA03","Venema Creek","urban","post WWII boom",92,0
+"56","LSIN1","Rock Creek","rural",NA,22,3
+"57","LSIN9","Ravensdale Creek","rural",NA,12,1
+"58","N484","Cottage Lake Creek","suburban",NA,60,0
+"59","NFK_SNQ","Snoqualmie, North Fork","forested",NA,1,0
+"60","PATTER_3","Patterson Creek","rural",NA,25,8
+"61","RAGING_MTH","Raging River","forested",NA,6,0
+"62","S478","Little Bear Creek, Upper","suburban",NA,65,0
+"63","S484","Evans Creek, Upper","suburban","80's & 90's suburbanization",57,0
+"64","SFK_SNQ","Snoqualmie, South Fork","forested",NA,8,0
+"65","SNQDUVALL","Snoqualmie River","major river",NA,6,2
+"66","TOLT_MTH","Tolt River","forested",NA,2,0
+"67","VA12A","Shinglemill","rural",NA,29,4
+"68","VA37A","Tahlequa Creek","rural",NA,18,0
+"69","VA41A","Fisher Creek","agricultural",NA,16,20
+"70","VA42A","Judd Creek","rural",NA,20,10
+"71","VA45A","Mileta Creek","rural",NA,11,5
+"72","VA65A","Gorsuch Creek","suburban",NA,61,2
+"73","X630","Tibbetts Creek","rural",NA,20,0
