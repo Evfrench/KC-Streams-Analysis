@@ -1,3 +1,4 @@
+# You should make a lot of these operations into functions  ##################################
 library(plyr)
 library(dplyr)
 library(data.table)
@@ -8,16 +9,15 @@ bigTable <- fread('./data_cache/KC_WQ_Data')
 
 NOx_annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv')
 PO4_annual <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv')
-  
-# You should a lot of these operations into functions  ##################################
+
+median_slopes <- matrix(0, nrow = 3, ncol = 2 )
 
 # Option 1 ################################################################################
 #
 # Baseline: start-2017, 1 yr required
 # Current: 2018 - 2022, 1 yr required
-#
-
-
+# Results: 72 sites, central slope NO2/3: -76.6 μg/L/decade, PO4: -1.58 μg/L/decade
+# Outliers: NO2/3: , PO4: 
 
 # Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
 siteSelectNbase <- sapply(NOx_annual[Year <= 2017], function(x) sum(!is.na(x)))
@@ -27,29 +27,30 @@ siteSelectNrecent <- sapply(NOx_annual[Year > 2017], function(x) sum(!is.na(x)))
 siteSelectPbase <- sapply(PO4_annual[Year <= 2017], function(x) sum(!is.na(x)))
 siteSelectPrecent <- sapply(PO4_annual[Year > 2017], function(x) sum(!is.na(x)))
 
+# Creates a dataframe for selection option 1
+NOx_1 <- NOx_annual
+PO4_1 <- PO4_annual
 
 # This For loop eliminates sites from the data set. There are 2 checks the sites go through, minimum allowable baseline data and minimum allowable recent data
 # Recent standard is 4 years, baseline standard is 15 years
 for (site in colnames(NOx_annual))
 {
   if (siteSelectNbase[site] < 1 | siteSelectNrecent[site] < 1){
-    NOx_annual <- NOx_annual %>% select(- all_of(site))
+    NOx_1 <- NOx_1 %>% select(- all_of(site))
   }
   if (siteSelectPbase[site] < 1 | siteSelectPrecent[site] < 1){
-    PO4_annual <- PO4_annual %>% select(- all_of(site))
+    PO4_1 <- PO4_1 %>% select(- all_of(site))
   }
 }
 
-################################################################################
+# NO2/3 Slope Distribution ###############################################################################
 #
-# NO2/3 Slope Distribution
-#
-################################################################################
+# 
 # Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
 N_avg_diffyr <- numeric()
 
-for (site in colnames(NOx_annual[,-1])) {
-  nLoop <- NOx_annual[,c('Year',..site)] 
+for (site in colnames(NOx_1[,-1])) {
+  nLoop <- NOx_1[,c('Year',..site)] 
   nLoop <- na.omit(nLoop) # Removes all the NA rows, so years without samples are not counted in the central year
   nLoop <- nLoop[,'Year']
   nLoopdiff <- sapply(nLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(nLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
@@ -58,7 +59,7 @@ for (site in colnames(NOx_annual[,-1])) {
 }
 
 # Calculates the baseline and recent averages, then calculates the difference
-NOx_avg_diff <- sapply(NOx_annual[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(NOx_annual[Year <= 2017], function(x) median(x, na.rm = TRUE))
+NOx_avg_diff <- sapply(NOx_1[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(NOx_1[Year <= 2017], function(x) median(x, na.rm = TRUE))
 NOx_avg_slp <- as.data.frame(NOx_avg_diff[-1]*10/N_avg_diffyr) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
 colnames(NOx_avg_slp) <- c('Avg Slope (μg/L/decade)')
 
@@ -70,9 +71,9 @@ colnames(NOx_avg_slp) <- c('Avg Slope (μg/L/decade)')
 
 # Slope distribution histogram
 ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(binwidth = 50) + 
+  geom_histogram(binwidth = 35) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
-  ggtitle('NO2/3 Slope Distribution Histogram, bin-width = 25') 
+  ggtitle('NO2/3 Slope Distribution Histogram Option 1, bin-width = 35') 
 #+ scale_x_continuous(breaks = c(-20:2 *50))
 
 # Slope distribution Curve, Modified limits
@@ -82,22 +83,22 @@ ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
 #  scale_x_continuous(breaks = c(-6:6 *50),limits = c(-300,300))
 
 # Slope distribution histogram, Modified limits
-ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(binwidth = 25) + 
-  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
-  ggtitle('NO2/3 Slope Distribution Histogram, Zoomed-in, bin-width = 25') +
-  scale_x_continuous(breaks = c(-6:6 *50),limits = c(-300,300))
+#ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(binwidth = 25) + 
+#  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
+#  ggtitle('NO2/3 Slope Distribution Histogram, Zoomed-in, bin-width = 25') +
+#  scale_x_continuous(breaks = c(-6:6 *50),limits = c(-300,300))
 
-################################################################################
+# PO4 Slope Distribution ###############################################################################
 #
-# PO4 Slope Distribution
+# 
 #
-################################################################################
+#
 # Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
 P_avg_diffyr <- numeric()
 
-for (site in colnames(PO4_annual[,-1])) {
-  pLoop <- PO4_annual[,c('Year',..site)] 
+for (site in colnames(PO4_1[,-1])) {
+  pLoop <- PO4_1[,c('Year',..site)] 
   pLoop <- na.omit(pLoop) # removes years with empty nutrient values
   pLoop <- pLoop[,'Year'] # removes the nutrient column and just keeps years
   pLoopdiff <- sapply(pLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(pLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
@@ -106,7 +107,7 @@ for (site in colnames(PO4_annual[,-1])) {
 }
 
 
-PO4_avg_diff <- sapply(PO4_annual[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(PO4_annual[Year <= 2017], function(x) median(x, na.rm = TRUE))
+PO4_avg_diff <- sapply(PO4_1[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(PO4_1[Year <= 2017], function(x) median(x, na.rm = TRUE))
 PO4_avg_slp <- as.data.frame(PO4_avg_diff[-1]*10/P_avg_diffyr) #This is the average slope. Units are microgram/Liter/year
 colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/decade)')
 
@@ -119,9 +120,9 @@ colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/decade)')
 
 # Slope distribution histogram
 ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(binwidth = 1.0) +
+  geom_histogram(binwidth = 0.9) +
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
-  ggtitle('PO4 Slope Distribution Histogram, bin-width = 1') +
+  ggtitle('PO4 Slope Distribution Histogram Option 1, bin-width = 0.9') +
   scale_x_continuous(breaks = )
 
 # Slope distribution Curve, Modified limits
@@ -131,19 +132,202 @@ ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
 #  scale_x_continuous(breaks = c(-5:5 *2),limits = c(-10,10))
 
 # Slope distribution histogram, Modified limits
-ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
-  geom_histogram(binwidth = 1) + 
+#ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+#  geom_histogram(binwidth = 1) + 
+#  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
+#  ggtitle('PO4 Slope Distribution Histogram, Zoomed-in, bin-width = 1') +
+#  scale_x_continuous(breaks = c(-5:5 *2),limits = c(-10,10))
+
+median_slopes[1,] <- c(median(NOx_avg_slp[,1]), median(PO4_avg_slp[,1]))
+
+
+# Option 2 ################################################################################
+#
+# Baseline: start-2017, 10 yrs required
+# Current: 2018 - 2022, 3 yrs required
+# Results: 51 sites, central slope NO2/3: -71.9 μg/L/decade, PO4: -1.70 μg/L/decade
+# Outliers: NO2/3: , PO4: 
+
+# Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
+siteSelectNbase <- sapply(NOx_annual[Year <= 2017], function(x) sum(!is.na(x)))
+siteSelectNrecent <- sapply(NOx_annual[Year > 2017], function(x) sum(!is.na(x)))
+
+# Does the same for PO4
+siteSelectPbase <- sapply(PO4_annual[Year <= 2017], function(x) sum(!is.na(x)))
+siteSelectPrecent <- sapply(PO4_annual[Year > 2017], function(x) sum(!is.na(x)))
+
+# Creates a dataframe for selection option 2
+NOx_2 <- NOx_annual
+PO4_2 <- PO4_annual
+
+# This For loop eliminates sites from the data set. There are 2 checks the sites go through, minimum allowable baseline data and minimum allowable recent data
+# Recent standard is 4 years, baseline standard is 15 years
+for (site in colnames(NOx_annual))
+{
+  if (siteSelectNbase[site] < 10 | siteSelectNrecent[site] < 3){
+    NOx_2 <- NOx_2 %>% select(- all_of(site))
+  }
+  if (siteSelectPbase[site] < 10 | siteSelectPrecent[site] < 3){
+    PO4_2 <- PO4_2 %>% select(- all_of(site))
+  }
+}
+
+# NO2/3 Slope Distribution ###############################################################################
+#
+# 
+# Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
+N_avg_diffyr <- numeric()
+
+for (site in colnames(NOx_2[,-1])) {
+  nLoop <- NOx_2[,c('Year',..site)] 
+  nLoop <- na.omit(nLoop) # Removes all the NA rows, so years without samples are not counted in the central year
+  nLoop <- nLoop[,'Year']
+  nLoopdiff <- sapply(nLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(nLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
+  N_avg_diffyr[site] <- nLoopdiff
+  remove(nLoop, nLoopdiff)
+}
+
+# Calculates the baseline and recent averages, then calculates the difference
+NOx_avg_diff <- sapply(NOx_2[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(NOx_2[Year <= 2017], function(x) median(x, na.rm = TRUE))
+NOx_avg_slp <- as.data.frame(NOx_avg_diff[-1]*10/N_avg_diffyr) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
+colnames(NOx_avg_slp) <- c('Avg Slope (μg/L/decade)')
+
+# Slope distribution histogram
+ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+  geom_histogram(binwidth = 35) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
-  ggtitle('PO4 Slope Distribution Histogram, Zoomed-in, bin-width = 1') +
-  scale_x_continuous(breaks = c(-5:5 *2),limits = c(-10,10))
+  ggtitle('NO2/3 Slope Distribution Histogram Option 2, bin-width = 35') 
+#+ scale_x_continuous(breaks = c(-20:2 *50))
 
-
-################################################################################
+# PO4 Slope Distribution ###############################################################################
 #
-# Test GAM and monthly trends
+# 
 #
-################################################################################
+# Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
+P_avg_diffyr <- numeric()
 
+for (site in colnames(PO4_2[,-1])) {
+  pLoop <- PO4_2[,c('Year',..site)] 
+  pLoop <- na.omit(pLoop) # removes years with empty nutrient values
+  pLoop <- pLoop[,'Year'] # removes the nutrient column and just keeps years
+  pLoopdiff <- sapply(pLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(pLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
+  P_avg_diffyr[site] <- pLoopdiff
+  remove(pLoop, pLoopdiff)
+}
+
+
+PO4_avg_diff <- sapply(PO4_2[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(PO4_2[Year <= 2017], function(x) median(x, na.rm = TRUE))
+PO4_avg_slp <- as.data.frame(PO4_avg_diff[-1]*10/P_avg_diffyr) #This is the average slope. Units are microgram/Liter/year
+colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/decade)')
+
+# Slope distribution histogram
+ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+  geom_histogram(binwidth = 0.9) +
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
+  ggtitle('PO4 Slope Distribution Histogram Option 2, bin-width = 0.9') +
+  scale_x_continuous(breaks = )
+
+
+median_slopes[2,] <- c(median(NOx_avg_slp[,1]), median(PO4_avg_slp[,1]))
+
+# Option 3 ################################################################################
+#
+# Baseline: 1979-2009, 5 yrs required
+# Current: 2014 - 2022, 5 yrs required
+# Results: 47 sites, central slope NO2/3: -46.0 μg/L/decade, PO4: -1.90 μg/L/decade
+# Outliers: NO2/3: , PO4: 
+
+# Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
+siteSelectNbase <- sapply(NOx_annual[Year <= 2009 & Year >= 1979], function(x) sum(!is.na(x)))
+siteSelectNrecent <- sapply(NOx_annual[Year > 2013], function(x) sum(!is.na(x)))
+
+# Does the same for PO4
+siteSelectPbase <- sapply(PO4_annual[Year <= 2009 & Year >= 1979], function(x) sum(!is.na(x)))
+siteSelectPrecent <- sapply(PO4_annual[Year > 2013], function(x) sum(!is.na(x)))
+
+# Creates a dataframe for selection option 3
+NOx_3 <- NOx_annual
+PO4_3 <- PO4_annual
+
+# This For loop eliminates sites from the data set. There are 2 checks the sites go through, minimum allowable baseline data and minimum allowable recent data
+# Recent standard is 4 years, baseline standard is 15 years
+for (site in colnames(NOx_annual))
+{
+  if (siteSelectNbase[site] < 5 | siteSelectNrecent[site] < 5){
+    NOx_3 <- NOx_3 %>% select(- all_of(site))
+  }
+  if (siteSelectPbase[site] < 5 | siteSelectPrecent[site] < 5){
+    PO4_3 <- PO4_3 %>% select(- all_of(site))
+  }
+}
+
+# NO2/3 Slope Distribution ###############################################################################
+#
+# 
+# Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
+N_avg_diffyr <- numeric()
+
+for (site in colnames(NOx_3[,-1])) {
+  nLoop <- NOx_3[,c('Year',..site)] 
+  nLoop <- na.omit(nLoop) # Removes all the NA rows, so years without samples are not counted in the central year
+  nLoop <- nLoop[,'Year']
+  nLoopdiff <- sapply(nLoop[Year > 2013], function(x) median(x, na.rm = TRUE)) - sapply(nLoop[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
+  N_avg_diffyr[site] <- nLoopdiff
+  remove(nLoop, nLoopdiff)
+}
+
+# Calculates the baseline and recent averages, then calculates the difference
+NOx_avg_diff <- sapply(NOx_3[Year > 2013], function(x) median(x, na.rm = TRUE)) - sapply(NOx_3[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
+NOx_avg_slp <- as.data.frame(NOx_avg_diff[-1]*10/N_avg_diffyr) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
+colnames(NOx_avg_slp) <- c('Avg Slope (μg/L/decade)')
+
+# Slope distribution histogram
+ggplot(NOx_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+  geom_histogram(binwidth = 35) + 
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
+  ggtitle('NO2/3 Slope Distribution Histogram Option 3, bin-width = 35') 
+#+ scale_x_continuous(breaks = c(-20:2 *50))
+
+# PO4 Slope Distribution ###############################################################################
+#
+# 
+#
+# Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
+P_avg_diffyr <- numeric()
+
+for (site in colnames(PO4_3[,-1])) {
+  pLoop <- PO4_3[,c('Year',..site)] 
+  pLoop <- na.omit(pLoop) # removes years with empty nutrient values
+  pLoop <- pLoop[,'Year'] # removes the nutrient column and just keeps years
+  pLoopdiff <- sapply(pLoop[Year > 2013], function(x) median(x, na.rm = TRUE)) - sapply(pLoop[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
+  P_avg_diffyr[site] <- pLoopdiff
+  remove(pLoop, pLoopdiff)
+}
+
+
+PO4_avg_diff <- sapply(PO4_3[Year > 2013], function(x) median(x, na.rm = TRUE)) - sapply(PO4_3[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
+PO4_avg_slp <- as.data.frame(PO4_avg_diff[-1]*10/P_avg_diffyr) #This is the average slope. Units are microgram/Liter/year
+colnames(PO4_avg_slp) <- c('Avg Slope (μg/L/decade)')
+
+# Slope distribution histogram
+ggplot(PO4_avg_slp, aes(x = `Avg Slope (μg/L/decade)`)) +
+  geom_histogram(binwidth = 0.9) +
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'red', size = 1) +
+  ggtitle('PO4 Slope Distribution Histogram Option 3, bin-width = 0.9') +
+  scale_x_continuous(breaks = )
+
+
+
+median_slopes[3,] <- c(median(NOx_avg_slp[,1]), median(PO4_avg_slp[,1]))
+
+
+
+
+
+
+# Test GAM and monthly trends ###############################################################################
+#
+# 
 NOx_monthly <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('monthly'))
 PO4_monthly <- summarize_WQ_data(bigTable, c('Orthophosphate_Phosphorus'), c('monthly'))
 
@@ -318,4 +502,4 @@ params <- c('Nitrite_+_Nitrate_Nitrogen')
   for(column in colnames(median_out)){
     median_out[,column][is.nan(median_out[,column])] <- NA # Replaces all Nan's with NA for the sake of consistency
   }
-  
+   
