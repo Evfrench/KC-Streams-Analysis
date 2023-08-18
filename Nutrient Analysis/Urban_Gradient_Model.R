@@ -3,9 +3,10 @@
 library(plyr)
 library(dplyr)
 library(data.table)
+library(tibble)
 library(mgcv)
 library(ggplot2)
-bigTable <- fread('./data_cache/KC_WQ_Data')
+library(readxl)
 
 # Creates frames for all sites, and eliminates all years except for the last 5
 NOx_recent <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv') %>%
@@ -18,6 +19,7 @@ NOx_select <- sapply(NOx_recent, function(x) sum(! is.na(x)))
 PO4_select <- sapply(PO4_recent, function(x) sum(! is.na(x)))
 
 # We will only use the site in this analysis if there are 3 years or more of valid data
+# This leaves us with 73 sites, not too bad
 for (site in colnames(NOx_recent)){
   if (NOx_select[site] < 3){
     NOx_recent <- NOx_recent %>% select(- all_of(site))
@@ -75,3 +77,36 @@ ggplot() +
 
 rSquared(NOx_mod$y, NOx_mod$residuals) 
 rSquared(PO4_mod$y, PO4_mod$residuals)
+
+# Attempt Number 2 #####################
+
+# Lets try Nitrite/nitrate first ############
+
+# Import Nitrate/Nitrite data, the land cover data is from 2019 so that will be the central year, lets say +/- 3 years
+# this will give a maximum of 7 years worth of data
+
+N_recent <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv') %>%
+  subset(Year < 2023 & Year > 2015)%>%
+  select(- all_of('Year')) %>%
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column(var = 'Locator') %>%
+  rowwise(Locator) %>%
+  summarise(count = sum(! is.na(c_across(V1:V7))), 
+            mean = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+  left_join(read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %"), by = 'Locator') %>%
+  subset(count >=4 & `Agriculture, Total` < 5)
+
+
+N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest`, data = N_recent, family = gaussian())
+
+land_covers <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %") 
+
+
+  
+# Import the site details from excel
+
+
+
+  
+
