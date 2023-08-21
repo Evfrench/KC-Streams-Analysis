@@ -6,6 +6,7 @@ library(data.table)
 library(tibble)
 library(mgcv)
 library(ggplot2)
+library(miscTools)
 library(readxl)
 
 # Creates frames for all sites, and eliminates all years except for the last 5
@@ -98,15 +99,251 @@ N_recent <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitr
   subset(count >=4 & `Agriculture, Total` < 5)
 
 
+# Fitting various linear models to the nitrate data ############################
+
+Nmod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AIC' = numeric(),
+                      'Intercept' = numeric(), 'coef_1' = numeric(), 'coef_2' = numeric(),
+                      'coef_3' = numeric())
+
+# 1. Total Developed Area
+N_mod <- glm(mean ~ `Urban, Total`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Developed Area'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 2. Developed, High Intensity
+N_mod <- glm(mean ~ `Developed, High Intensity`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Developed, High Intensity'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 3. Developed, Medium Intensity
+N_mod <- glm(mean ~ `Developed, Medium Intensity`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Developed, Medium Intensity'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+# 4. Developed, Low Intensity
+N_mod <- glm(mean ~ `Developed, Low Intensity`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Developed, Low Intensity'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 5. Total Forested Area
+N_mod <- glm(mean ~ `Forest, Total`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Forested Area'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 6. Deciduous Forest
+N_mod <- glm(mean ~ `Deciduous Forest`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Deciduous Forest'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+
+# 7. Total Developed + Deciduous Forest
 N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Developed + Deciduous Forest'
 
-land_covers <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %") 
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 8. Total Developed + Total Wetlands
+N_mod <- glm(mean ~ `Urban, Total` + `Wetlands, Total`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Developed + Total Wetlands'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 9. Total Developed + Open Water
+N_mod <- glm(mean ~ `Urban, Total` + `Open Water`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Developed + Open Water'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3])
+
+# 10. Total Developed + Deciduous Forest + Total Wetlands
+N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Wetlands, Total`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Developed + Deciduous Forest + Total Wetlands'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                       AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                       coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3], 
+                                       coef_3 = N_mod$coefficients[4])
+
+# 11. Total Developed + Deciduous Forest + Open Water
+N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Open Water`, data = N_recent, family = gaussian())
+r2 <- rSquared(N_mod$y, N_mod$residuals) 
+mod_form <- 'Total Developed + Deciduous Forest + Open Water'
+
+Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                         coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3], 
+                                         coef_3 = N_mod$coefficients[4])
+
+# Export Results to a csv
+write.csv(Nmod_results,'./data_cache/NO2-3_LandCover_Models.csv', col.names = TRUE)
+
+# Fitting various linear models to the phosphate data ############################
+
+P_recent <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv') %>%
+  subset(Year < 2023 & Year > 2015)%>%
+  select(- all_of('Year')) %>%
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column(var = 'Locator') %>%
+  rowwise(Locator) %>%
+  summarise(count = sum(! is.na(c_across(V1:V7))), 
+            mean = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+  left_join(read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %"), by = 'Locator') %>%
+  subset(count >=4 & `Agriculture, Total` < 5)
+
+Pmod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AIC' = numeric(),
+                       'Intercept' = numeric(), 'coef_1' = numeric(), 'coef_2' = numeric(),
+                       'coef_3' = numeric())
+
+# 1. Total Developed Area
+P_mod <- glm(mean ~ `Urban, Total`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed Area'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+# 2. Developed, High Intensity
+P_mod <- glm(mean ~ `Developed, High Intensity`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Developed, High Intensity'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+# 3. Developed, Medium Intensity
+P_mod <- glm(mean ~ `Developed, Medium Intensity`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Developed, Medium Intensity'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+# 4. Developed, Low Intensity
+P_mod <- glm(mean ~ `Developed, Low Intensity`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Developed, Low Intensity'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+# 5. Total Forested Area
+P_mod <- glm(mean ~ `Forest, Total`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Forested Area'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+# 6. Total Forested Area + Developed, Medium Intensity
+P_mod <- glm(mean ~ `Forest, Total` + `Developed, Medium Intensity`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Forested Area + Developed, Medium Intensity'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
 
 
-  
-# Import the site details from excel
+# 7. Total Developed + Deciduous Forest
+P_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Deciduous Forest'
 
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
 
+# 8. Total Developed + Evergreen Forest. This will test if the previous model is just benefiting from having forest in the model
+P_mod <- glm(mean ~ `Urban, Total` + `Evergreen Forest`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Evergreen Forest'
 
-  
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
 
+# 9. Total Developed + Open Water
+P_mod <- glm(mean ~ `Urban, Total` + `Open Water`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Open Water'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+# 10. Total Developed + Total Wetlands
+P_mod <- glm(mean ~ `Urban, Total` + `Wetlands, Total`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Total Wetlands'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+# 11. Total Developed + Deciduous Forest + Open Water
+P_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Open Water`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Deciduous Forest + Open Water'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3], 
+                                         coef_3 = P_mod$coefficients[4])
+
+# 12. Total Developed + Deciduous Forest + Total Wetlands
+P_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Wetlands, Total`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Deciduous Forest + Total Wetlands'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3], 
+                                         coef_3 = P_mod$coefficients[4])
+
+# 8. Total Developed + Mixed Forest. This will test if the previous model is just benefiting from having forest in the model
+P_mod <- glm(mean ~ `Urban, Total` + `Mixed Forest`, data = P_recent, family = gaussian())
+r2 <- rSquared(P_mod$y, P_mod$residuals) 
+mod_form <- 'Total Developed + Mixed Forest'
+
+Pmod_results <- Pmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                         AIC = P_mod$aic, Intercept = P_mod$coefficients[1], 
+                                         coef_1 = P_mod$coefficients[2], coef_2 = P_mod$coefficients[3])
+
+write.csv(Pmod_results,'./data_cache/PO4_LandCover_Models.csv', col.names = TRUE)
