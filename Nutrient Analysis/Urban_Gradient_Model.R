@@ -113,7 +113,11 @@ for (rep in 1:13){
 # Add model selection diagnostics
 Nmod_results$relLik <- exp(-0.5 * (Nmod_results$AICc - min(Nmod_results$AICc)))
 Nmod_results$AICwt <- Nmod_results$relLik/sum(Nmod_results$relLik)
-Nmod_results <- arrange(Nmod_results, -AICwt)
+Nmod_results <- Nmod_results %>% 
+  arrange(-AICwt) %>%
+  column_to_rownames(var = 'Description') %>%
+  round(digits = 3) %>%
+  rownames_to_column(var = 'Description')
 # Export Results to a csv
 write.csv(Nmod_results,'./data_cache/NO2-3_LandCover_Models.csv')
 
@@ -226,6 +230,10 @@ for (rep in 1:14){
 # Add model selection diagnostics
 Pmod_results$relLik <- exp(-0.5 * (Pmod_results$AICc - min(Pmod_results$AICc)))
 Pmod_results$AICwt <- Pmod_results$relLik/sum(Pmod_results$relLik)
-Pmod_results <- arrange(Pmod_results, -AICwt)
+Pmod_results <- Pmod_results %>% 
+  arrange(-AICwt) %>%
+  column_to_rownames(var = 'Description') %>%
+  round(digits = 3) %>%
+  rownames_to_column(var = 'Description')
 
 write.csv(Pmod_results,'./data_cache/PO4_LandCover_Models.csv')
