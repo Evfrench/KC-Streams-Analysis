@@ -9,7 +9,7 @@ library(ggplot2)
 library(miscTools)
 library(readxl)
 
-# Lets try Nitrite/nitrate first ############
+# Fitting various linear models to the nitrate data ############################
 
 # Import Nitrate/Nitrite data, the land cover data is from 2019 so that will be the central year, lets say +/- 3 years
 # this will give a maximum of 7 years worth of data
@@ -28,8 +28,6 @@ N_recent <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitr
 
 # For model selection we need to record the number of points
 n <- nrow(N_recent)
-
-# Fitting various linear models to the nitrate data ############################
 
 Nmod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AICc' = numeric(),
                       'AICwt' = numeric(), 'Intercept' = numeric(), 'coef_1' = numeric(), 
@@ -143,7 +141,7 @@ Pmod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AI
                        'coef_2' = numeric(), 'coef_3' = numeric())
 
 # This for loop will fit multiple linear models to the average PO4 data
-for (rep in 1:13){
+for (rep in 1:14){
   if (rep == 1){
     # 1. Total Developed Area
     P_mod <- glm(mean ~ `Urban, Total`, data = P_recent, family = gaussian())
@@ -210,7 +208,11 @@ for (rep in 1:13){
     P_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Agriculture, Total`, data = P_recent, family = gaussian())
     mod_form <- 'Total Developed + Deciduous Forest + Total Agricultural'
   }
-
+  if (rep == 14){
+    # 14. Total Developed + Open Water + Total Agricultural
+    P_mod <- glm(mean ~ `Urban, Total` + `Open Water` + `Agriculture, Total`, data = P_recent, family = gaussian())
+    mod_form <- 'Total Developed + Open Water + Total Agricultural'
+  }
   r2 <- rSquared(P_mod$y, P_mod$residuals) 
   k <- length(P_mod$coefficients) - 1
   aicc <- P_mod$aic + (2*k*(k+1))/(n-k-1)
