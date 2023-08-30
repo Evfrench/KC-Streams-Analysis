@@ -405,6 +405,7 @@ colnames(P_month_change) <- c('Conc_diff','Time_diff','detrend_sd')
 P_month_change$`Avg Slope (μg/L/decade)` <- P_month_diff * 10 / P_month_diffyr
 # What element on the GAM object represents the model st dev? Did Kurtis use the model predictions as his slope basis?
 
+
 #ggplot(P_month_change, aes(x = `Avg Slope (μg/L/decade)`)) +
 #  geom_histogram(stat = 'density') +
 #  ggtitle('P Slope Distribution Curve') +
@@ -425,3 +426,51 @@ P_month_change$`Avg Slope (μg/L/decade)` <- P_month_diff * 10 / P_month_diffyr
 #  ggtitle("Monthly average Orthophosphate, Median-Centered") + 
 #  scale_y_continuous(name = "P, mg/L", limits = c(-50,100))
 
+
+
+
+# Exploring Outliers from Treatment 1 & 2 ######################################
+
+# Starting with the NO2/3 outliers: 
+# B499: -1241, Yarrow Creek
+# VA45A: -830, Mileta Creek
+# A670: -440, Laughing Jacobs Creek
+# VA41A: -361, Fisher Creek
+# LSIN9: -333, Rock Creek
+# 0632: 126, Issaquah Creek
+
+N_outliers <- N_1 %>% 
+  select(all_of(c('Year', 'B499','VA45A','A670','VA41A','LSIN9','0632'))) %>%
+  reshape2::melt(id.var="Year") %>%
+  subset(Year > 1980)
+
+ggplot(N_outliers, aes(Year, value)) + 
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median NO2-3, Outlier Locations") +
+  geom_vline(xintercept = 2017.5, linetype = 'solid', color = 'navy', size = 0.5) +
+  scale_y_continuous(name = "NO2/NO3, μg/L")
+
+
+
+# Now the PO4 outliers:
+#AMES_1: -26.6, Ames Creek
+#0632: -22.2, Issaquah Creek
+#B499: -13.3, Yarrow Creek
+#0456A: 132.5, Forbes Creek
+#VA45A: 4.39, Mileta Creek
+#A315: -9.61, Mill creek
+
+P_outliers <- P_1 %>% 
+  select(all_of(c('Year', 'AMES_1','0632','B499','0456A','VA45A', 'A315'))) %>%
+  reshape2::melt(id.var="Year") %>%
+  subset(Year > 1980)
+
+ggplot(P_outliers, aes(Year, value)) + 
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median PO4, Outlier Locations") +
+  geom_vline(xintercept = 2017.5, linetype = 'solid', color = 'navy', size = 0.5) +
+  scale_y_continuous(name = "PO4, μg/L")
