@@ -4,27 +4,26 @@ library(data.table)
 source('./functions/get_socrata_data_func.R')  
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
-###############################################################################
+# Annual Median Summary of Nutrients ##############################################################################
 #
-# Annual Median Summary of Nutrients
 #
-###############################################################################
+#
 
 AnnualNO3_NO2 <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('annual'))
 Annual_OrthoP <- summarize_WQ_data(bigTable, c('Orthophosphate_Phosphorus'), c('annual'))
 
 datSelect <- tibble(AnnualNO3_NO2[,"Year"], rowSums(!is.na(AnnualNO3_NO2[,-1])),rowSums(!is.na(Annual_OrthoP[,-1])))
 names(datSelect) <- c('Year','NO2/3_Entries','PO4_Entries')
-datSelect <- subset(datSelect, (Year > 1978 & Year < 2009) | (Year > 2012 & Year < 2023))
-###############################################################################
-# Data Cleaning
+
+# Data Cleaning ###############################################################################
+
 
 # This creates a plot with the number sites with non-empty readings every year
 ggplot() +
-  geom_col(data = datSelect, aes(x = Year, y = `NO2/3_Entries`, color = 'Nitrogen')) 
+  geom_col(data = datSelect, aes(x = Year, y = `NO2/3_Entries`)) 
 
 ggplot() +
-  geom_col(data = datSelect, aes(x = Year, y = PO4_Entries, color = 'Phosphorus'))
+  geom_col(data = datSelect, aes(x = Year, y = PO4_Entries))
 
 # NOTE: Highest frequency is from 2013 to present, large drop-off at 2008
 # NOTE: The a large cluster of data is between 1979-2008, this may be a good window to start with
@@ -68,8 +67,9 @@ for (site in colnames(Annual_OrthoP))
 
 # Orders the columns alphabetically, this will be helpful for later data QC
 siteorder <- order(colnames(N_filtered))
+siteorder2 <- order(colnames(P_filtered))
 N_filtered <- N_filtered[,siteorder]
-P_filtered <- P_filtered[,siteorder]
+P_filtered <- P_filtered[,siteorder2]
 
 # Saves the tables into csv files
 write.csv(N_filtered, './data_cache/filtered_Nitrite_+_Nitrate_Nitrogen.csv', col.names = TRUE)
@@ -82,14 +82,14 @@ datSelect2 <- tibble(N_filtered[,"Year"], rowSums(!is.na(N_filtered[,-1])),rowSu
 names(datSelect2) <- c('Year','NO2/3_Entries','PO4_Entries')
 
 ggplot() +
-  geom_col(data = datSelect2, aes(x = Year, y = `NO2/3_Entries`, color = 'Nitrogen')) 
+  geom_col(data = datSelect2, aes(x = Year, y = `NO2/3_Entries`)) 
 
 ggplot() +
-  geom_col(data = datSelect2, aes(x = Year, y = PO4_Entries, color = 'Phosphorus'))
+  geom_col(data = datSelect2, aes(x = Year, y = PO4_Entries))
 
 
-###############################################################################
-# Plotting time series
+# Plotting time series ###############################################################################
+
 
 # This center the data around each site's median, and convert it into a long table for plotting
 N_filtered2 <- N_filtered %>%
@@ -135,7 +135,7 @@ ggplot(P_filtered2, aes(Year, value)) +
   geom_point() +
   geom_line() +
   ggtitle("Annual Median Orthophosphate, Median-Centered and Zoomed In") +
-  scale_y_continuous(name = "PO4, μg/L", limits = c(-0.05,0.05))
+  scale_y_continuous(name = "PO4, μg/L", limits = c(-50,50))
 
 ggplot(P_filtered3, aes(Year, value)) + 
   facet_wrap(. ~ variable, shrink = FALSE) + 
@@ -147,6 +147,6 @@ ggplot(P_filtered3, aes(Year, value)) +
 
 
 # Saves list of sites for use in other scripts and to add information, run again if the sites are changed
-#locs <- as_data_frame(unique(N_filtered2$variable))
-#colnames(locs) <- c('Locator')
-#write.csv(locs, './data_cache/Selected_Monitoring_Stations.csv')
+locs <- as_data_frame(unique(N_filtered2$variable))
+colnames(locs) <- c('Locator')
+write.csv(locs, './data_cache/Selected_Monitoring_Stations.csv')

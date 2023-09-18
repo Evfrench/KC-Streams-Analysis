@@ -105,7 +105,7 @@ for (rep in 1:13){
   k <- length(N_mod$coefficients) - 1
   aicc <- N_mod$aic + (2*k*(k+1))/(n-k-1)
   Nmod_results <- Nmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
-                                           AICc = N_mod$aic, Intercept = N_mod$coefficients[1], 
+                                            AICc = N_mod$aic, Intercept = N_mod$coefficients[1], 
                                            coef_1 = N_mod$coefficients[2], coef_2 = N_mod$coefficients[3], 
                                            coef_3 = N_mod$coefficients[4])
   }
