@@ -414,6 +414,7 @@ P_month_change$`Median Slope (μg/L/decade)` <- P_month_diff * 10 / P_month_diff
 # What element on the GAM object represents the model st dev? Did Kurtis use the model predictions as his slope basis?
 
 
+
 #ggplot(P_month_change, aes(x = `Median Slope (μg/L/decade)`)) +
 #  geom_histogram(stat = 'density') +
 #  ggtitle('P Slope Distribution Curve') +
