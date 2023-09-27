@@ -3,7 +3,8 @@ library(plyr)
 library(dplyr)
 library(data.table)
 library(mgcv)
-
+library(ggplot2)
+source('./functions/long_term_trend_func.R')
 source('./functions/get_socrata_data_func.R')
 bigTable <- fread('./data_cache/KC_WQ_Data')
 
@@ -76,8 +77,6 @@ colnames(N_Median_slp1) <- c('Median Slope (μg/L/decade)')
 ggplot(N_Median_slp1, aes(x = `Median Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 35) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', size = 1) +
-  geom_vline(xintercept = c(-128.1, -24.6), linetype = 'dashed', color = 'black', size = 0.5) +
-  geom_vline(xintercept = -76.6, linetype = 'solid', color = 'black', size = 0.5) +
   ggtitle('NO2/3 Slope Distribution Histogram Treatment 1, bin-width = 35') 
 #+ scale_x_continuous(breaks = c(-20:2 *50))
 
@@ -126,9 +125,7 @@ colnames(P_Median_slp1) <- c('Median Slope (μg/L/decade)')
 # Slope distribution histogram
 ggplot(P_Median_slp1, aes(x = `Median Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 0.9) +
-  geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', size = 1) +
-  geom_vline(xintercept = c(-2.41,-0.23), linetype = 'dashed', color = 'black', size = 0.5) +
-  geom_vline(xintercept = -1.58, linetype = 'solid', color = 'black', size = 0.5) +
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'gray', size = 1) +
   ggtitle('P Slope Distribution Histogram Treatment 1, bin-width = 0.9') +
   scale_x_continuous(breaks = )
 
@@ -153,18 +150,18 @@ mean_slopes[1,] <- c(mean(N_Median_slp1[,1]), mean(P_Median_slp1[,1]))
 
 # Treatment 2 ################################################################################
 #
-# Baseline: 1980 - 1990, 5 yrs required
-# Current: 2013 - 2022, 5 yrs required
+# Baseline: start-2017, 10 yrs required
+# Current: 2018 - 2022, 3 yrs required
 # Results: 51 sites, central slope NO2/3: -71.9 μg/L/decade, P: -1.70 μg/L/decade
 # Outliers: NO2/3: , P: 
 
 # Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
-siteSelectNbase <- sapply(N_annual[Year <= 1990 & Year >= 1980], function(x) sum(!is.na(x)))
-siteSelectNrecent <- sapply(N_annual[Year > 2012], function(x) sum(!is.na(x)))
+siteSelectNbase <- sapply(N_annual[Year <= 2017], function(x) sum(!is.na(x)))
+siteSelectNrecent <- sapply(N_annual[Year > 2017], function(x) sum(!is.na(x)))
 
 # Does the same for P
-siteSelectPbase <- sapply(P_annual[Year <= 1990 & Year >= 1980], function(x) sum(!is.na(x)))
-siteSelectPrecent <- sapply(P_annual[Year > 2012], function(x) sum(!is.na(x)))
+siteSelectPbase <- sapply(P_annual[Year <= 2017], function(x) sum(!is.na(x)))
+siteSelectPrecent <- sapply(P_annual[Year > 2017], function(x) sum(!is.na(x)))
 
 # Creates a dataframe for selection Treatment 2
 N_2 <- N_annual
@@ -174,10 +171,10 @@ P_2 <- P_annual
 # Recent standard is 4 years, baseline standard is 15 years
 for (site in colnames(N_annual))
 {
-  if (siteSelectNbase[site] < 5 | siteSelectNrecent[site] < 5){
+  if (siteSelectNbase[site] < 10 | siteSelectNrecent[site] < 3){
     N_2 <- N_2 %>% select(- all_of(site))
   }
-  if (siteSelectPbase[site] < 5 | siteSelectPrecent[site] < 5){
+  if (siteSelectPbase[site] < 10 | siteSelectPrecent[site] < 3){
     P_2 <- P_2 %>% select(- all_of(site))
   }
 }
@@ -186,20 +183,20 @@ for (site in colnames(N_annual))
 #
 # 
 # Another For loop, separates the frame by different locators, then takes the centroid year for the recent and baseline group and stores it in a vector
-N_Median_diffyr <- numeric() 
+N_Median_diffyr <- numeric()
 
 for (site in colnames(N_2[,-1])) 
-  {
+{
   nLoop <- N_2[,c('Year',..site)] 
   nLoop <- na.omit(nLoop) # Removes all the NA rows, so years without samples are not counted in the central year
   nLoop <- nLoop[,'Year']
-  nLoopdiff <- sapply(nLoop[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(nLoop[Year <= 1990 & Year >= 1980], function(x) median(x, na.rm = TRUE))
+  nLoopdiff <- sapply(nLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(nLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
   N_Median_diffyr[site] <- nLoopdiff
   remove(nLoop, nLoopdiff)
 }
 
 # Calculates the baseline and recent averages, then calculates the difference
-N_Median_diff <- sapply(N_2[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(N_2[Year <= 1990 & Year >= 1980], function(x) median(x, na.rm = TRUE))
+N_Median_diff <- sapply(N_2[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(N_2[Year <= 2017], function(x) median(x, na.rm = TRUE))
 N_Median_slp2 <- as.data.frame(N_Median_diff[-1]*10/N_Median_diffyr) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
 colnames(N_Median_slp2) <- c('Median Slope (μg/L/decade)')
 
@@ -207,8 +204,6 @@ colnames(N_Median_slp2) <- c('Median Slope (μg/L/decade)')
 ggplot(N_Median_slp2, aes(x = `Median Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 35) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', size = 1) +
-  geom_vline(xintercept = c(-79.4,-21.1), linetype = 'dashed', color = 'black', size = 0.5) +
-  geom_vline(xintercept = -52.8, linetype = 'solid', color = 'black', size = 0.5) +
   ggtitle('NO2/3 Slope Distribution Histogram Treatment 2, bin-width = 35') 
 #+ scale_x_continuous(breaks = c(-20:2 *50))
 
@@ -223,13 +218,13 @@ for (site in colnames(P_2[,-1])) {
   pLoop <- P_2[,c('Year',..site)] 
   pLoop <- na.omit(pLoop) # removes years with empty nutrient values
   pLoop <- pLoop[,'Year'] # removes the nutrient column and just keeps years
-  pLoopdiff <- sapply(pLoop[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(pLoop[Year <= 1990 & Year >= 1980], function(x) median(x, na.rm = TRUE))
+  pLoopdiff <- sapply(pLoop[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(pLoop[Year <= 2017], function(x) median(x, na.rm = TRUE))
   P_Median_diffyr[site] <- pLoopdiff
   remove(pLoop, pLoopdiff)
 }
 
 
-P_Median_diff <- sapply(P_2[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(P_2[Year <= 1990 & Year >= 1980], function(x) median(x, na.rm = TRUE))
+P_Median_diff <- sapply(P_2[Year > 2017], function(x) median(x, na.rm = TRUE)) - sapply(P_2[Year <= 2017], function(x) median(x, na.rm = TRUE))
 P_Median_slp2 <- as.data.frame(P_Median_diff[-1]*10/P_Median_diffyr) #This is the average slope. Units are microgram/Liter/year
 colnames(P_Median_slp2) <- c('Median Slope (μg/L/decade)')
 
@@ -237,8 +232,6 @@ colnames(P_Median_slp2) <- c('Median Slope (μg/L/decade)')
 ggplot(P_Median_slp2, aes(x = `Median Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 0.9) +
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', size = 1) +
-  geom_vline(xintercept = c(-3.85,-1.91), linetype = 'dashed', color = 'black', size = 0.5) +
-  geom_vline(xintercept = -2.43, linetype = 'solid', color = 'black', size = 0.5) +
   ggtitle('P Slope Distribution Histogram Treatment 2, bin-width = 0.9') +
   scale_x_continuous(breaks = )
 
@@ -252,7 +245,7 @@ mean_slopes[2,] <- c(mean(N_Median_slp2[,1]), mean(P_Median_slp2[,1]))
 #
 # Baseline: 1979 - 2009, 5 yrs required
 # Current: 2013 - 2022, 5 yrs required
-# Results: 31 sites,
+# Results: 47 sites, central slope NO2/3: -46.0 μg/L/decade, P: -1.90 μg/L/decade
 # Outliers: NO2/3: , P: 
 
 # Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
@@ -294,7 +287,7 @@ for (site in colnames(N_3[,-1])) {
   remove(nLoop, nLoopdiff)
 }
 
-# Calculates the baseline and recent averages, then calculates the difference 
+# Calculates the baseline and recent averages, then calculates the difference
 N_Median_diff <- sapply(N_3[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(N_3[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
 N_Median_slp3 <- as.data.frame(N_Median_diff[-1]*10/N_Median_diffyr) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
 colnames(N_Median_slp3) <- c('Median Slope (μg/L/decade)')
@@ -376,22 +369,22 @@ for (loc in colnames(P_monthly[,-1])){
   }
   
   else {
-  
-    dat <- P_monthly %>%
-    subset(Year_mon <= 'Dec 2017') %>% 
-    select(all_of('Year_mon') | all_of(loc))
     
-  pmod <- gam(dat[,2] ~ s(decimal_date(as.Date(dat[,1])))) # # Creates a GAM, need to create a for loop that creates a model for each locator and extracts the st dev into a vector or array
-  P_sd[loc] <- sd(pmod$residuals) # takes the detrended data (residuals) and calculates the standard deviation
-                                    # these values are much larger than any differences calculated between baseline and recent. This may mean that the response variable needs to be log-transformed
-
-  pLoop <- P_monthly[,c('Year_mon',loc)] 
-  pLoop <- na.omit(pLoop) # removes years with empty nutrient values
-  pLoop <- pLoop[,'Year_mon'] # removes the nutrient column and just keeps years
-  pLoopdiff <- decimal_date(as.Date(median(pLoop[pLoop > 'Dec 2017']))) - decimal_date(as.Date(median(pLoop[pLoop <= 'Dec 2017'])))
-  P_month_diffyr[loc] <- pLoopdiff
-  
-  remove(pLoop, pLoopdiff, dat, pmod)
+    dat <- P_monthly %>%
+      subset(Year_mon <= 'Dec 2017') %>% 
+      select(all_of('Year_mon') | all_of(loc))
+    
+    pmod <- gam(dat[,2] ~ s(decimal_date(as.Date(dat[,1])))) # # Creates a GAM, need to create a for loop that creates a model for each locator and extracts the st dev into a vector or array
+    P_sd[loc] <- sd(pmod$residuals) # takes the detrended data (residuals) and calculates the standard deviation
+    # these values are much larger than any differences calculated between baseline and recent. This may mean that the response variable needs to be log-transformed
+    
+    pLoop <- P_monthly[,c('Year_mon',loc)] 
+    pLoop <- na.omit(pLoop) # removes years with empty nutrient values
+    pLoop <- pLoop[,'Year_mon'] # removes the nutrient column and just keeps years
+    pLoopdiff <- decimal_date(as.Date(median(pLoop[pLoop > 'Dec 2017']))) - decimal_date(as.Date(median(pLoop[pLoop <= 'Dec 2017'])))
+    P_month_diffyr[loc] <- pLoopdiff
+    
+    remove(pLoop, pLoopdiff, dat, pmod)
   }
 }
 
@@ -412,7 +405,6 @@ P_month_change <- data.frame(P_month_diff,P_month_diffyr,P_sd, row.names = colna
 colnames(P_month_change) <- c('Conc_diff','Time_diff','detrend_sd')
 P_month_change$`Median Slope (μg/L/decade)` <- P_month_diff * 10 / P_month_diffyr
 # What element on the GAM object represents the model st dev? Did Kurtis use the model predictions as his slope basis?
-
 
 
 #ggplot(P_month_change, aes(x = `Median Slope (μg/L/decade)`)) +

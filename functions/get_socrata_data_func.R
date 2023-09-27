@@ -1,6 +1,7 @@
 ## function to extract water quality data from Socrata
 # contains additional functions to format the water quality data for different purposes
-
+library(dplyr)
+library(data.table)
 library(tidyverse)
 library(RSocrata)
 library(lubridate)
@@ -8,7 +9,7 @@ library(miscTools)
 library(forecast)
 library(zoo)
 library(readr)
-
+bigTable <- fread('./data_cache/KC_WQ_Data')
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
 
 # Checks for the 'Chlorophyll a' parameter
