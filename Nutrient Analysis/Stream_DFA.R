@@ -49,23 +49,25 @@ ggplot(Nmonthly_graph, aes(Year_mon, value)) +
 
 # There is some clear seasonality present, so lets make a typical "year" of box and whisker plots
 # Start by adding a year and month column
-# Take the median of each year for eaach monitoring site then calculate the monthly deviation
+# Take the median of each year for each monitoring site then calculate the monthly deviation
 Nmonthly_graph1 <- Nmonthly_graph %>%
   mutate(Year = year(Year_mon),
          Month = month(Year_mon)) %>%
   group_by(variable,Year) %>%
-  reframe(annual_dev = median(value, na.rm=TRUE)-value,
-            Month = Month) %>%
-  group_by(variable,Month) %>%
-  reframe(med_annual_dev = median(annual_dev, na.rm= TRUE))
+  reframe(annual_dev = value - median(value, na.rm=TRUE),
+            Month = Month) 
+#%>%
+ # group_by(variable,Month) %>%
+  #reframe(med_annual_dev = median(annual_dev, na.rm= TRUE))
   #dcast(variable + Year~Month, value.var = "annual_dev")
 
-ggplot(Nmonthly_graph1, aes(x= Month, y= med_annual_dev)) +
+ggplot(Nmonthly_graph1, aes(x= Month, y= annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Median Monthly Deviations from Annual Median (median of all years, separated by site)")
+  ggtitle("Median Monthly Deviations from Annual Median (separated by site and year)")
 
+# (median of all years, separated by site)
 # Before running the DFA, lets do a cross-correlation function to see if there is any basis
 corrplot(corr = cor(Nmonthly1[,-1], use = 'pairwise.complete.obs'), method = 'circle')
 # There are definitely correlations between sites, how many of these are from the same river system?
@@ -103,7 +105,12 @@ ggplot(d, aes(Year_mon, value)) +
 dfa_results <- tibble(Trends = NA, Variance = NA, AICc = NA, Iterations = NA, .rows = 12)
 Rlist <- c('diagonal and equal', 'unconstrained')
 k = 0
+
 # Lets see how long the DFA takes, loop through 10 options: 5 states and 2 error matrices
+#NOTE: You need to re-run this, most of the unconstrained models likely did not converge
+#NOTE: Add a column to ensure that convergence happens this time
+#NOTE: There is obvious seasonality in the factors, you should add a fourier series covariate to remove this seasonality
+# Alternatively you can just do this same experiment with annual data instead
 for (i in 1:6) {
   for (j in 1:2) {
     k = k + 1
@@ -123,6 +130,7 @@ dfa_results$AICwt <- dfa_results$relLik/sum(dfa_results$relLik)
 dfa_results <- arrange(dfa_results, -AICwt)
 # Whats the best model of all of these?
 
+
 # Lets run the 'best' model again and perform a Varimax rotation on the results (thanks Mark)
 checkmodel <- MARSS(N_DFA, model = list(R=dfa_results$Variance[1], m= dfa_results$Trends[1]), form = 'dfa', method = 'TMB')
 
@@ -137,6 +145,19 @@ Load_rot <- Load_est %*% inv_H
 
 # Now rotate the process trends
 Trend_rot <- solve(inv_H) %*% checkmodel$states
+colnames(Trend_rot) <- colnames(N_DFA)
+
+## Plotting the DFA Results ######################################################
+
+# Create a 1x2 plot space, one for a process, the other for its loading
+#Note: set axis limits to show scale of loadings across all of the factors
+for (i in 1:8) {
+  tsTitle <- paste('Factor',i,sep = ' ')
+  barTitle <- paste('Factor',i,'Loadings',sep = ' ')
+  par(mfcol = c(2,1))
+  plot(Nmonthly1$Year_mon, Trend_rot[i,], type = 'l', lwd = 2, main = tsTitle, xlab = 'Months', ylab = '')
+  barplot(Load_rot[,i], main = barTitle)
+}
 
 # Analysis of Annual Data ###################################################
 N_annual <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('annual')) %>%
@@ -153,13 +174,13 @@ for (site in names(Nfilter1)){
 
 # Import the parcel development time series, we will use a 1-year time lag because many of the 2022 values are not updated
 devts <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') %>%
-  subset(Locator %in% colnames(N_annual) & (YRBUILT >= 1978 & YRBUILT < 2021)) 
+  subset(Locator %in% colnames(N_annual) & (YRBUILT >= 1979 & YRBUILT < 2023)) 
 
-ggplot(devts, aes(YRBUILT, ParcelsBuiltPer100Acres_Roll_Ave)) +
+ggplot(devts, aes(YRBUILT, ParcelsBuiltPer100Acres)) +
   facet_wrap(. ~ Locator, shrink = FALSE) + 
   geom_point() +
   geom_line() +
-  ggtitle("Parcels Built per Year") +
+  ggtitle("Parcels Built per 100 Acres per Year") +
   scale_y_continuous(name = "Parcels")
 
 # It looks like there are missing values in the parcel time series, I will need to explore more if we want to use this in the DFA
@@ -170,6 +191,19 @@ dev_dfa <- devts %>%
   as.matrix() %>%
   zscore()
 
+norm_dev <- dev_dfa %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column(var = 'Year') %>%
+  reshape2::melt(id.var = "Year")
+norm_dev$Year <- as.numeric(norm_dev$Year)
+
+ggplot(norm_dev, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Parcels Built per 100 Acres per Year, Normalized") +
+  scale_y_continuous(name = "Deviations from mean")
 
 # Put the data in normalized DFA form
 N_annual_dfa <- N_annual %>%
