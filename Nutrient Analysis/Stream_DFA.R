@@ -73,7 +73,6 @@ corrplot(corr = cor(Nmonthly1[,-1], use = 'pairwise.complete.obs'), method = 'ci
 # There are definitely correlations between sites, how many of these are from the same river system?
 # lets say..... ___ distinct-ish pairs
 
-## DFA of Monthly Data ########################################################
 # Since I am most familiar with the MARSS package, we will use that for now
 
 # Put the dissolved nutrient records into the correct format and z-score it to improve algorithm performance
@@ -101,41 +100,64 @@ ggplot(d, aes(Year_mon, value)) +
   ggtitle("Monthly Nitrite+Nitrate Readings, Normalized") + 
   scale_y_continuous(name = "St. Deviations from Mean")
 
-# Here are the actual DFA runs
-dfa_results <- tibble(Trends = NA, Variance = NA, AICc = NA, Iterations = NA, .rows = 12)
-Rlist <- c('diagonal and equal', 'unconstrained')
+## DFA of Monthly Data ########################################################
+# Create a table to record the model results
+dfa_results <- tibble(Trends = NA, Covariates = NA, AICc = NA, Iterations = NA, Converged = NA, Err_Var = NA, .rows = 24)
 k = 0
 
-# Lets see how long the DFA takes, loop through 10 options: 5 states and 2 error matrices
-#NOTE: You need to re-run this, most of the unconstrained models likely did not converge
+# Create a covariate matrix with monthly effects, then add it to a list with with NULL so that the loop can cycle through each
+month_cov <- matrix(0,12,ncol(N_DFA))
+month_row <- match(months(Nmonthly1$Year_mon, abbreviate = TRUE), month.abb)[1:ncol(N_DFA)]
+month_cov[cbind(month_row,1:ncol(N_DFA))] <- 1
+
+# Add possible model parameters
+cov_list <- list('None','Monthly Effect')
+R_list <- list('diagonal and equal', 'diagonal and unequal')
+
+# Lets see how long the DFA takes, it will look though 24 options, 6 states, 2 variance matrices, 2 covariate options
+
 #NOTE: Add a column to ensure that convergence happens this time
 #NOTE: There is obvious seasonality in the factors, you should add a fourier series covariate to remove this seasonality
 # Alternatively you can just do this same experiment with annual data instead
-for (i in 1:6) {
-  for (j in 1:2) {
-    k = k + 1
-    states = i + 2
-    
-    dfa <- MARSS(N_DFA, model = list(R=Rlist[j], m= states), form = 'dfa', method = 'TMB')
-    
-    dfa_results$Trends[k] <- states
-    dfa_results$Variance[k] <- Rlist[j]
-    dfa_results$AICc[k] <- dfa$AICc
-    dfa_results$Iterations[k] <- dfa$numIter
+for (h in 1:2) {
+  for (i in 1:6) {
+    for (j in 1:2) {
+      k = k + 1
+      states = i + 2
+      
+      if (j == 1){
+        dfa <- MARSS(N_DFA, model = list(R= Rlist[h], m= states, tinitx= 1), form = 'dfa', method = 'TMB', covariates = NULL)
+      }
+      else{
+        dfa <- MARSS(N_DFA, model = list(R= Rlist[h], m= states, tinitx= 1), form = 'dfa', method = 'TMB', covariates = month_cov)
+      }
+     # tabulate results of the DFA models 
+      dfa_results$Trends[k] <- states
+      dfa_results$AICc[k] <- dfa$AICc
+      dfa_results$Iterations[k] <- dfa$numIter
+      dfa_results$Covariates[k] <- cov_list[j]
+      dfa_results$Converged[k] <- dfa$iter.record$message
+      dfa_results$Err_Var[k] <- R_list[h]
+      remove(dfa)
+    }
   }
 }
-# Adding more model statistics
-dfa_results$relLik <- exp(-0.5 * (dfa_results$AICc - min(dfa_results$AICc)))
-dfa_results$AICwt <- dfa_results$relLik/sum(dfa_results$relLik)
-dfa_results <- arrange(dfa_results, -AICwt)
-# Whats the best model of all of these?
 
+# Adding more model statistics
+converged_models <- dfa_results %>%
+  subset(Converged == 'relative convergence (4)') %>%
+  mutate(relLike = exp(-0.5 * (AICc - min(AICc))), 
+         AICwt = relLike/sum(relLike)) %>%
+  arrange(-AICwt)
+
+
+# Whats the best model of all of these?, apparently 8 trends, and equal variance matrix, and a month covariate
 
 # Lets run the 'best' model again and perform a Varimax rotation on the results (thanks Mark)
-checkmodel <- MARSS(N_DFA, model = list(R=dfa_results$Variance[1], m= dfa_results$Trends[1]), form = 'dfa', method = 'TMB')
+set_DFA <- MARSS(N_DFA, model = list(R= 'diagonal and equal', m= 8, tinitx= 1), form = 'dfa', method = 'TMB', covariates = month_cov)
 
 # Pull the estimated factor loadings
-Load_est <- coef(checkmodel, type = 'matrix')$Z
+Load_est <- coef(set_DFA, type = 'matrix')$Z
 
 # Get the inverse rotation matrix
 inv_H <- varimax(Load_est)$rotmat
@@ -144,20 +166,46 @@ inv_H <- varimax(Load_est)$rotmat
 Load_rot <- Load_est %*% inv_H
 
 # Now rotate the process trends
-Trend_rot <- solve(inv_H) %*% checkmodel$states
+Trend_rot <- solve(inv_H) %*% set_DFA$states
 colnames(Trend_rot) <- colnames(N_DFA)
+Trend_rot <- Trend_rot %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column(var = 'Year_Mon')
 
 ## Plotting the DFA Results ######################################################
 
-# Create a 1x2 plot space, one for a process, the other for its loading
-#Note: set axis limits to show scale of loadings across all of the factors
 for (i in 1:8) {
-  tsTitle <- paste('Factor',i,sep = ' ')
-  barTitle <- paste('Factor',i,'Loadings',sep = ' ')
-  par(mfcol = c(2,1))
-  plot(Nmonthly1$Year_mon, Trend_rot[i,], type = 'l', lwd = 2, main = tsTitle, xlab = 'Months', ylab = '')
-  barplot(Load_rot[,i], main = barTitle)
+tsTitle <- paste('Factor',i,sep = ' ')
+
+print(ggplot(Trend_rot) +
+  geom_line(aes(as.yearmon(Year_Mon), Trend_rot[,i+1]), linewidth = 0.75) +
+  ylab('Deviations') + xlab("Date") +
+  ggtitle(label = tsTitle))
+
+barTitle <-  barTitle <- paste('Factor',i,'Loadings',sep = ' ')
+
+print(ggplot(as.data.frame(Load_rot), aes(x = rownames(Load_rot), y = Load_rot[,i])) +
+  geom_col(fill = 'darkcyan') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  xlab('Monitoring Site') + ylab('Loading Coefficient') +
+  scale_y_continuous(limits = c(-0.8,0.8), n.breaks = 9) +
+  ggtitle(label = barTitle))
 }
+
+autoplot.marssMLE(set_DFA2)
+
+
+# It looks like not all of the seasonality was removed from the factors
+# Need to check for correlation between the factors
+# 1, 2, and 8 look very similar
+# so do 3 and 4
+
+Ccf(Trend_rot[1,],Trend_rot[2,])
+Ccf(Trend_rot[1,],Trend_rot[8,])
+Ccf(Trend_rot[2,],Trend_rot[8,])
+Ccf(Trend_rot[3,],Trend_rot[4,])
+
 
 # Analysis of Annual Data ###################################################
 N_annual <- summarize_WQ_data(bigTable, c('Nitrite_+_Nitrate_Nitrogen'), c('annual')) %>%
@@ -244,25 +292,80 @@ ggplot(N_annual_plot, aes(Year, value)) +
 corrplot(corr = cor(N_annual[,-1], use = 'pairwise.complete.obs'), method = 'circle')
 
 ## DFA of Annual Data #########################################################
-dfa_results <- tibble(Trends = NA, Variance = NA, AICc = NA, Iterations = NA, .rows = 12)
-Rlist <- c('diagonal and equal', 'unconstrained')
+# Create a table to record the model results
+dfa_results_an <- tibble(Trends = NA, AICc = NA, Iterations = NA, Converged = NA, .rows = 6)
 k = 0
-# Lets see how long the DFA takes, loop through 10 options: 5 states and 
-for (i in 1:6) {
-  for (j in 1:2) {
-    k = k + 1
-    states = i + 2
-    
-    dfa <- MARSS(N_annual_dfa, model = list(R=Rlist[j], m= states), form = 'dfa', method = 'TMB')
 
-    dfa_results$Trends[k] <- states
-    dfa_results$Variance[k] <- Rlist[j]
-    dfa_results$AICc[k] <- dfa$AICc
-    dfa_results$Iterations[k] <- dfa$numIter
-  }
-}
+# Create a covariate matrix with monthly effects, then add it to a list with with NULL so that the loop can cycle through each
+# Lets see how long the DFA takes, it will look though 24 options, 6 states, 2 variance matrices, 2 covariate options
+
+#NOTE: Add a column to ensure that convergence happens this time
+#NOTE: There is obvious seasonality in the factors, you should add a fourier series covariate to remove this seasonality
+# Alternatively you can just do this same experiment with annual data instead
+  for (i in 1:6) {
+      k = k + 1
+      states = i + 2
+      
+        dfa <- MARSS(N_annual_dfa, model = list(R= 'diagonal and equal', m= states, tinitx= 1), form = 'dfa', method = 'TMB', covariates = NULL)
+
+      # tabulate results of the DFA models 
+      dfa_results_an$Trends[k] <- states
+      dfa_results_an$AICc[k] <- dfa$AICc
+      dfa_results_an$Iterations[k] <- dfa$numIter
+      dfa_results_an$Converged[k] <- dfa$iter.record$message
+      remove(dfa)
+    }
+
 # Adding more model statistics
-dfa_results$relLik <- exp(-0.5 * (dfa_results$AICc - min(dfa_results$AICc)))
-dfa_results$AICwt <- dfa_results$relLik/sum(dfa_results$relLik)
+converged_models_an <- dfa_results_an %>%
+  subset(Converged == 'relative convergence (4)') %>%
+  mutate(relLike = exp(-0.5 * (AICc - min(AICc))), 
+         AICwt = relLike/sum(relLike)) %>%
+  arrange(-AICwt)
+
+
+# Whats the best model of all of these?, apparently 8 trends, and equal variance matrix, and a month covariate
+
+# Lets run the 'best' model again and perform a Varimax rotation on the results (thanks Mark)
+set_DFA2 <- MARSS(N_annual_dfa, model = list(R= 'diagonal and equal', m= 8, tinitx= 1), form = 'dfa', method = 'TMB')
+
+# Pull the estimated factor loadings
+Load_est <- coef(set_DFA2, type = 'matrix')$Z
+
+# Get the inverse rotation matrix
+inv_H <- varimax(Load_est)$rotmat
+
+# Rotate the factor loadings
+Load_rot2 <- Load_est %*% inv_H
+
+# Now rotate the process trends
+Trend_rot2 <- solve(inv_H) %*% set_DFA2$states
+colnames(Trend_rot2) <- colnames(N_annual_dfa)
+Trend_rot2 <- Trend_rot2 %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column(var = 'Year')
+
+
+## Plotting the Annual DFA Results ######################################################
+
+for (i in 1:8) {
+  tsTitle <- paste('Factor',i,sep = ' ')
+  
+  print(ggplot(Trend_rot2) +
+          geom_line(aes(as.numeric(Year), Trend_rot2[,i+1]), linewidth = 0.75) +
+          ylab('Deviations') + xlab("Date") +
+          ggtitle(label = tsTitle))
+  
+  barTitle <-  barTitle <- paste('Factor',i,'Loadings',sep = ' ')
+  
+  print(ggplot(as.data.frame(Load_rot2), aes(x = rownames(Load_rot2), y = Load_rot2[,i])) +
+          geom_col(fill = 'darkcyan') +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+          xlab('Monitoring Site') + ylab('Loading Coefficient') +
+          scale_y_continuous(limits = c(-0.8,0.8), n.breaks = 9) +
+          ggtitle(label = barTitle))
+}
+
 
 
