@@ -1,0 +1,15 @@
+"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Developed, Medium Intensity",0.19,999.108,0.544,16.023,7.729,NA,NA,1
+"2","Total Forested + Developed, Medium Intensity",0.19,1001.221,0.189,24.919,-0.143,7.532,NA,0.348
+"3","Total Developed Area",0.139,1003.452,0.062,-35.044,3.439,NA,NA,0.114
+"4","Total Forested Area",0.136,1003.763,0.053,296.633,-3.971,NA,NA,0.098
+"5","Total Developed + Open Water",0.147,1004.902,0.03,-15.73,3.354,-16.52,NA,0.055
+"6","Total Developed + Evergreen Forest",0.144,1005.218,0.026,-107.865,4.294,1.48,NA,0.047
+"7","Total Developed + Deciduous Forest",0.14,1005.53,0.022,-26.356,3.4,-1.716,NA,0.04
+"8","Total Developed + Total Wetlands",0.14,1005.552,0.022,-28.569,3.429,-2.198,NA,0.04
+"9","Developed, High Intensity",0.106,1006.11,0.016,64.117,14.705,NA,NA,0.03
+"10","Total Developed + Deciduous Forest + Open Water",0.148,1006.994,0.011,-2.059,3.293,-2.54,-17.214,0.019
+"11","Total Developed + Total Agricultural + Open Water",0.148,1007.019,0.01,-24.169,3.438,1.576,-16.068,0.019
+"12","Total Developed + Total Agricultural + Deciduous Forest",0.141,1007.595,0.008,-35.834,3.505,2.126,-1.951,0.014
+"13","Total Developed + Deciduous Forest + Total Wetlands",0.14,1007.669,0.008,-13.776,3.373,-2.23,-3.387,0.014
+"14","Total Agricultural Area",0.006,1013.661,0,142.927,-4.244,NA,NA,0.001

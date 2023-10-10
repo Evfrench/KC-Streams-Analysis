@@ -54,18 +54,19 @@ Nmonthly_graph1 <- Nmonthly_graph %>%
   mutate(Year = year(Year_mon),
          Month = month(Year_mon)) %>%
   group_by(variable,Year) %>%
-  reframe(annual_dev = value - median(value, na.rm=TRUE),
-            Month = Month) 
-#%>%
- # group_by(variable,Month) %>%
-  #reframe(med_annual_dev = median(annual_dev, na.rm= TRUE))
+  reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)),
+            Month = Month) %>%
+  group_by(variable,Month) %>%
+  reframe(med_annual_dev = median(annual_dev, na.rm= TRUE))
   #dcast(variable + Year~Month, value.var = "annual_dev")
 
-ggplot(Nmonthly_graph1, aes(x= Month, y= annual_dev)) +
+ggplot(Nmonthly_graph1, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
+  ylab('% Deviation from Median') +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
+  scale_y_continuous(limits = c(-100,200)) +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Median Monthly Deviations from Annual Median (separated by site and year)")
+  ggtitle("NO2/NO3 % Monthly Deviations from Annual Median (separated by site)")
 
 # (median of all years, separated by site)
 # Before running the DFA, lets do a cross-correlation function to see if there is any basis
@@ -220,38 +221,6 @@ for (site in names(Nfilter1)){
   }
 }
 
-# Import the parcel development time series, we will use a 1-year time lag because many of the 2022 values are not updated
-devts <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') %>%
-  subset(Locator %in% colnames(N_annual) & (YRBUILT >= 1979 & YRBUILT < 2023)) 
-
-ggplot(devts, aes(YRBUILT, ParcelsBuiltPer100Acres)) +
-  facet_wrap(. ~ Locator, shrink = FALSE) + 
-  geom_point() +
-  geom_line() +
-  ggtitle("Parcels Built per 100 Acres per Year") +
-  scale_y_continuous(name = "Parcels")
-
-# It looks like there are missing values in the parcel time series, I will need to explore more if we want to use this in the DFA
-# Well this was the main reason I put the nutrient data into annual summaries. It will have to wait
-dev_dfa <- devts %>%
-  reshape2::dcast(Locator ~ YRBUILT, value.var = 'ParcelsBuiltPer100Acres') %>%
-  column_to_rownames(var = 'Locator') %>%
-  as.matrix() %>%
-  zscore()
-
-norm_dev <- dev_dfa %>%
-  t() %>%
-  as.data.frame() %>%
-  rownames_to_column(var = 'Year') %>%
-  reshape2::melt(id.var = "Year")
-norm_dev$Year <- as.numeric(norm_dev$Year)
-
-ggplot(norm_dev, aes(Year, value)) +
-  facet_wrap(. ~ variable, shrink = FALSE) + 
-  geom_point() +
-  geom_line() +
-  ggtitle("Parcels Built per 100 Acres per Year, Normalized") +
-  scale_y_continuous(name = "Deviations from mean")
 
 # Put the data in normalized DFA form
 N_annual_dfa <- N_annual %>%
@@ -353,6 +322,7 @@ for (i in 1:8) {
   tsTitle <- paste('Factor',i,sep = ' ')
   
   print(ggplot(Trend_rot2) +
+          geom_hline(yintercept = 0, linetype = 'dashed', color = 'darkgrey', linewidth = 1) +
           geom_line(aes(as.numeric(Year), Trend_rot2[,i+1]), linewidth = 0.75) +
           ylab('Deviations') + xlab("Date") +
           ggtitle(label = tsTitle))
@@ -360,6 +330,122 @@ for (i in 1:8) {
   barTitle <-  barTitle <- paste('Factor',i,'Loadings',sep = ' ')
   
   print(ggplot(as.data.frame(Load_rot2), aes(x = rownames(Load_rot2), y = Load_rot2[,i])) +
+          geom_hline(yintercept = c(-0.3,0.3), linetype = 'dashed', color = 'darkgrey', linewidth = 1) +
+          geom_col(fill = 'darkcyan') +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+          xlab('Monitoring Site') + ylab('Loading Coefficient') +
+          scale_y_continuous(limits = c(-1.0,1.0), breaks = (-5:5 * 0.2)) +
+          ggtitle(label = barTitle)) 
+          
+}
+
+
+# Looking at the land-use data and performing a DFA #####################
+
+
+# Import the parcel development time series, we will use a 1-year time lag because many of the 2022 values are not updated
+devts <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') 
+#%>%
+#  subset(Locator %in% colnames(N_annual) & (YRBUILT >= 1979 & YRBUILT < 2023)) 
+
+ggplot(devts, aes(YRBUILT, ParcelsBuiltPer100Acres)) +
+  facet_wrap(. ~ Locator, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Parcels Built per 100 Acres per Year") +
+  scale_y_continuous(name = "Parcels")
+
+# It looks like there are missing values in the parcel time series, I will need to explore more if we want to use this in the DFA
+# Well this was the main reason I put the nutrient data into annual summaries. It will have to wait
+
+
+dev_dfa <- devts %>%
+  reshape2::dcast(Locator ~ YRBUILT, value.var = 'ParcelsBuiltPer100Acres') %>%
+  column_to_rownames(var = 'Locator') %>%
+  as.matrix()
+ 
+
+norm_dev <- dev_dfa %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column(var = 'Year') %>%
+  reshape2::melt(id.var = "Year")
+norm_dev$Year <- as.numeric(norm_dev$Year)
+
+ggplot(norm_dev, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Parcels Built per 100 Acres per Year, Normalized") +
+  scale_y_continuous(name = "Deviations from mean")
+
+dfa_results_dev <- tibble(Trends = NA, AICc = NA, Iterations = NA, Converged = NA, .rows = 6)
+k = 0
+
+# Create a covariate matrix with monthly effects, then add it to a list with with NULL so that the loop can cycle through each
+# Lets see how long the DFA takes, it will look though 24 options, 6 states, 2 variance matrices, 2 covariate options
+
+#NOTE: Add a column to ensure that convergence happens this time
+#NOTE: There is obvious seasonality in the factors, you should add a fourier series covariate to remove this seasonality
+# Alternatively you can just do this same experiment with annual data instead
+for (i in 1:6) {
+  k = k + 1
+  states = i + 2
+  
+  dfa <- MARSS(dev_dfa, model = list(R= 'diagonal and equal', m= states, tinitx= 1), form = 'dfa', method = 'TMB', covariates = NULL)
+  
+  # tabulate results of the DFA models 
+  dfa_results_dev$Trends[k] <- states
+  dfa_results_dev$AICc[k] <- dfa$AICc
+  dfa_results_dev$Iterations[k] <- dfa$numIter
+  dfa_results_dev$Converged[k] <- dfa$iter.record$message
+  remove(dfa)
+}
+
+# Adding more model statistics
+converged_models_dev <- dfa_results_dev %>%
+  subset(Converged == 'relative convergence (4)') %>%
+  mutate(relLike = exp(-0.5 * (AICc - min(AICc))), 
+         AICwt = relLike/sum(relLike)) %>%
+  arrange(-AICwt)
+
+
+# Whats the best model of all of these?, apparently 8 trends, and equal variance matrix, and a month covariate
+
+# Lets run the 'best' model again and perform a Varimax rotation on the results (thanks Mark)
+set_DFA3 <- MARSS(dev_dfa, model = list(R= 'diagonal and equal', m= 8, tinitx= 1), form = 'dfa', method = 'TMB')
+
+# Pull the estimated factor loadings
+Load_est <- coef(set_DFA3, type = 'matrix')$Z
+
+# Get the inverse rotation matrix
+inv_H <- varimax(Load_est)$rotmat
+
+# Rotate the factor loadings
+Load_rot3 <- Load_est %*% inv_H
+
+# Now rotate the process trends
+Trend_rot3 <- solve(inv_H) %*% set_DFA3$states
+colnames(Trend_rot3) <- colnames(dev_dfa)
+Trend_rot3 <- Trend_rot3 %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column(var = 'Year')
+
+
+## Plotting the Development DFA Results ######################################################
+
+for (i in 1:8) {
+  tsTitle <- paste('Factor',i,sep = ' ')
+  
+  print(ggplot(Trend_rot3) +
+          geom_line(aes(as.numeric(Year), Trend_rot3[,i+1]), linewidth = 0.75) +
+          ylab('Deviations') + xlab("Date") +
+          ggtitle(label = tsTitle))
+  
+  barTitle <-  barTitle <- paste('Factor',i,'Loadings',sep = ' ')
+  
+  print(ggplot(as.data.frame(Load_rot3), aes(x = rownames(Load_rot3), y = Load_rot3[,i])) +
           geom_col(fill = 'darkcyan') +
           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
           xlab('Monitoring Site') + ylab('Loading Coefficient') +
@@ -367,5 +453,92 @@ for (i in 1:8) {
           ggtitle(label = barTitle))
 }
 
+
+
+# Attempted PCA of Development data ####################################################
+library(fdapace)
+# How does this PCA thing work? I need to experiment more
+yearvec <- list()
+readings <- list()
+
+for (i in 1:ncol(dev_dfa)) {
+  readings[[i]] <- dev_dfa[,i]
+  yearvec[[i]] <- as.numeric(rownames(dev_dfa))
+}
+
+
+for (loc in colnames(dev_dfa)){
+  yearvec[, loc] <- as.numeric(rownames(dev_dfa))
+}
+
+
+dev_pca <- FPCA(readings, yearvec, list(plot = TRUE))
+CreateDesignPlot(dev_dfa)
+
+# Testing for Seasonality in Phosphate ##############################################
+
+# Create a monthly data frame for the target parameter
+# NOTE: saving the workspace image and restarting will coerce the 'yearmon' class in this data frame to a decimal year
+# It must be converted back whenever the workspace is reopened
+Pmonthly <- summarize_WQ_data(bigTable, c('Orthophosphate_Phosphorus'), c('monthly'))
+Pmonthly$Year_mon <- as.yearmon(Pmonthly$Year_mon)
+
+# We will cut off any time before 1979, and remove any site with readings for less than half of the months in the window
+Pmonthly1 <- Pmonthly %>%
+  subset(Year_mon >= 1979)
+
+Pfilter <- sapply(Pmonthly1, function(x) sum(!is.na(x)))
+
+for (site in names(Pfilter)){
+  if (Pfilter[site] < (0.50*nrow(Pmonthly1))){
+    Pmonthly1 <- Pmonthly1 %>% select(- all_of(site))
+  }
+}
+# This leaves us with 50 sites, now to plot the results and determine if the data is acceptable
+
+
+# Convert to a long table and plot the resulting time series
+Pmonthly_graph <- Pmonthly1 %>%
+  reshape2::melt(id.var='Year_mon')
+
+ggplot(Pmonthly_graph, aes(Year_mon, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Monthly Orthophosphate Readings") +
+  scale_y_continuous(name = "PO4, μg/L")
+
+# There is some clear seasonality present, so lets make a typical "year" of box and whisker plots
+# Start by adding a year and month column
+# Take the median of each year for each monitoring site then calculate the monthly deviation
+Pmonthly_graph1 <- Pmonthly_graph %>%
+  mutate(Year = year(Year_mon),
+         Month = month(Year_mon)) %>%
+  group_by(variable,Year) %>%
+  reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)),
+          Month = Month) %>%
+  group_by(variable,Month) %>%
+  reframe(med_annual_dev = median(annual_dev, na.rm= TRUE)) 
+
+ggplot(Pmonthly_graph1, aes(x= Month, y= annual_dev)) +
+  geom_boxplot(aes(group= Month)) +
+  scale_x_continuous(breaks = 1:12,labels = 1:12) +
+  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("PO4 Median Monthly Deviations from Annual Median (separated by site and year)")
+
+ggplot(Pmonthly_graph1, aes(x= Month, y= med_annual_dev)) +
+  geom_boxplot(aes(group= Month)) +
+  scale_x_continuous(breaks = 1:12,labels = 1:12) +
+  ylab('% Deviation from Median') +
+  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("PO4 % Monthly Deviations from Annual Median (separated by site)")
+
+KC_Pop <- tibble(Year = c(1970, 1980, 1990, 2000, 2010, 2020), Population = c(1156633,1269749,1507319,1737034,1931249,2269675))
+
+ggplot(KC_Pop, aes(x= Year, y= Population)) +
+  ggtitle('King County Population') +
+  scale_y_continuous(limits = c(0,2300000)) +
+  geom_line(lwd = 2) +
+  geom_point(size = 4)
 
 

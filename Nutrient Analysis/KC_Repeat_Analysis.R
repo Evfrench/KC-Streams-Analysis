@@ -461,8 +461,6 @@ ggplot(N_outliers, aes(Year, value)) +
   geom_vline(xintercept = 2017.5, linetype = 'solid', color = 'navy', size = 0.5) +
   scale_y_continuous(name = "NO2/NO3, μg/L")
 
-
-
 # Now the PO4 outliers:
 #AMES_1: -26.6, Ames Creek
 #0632: -22.2, Issaquah Creek
@@ -483,3 +481,65 @@ ggplot(P_outliers, aes(Year, value)) +
   ggtitle("Annual Median PO4, Outlier Locations") +
   geom_vline(xintercept = 2017.5, linetype = 'solid', color = 'navy', size = 0.5) +
   scale_y_continuous(name = "PO4, μg/L")
+
+
+# Fecal Coliform #################################################################
+
+FAnnual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Fecal_Coliform.csv')
+class(FAnnual$Year)
+median_slopes <- matrix(0, nrow = 3, ncol = 2 )
+slopeSD <- matrix(0, nrow = 3, ncol = 2 )
+mean_slopes <- matrix(0, nrow = 3, ncol = 2 )
+slopeIQR <- list(0, nrow = 3, ncol = 2 )
+
+F_Entries <- tibble(FAnnual[,'Year'],rowSums(!is.na(FAnnual[,-1])))
+names(F_Entries) <- c('Year','Entries')
+
+# Plot the results
+ggplot(F_Entries, aes(x = Year, y = Entries)) +
+  geom_col()
+
+# Creates vectors containing the number of years with data in baseline window and the 'recent' window for NO2/3
+siteSelectFbase <- sapply(FAnnual[Year <= 2009 & Year >= 1979], function(x) sum(!is.na(x)))
+siteSelectFrecent <- sapply(FAnnual[Year > 2012], function(x) sum(!is.na(x)))
+
+F_3 <- FAnnual
+
+for (site in colnames(FAnnual)){
+  if (siteSelectFbase[site] < 5 | siteSelectFrecent[site] < 5)
+    {
+    F_3 <- F_3 %>% select(- all_of(site))
+  }
+}
+
+
+F_Median_diffyr <- numeric()
+
+for (site in colnames(F_3[,-1])) {
+  fLoop <- F_3[,c('Year',..site)] 
+  fLoop <- na.omit(fLoop) # Removes all the NA rows, so years without samples are not counted in the central year
+  fLoop <- fLoop[,'Year']
+  fLoopdiff <- sapply(fLoop[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(fLoop[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
+  F_Median_diffyr[site] <- fLoopdiff
+  remove(fLoop, fLoopdiff)
+}
+
+## Slope Distribution #################################
+
+# Calculates the baseline and recent averages, then calculates the difference 
+F_Median_diff <- sapply(F_3[Year > 2012], function(x) median(x, na.rm = TRUE)) - sapply(F_3[Year <= 2009 & Year >= 1979], function(x) median(x, na.rm = TRUE))
+F_Median_slp3 <- as.data.frame(F_Median_diff[-1]*10/F_Median_diffyr) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
+colnames(F_Median_slp3) <- c('Median Slope (CFU/100mL/decade)')
+# add % decline
+# Slope distribution histogram
+ggplot(F_Median_slp3, aes(x = `Median Slope (CFU/100mL/decade)`)) +
+  geom_histogram(binwidth = 10) + 
+  geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', size = 1) +
+  geom_vline(xintercept = c(-62.2, -9.6), linetype = 'dashed', color = 'black', size = 0.5) +
+  geom_vline(xintercept = -26.3, linetype = 'solid', color = 'black', size = 0.5) +
+  ggtitle('Fecal Coliform Slope Distribution Histogram, bin-width = 10') 
+
+median_slopes[3,] <- c(median(F_Median_slp3[,1]), median(F_Median_slp3[,1]))
+slopeSD[3,] <- c(sd(F_Median_slp3[,1]),sd(F_Median_slp3[,1]))
+mean_slopes[3,] <- c(mean(F_Median_slp3[,1]), mean(F_Median_slp3[,1]))
+slopeIQR <- list(F3 = quantile(F_Median_slp3[,1], type = 8))

@@ -237,3 +237,120 @@ Pmod_results <- Pmod_results %>%
   rownames_to_column(var = 'Description')
 
 write.csv(Pmod_results,'./data_cache/PO4_LandCover_Models.csv')
+
+# Fitting various linear models to the phosphate data ############################
+
+F_recent <- fread('./data_cache/median_annual_Fecal_Coliform.csv') %>%
+  subset(Year < 2023 & Year > 2015)%>%
+  select(- all_of('Year')) %>%
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column(var = 'Locator') %>%
+  rowwise(Locator) %>%
+  summarise(count = sum(! is.na(c_across(V1:V7))), 
+            mean = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+  left_join(read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %"), by = 'Locator') %>%
+  subset(count >=4)
+
+# For model selection we need to record the number of points
+n <- nrow(F_recent)
+
+# Creates a results table for the FO4
+Fmod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AICc' = numeric(),
+                       'AICwt' = numeric(), 'Intercept' = numeric(), 'coef_1' = numeric(), 
+                       'coef_2' = numeric(), 'coef_3' = numeric())
+
+# This for loop will fit multiple linear models to the average FO4 data
+for (rep in 1:14){
+  if (rep == 1){
+    # 1. Total Developed Area
+    F_mod <- glm(mean ~ `Urban, Total`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed Area'
+  }
+  if (rep == 2){
+    # 2. Developed, High Intensity
+    F_mod <- glm(mean ~ `Developed, High Intensity`, data = F_recent, family = gaussian())
+    mod_form <- 'Developed, High Intensity'
+  }
+  if (rep == 3){
+    # 3. Developed, Medium Intensity
+    F_mod <- glm(mean ~ `Developed, Medium Intensity`, data = F_recent, family = gaussian())
+    mod_form <- 'Developed, Medium Intensity'
+    
+  }
+  if (rep == 4){
+    # 4. Total Agricultural Area
+    F_mod <- glm(mean ~ `Agriculture, Total`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Agricultural Area'
+  }
+  if (rep == 5){
+    # 5. Total Forested Area
+    F_mod <- glm(mean ~ `Forest, Total`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Forested Area'
+  }
+  if (rep == 6){
+    # 6. Total Developed + Total Agricultural
+    F_mod <- glm(mean ~ `Forest, Total` + `Developed, Medium Intensity`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Forested + Developed, Medium Intensity'
+  }
+  if (rep == 7){
+    # 7. Total Developed + Deciduous Forest
+    F_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Deciduous Forest'
+  }
+  if (rep == 8){
+    # 8. Total Developed + Evergreen Forest. This will test if the previous model is just benefiting from having forest in the model
+    F_mod <- glm(mean ~ `Urban, Total` + `Evergreen Forest`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Evergreen Forest'
+  }
+  if (rep == 9){
+    # 9. Total Developed + Open Water
+    F_mod <- glm(mean ~ `Urban, Total` + `Open Water`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Open Water'
+  }
+  if (rep == 10){
+    # 10. Total Developed + Total Wetlands
+    F_mod <- glm(mean ~ `Urban, Total` + `Wetlands, Total`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Total Wetlands'
+  }
+  if (rep == 11){
+    # 11. Total Developed + Deciduous Forest + Open Water
+    F_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Open Water`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Deciduous Forest + Open Water'
+  }
+  if (rep == 12){
+    # 12. Total Developed + Deciduous Forest + Total Wetlands
+    F_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Wetlands, Total`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Deciduous Forest + Total Wetlands'
+  }
+  if (rep == 13){
+    # 13. Total Developed + Deciduous Forest + Total Agricultural
+    F_mod <- glm(mean ~ `Urban, Total` + `Agriculture, Total` + `Deciduous Forest`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Total Agricultural + Deciduous Forest'
+  }
+  if (rep == 14){
+    # 14. Total Developed + Open Water + Total Agricultural
+    F_mod <- glm(mean ~ `Urban, Total` + `Agriculture, Total` + `Open Water`, data = F_recent, family = gaussian())
+    mod_form <- 'Total Developed + Total Agricultural + Open Water'
+  }
+  r2 <- rSquared(F_mod$y, F_mod$residuals) 
+  k <- length(F_mod$coefficients) - 1
+  aicc <- F_mod$aic + (2*k*(k+1))/(n-k-1)
+  Fmod_results <- Fmod_results %>% add_row(Description = mod_form, R_Squared = r2[1,1], 
+                                           AICc = aicc, Intercept = F_mod$coefficients[1], 
+                                           coef_1 = F_mod$coefficients[2], coef_2 = F_mod$coefficients[3], 
+                                           coef_3 = F_mod$coefficients[4])
+  
+}
+
+# Add model selection diagnostics
+Fmod_results$relLik <- exp(-0.5 * (Fmod_results$AICc - min(Fmod_results$AICc)))
+Fmod_results$AICwt <- Fmod_results$relLik/sum(Fmod_results$relLik)
+Fmod_results <- Fmod_results %>% 
+  arrange(-AICwt) %>%
+  column_to_rownames(var = 'Description') %>%
+  round(digits = 3) %>%
+  rownames_to_column(var = 'Description')
+
+write.csv(Fmod_results,'./data_cache/FecalColi_LandCover_Models.csv')
+
