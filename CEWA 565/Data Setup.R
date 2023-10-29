@@ -4,15 +4,16 @@ library(miscTools)
 library(readxl)
 source('./functions/get_socrata_data_func.R')
 
-# You need TSS and Fecal data, parcel dev records, and that's it.
+# You need TSS and Fecal data, parcel dev records, and that's it. Oh and Current Land Cover
 
 AnnualFec <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Fecal_Coliform.csv'))
 
 AnnualTSS <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Total_Suspended_Solids.csv'))
 
 AnnualDev <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') %>%
-  reshape2::dcast(Year ~ Locator, value.var = 'ParcelsBuiltPer100Acres') 
+  reshape2::dcast(YRBUILT ~ Locator, value.var = 'ParcelsBuiltPer100Acres') 
 
+LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
 ## Check the Frequency of the data ##############################################
 
 colnames(AnnualDev) <- c('Year', colnames(AnnualDev[,-1]))
@@ -69,3 +70,26 @@ identical(colnames(FilterFec),colnames(FilterTSS))
 FilterDev <- AnnualDev[colnames(FilterTSS)] %>%
   subset((Year >= 1980 & Year <= 2020))
 
+## Plot The Results ##################################################################
+
+PlotDev <- FilterDev %>% 
+  reshape2::melt(id.var = "Year")
+
+# I'm going to use this set of plots to sort the monitoring sites into different groups
+ggplot(PlotDev, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Parcels Built per 100 Acres per Year") +
+  geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
+  scale_y_continuous(name = "Parcel/100 Acres")
+
+LowDev <- FilterDev %>%
+  remove_rownames() %>%
+  column_to_rownames(var = 'Year') %>%
+  select_if(~ !any(. > 3))
+
+LowDevRivers <- LandCover %>%
+  select(Locator:Stream) %>%
+  subset(Locator %in% colnames(LowDev))
+LowDevRivers
