@@ -75,6 +75,12 @@ FilterDev <- AnnualDev[colnames(FilterTSS)] %>%
 PlotDev <- FilterDev %>% 
   reshape2::melt(id.var = "Year")
 
+PlotFec <- FilterFec %>% 
+  reshape2::melt(id.var = "Year")
+
+PlotTSS <- FilterTSS %>% 
+  reshape2::melt(id.var = "Year")
+
 # I'm going to use this set of plots to sort the monitoring sites into different groups
 ggplot(PlotDev, aes(Year, value)) +
   facet_wrap(. ~ variable, shrink = FALSE) + 
@@ -84,6 +90,21 @@ ggplot(PlotDev, aes(Year, value)) +
   geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
   scale_y_continuous(name = "Parcel/100 Acres")
 
+ggplot(PlotFec, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median Fecal Coliform, 1980-2020") +
+  scale_y_continuous(name = "CCU", limits = c(0,2000))
+
+ggplot(PlotTSS, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median Total Suspended Solids, 1980-2020") +
+  scale_y_continuous(name = "mg/L")
+
+# Make a data frame of just the low development rivers
 LowDev <- FilterDev %>%
   remove_rownames() %>%
   column_to_rownames(var = 'Year') %>%
@@ -92,4 +113,49 @@ LowDev <- FilterDev %>%
 LowDevRivers <- LandCover %>%
   select(Locator:Stream) %>%
   subset(Locator %in% colnames(LowDev))
-LowDevRivers
+LowDevRivers # Note: get rid of the multiple Duwamish sites please.
+
+# Make a data frame of the other sites
+OtherDev <- FilterDev %>%
+  remove_rownames() %>%
+  column_to_rownames(var = 'Year') %>%
+  select(- all_of(colnames(LowDev)))
+
+# this will return a vector with the column number(year) with the maximum normalized development
+max_val <- OtherDev %>% 
+  replace(is.na(.), 0) %>%
+  t() %>%
+  max.col(ties.method = 'first')
+
+# how do I sort this into separate data frames?
+# 80's: 1-10
+# 90's: 11-20
+# 00's: 21-30
+# 10's: 31-41
+
+
+Dev_80s <- tibble(FilterDev$Year)
+name80 <- character()
+Dev_90s <- tibble(FilterDev$Year)
+name90 <- character()
+Dev_00s <- tibble(FilterDev$Year)
+name00 <- character()
+Dev_10s <- tibble(FilterDev$Year)
+name10 <- character()
+
+for (i in 1:length(max_val)){
+  if (max_val[i] >= 1 & max_val[i] <= 10){
+    Dev_80s <- Dev_80s %>% add_column(OtherDev[,i])
+    name80 <- append
+  }
+  if (max_val[i] >= 11 & max_val[i] <= 20){
+    Dev_90s <- Dev_90s %>% add_column(OtherDev[,i])
+  }
+  if (max_val[i] >= 21 & max_val[i] <= 30){
+    Dev_00s <- Dev_00s %>% add_column(OtherDev[,i])
+  }
+  if (max_val[i] >= 31 & max_val[i] <= 41){
+    Dev_10s <- Dev_10s %>% add_column(OtherDev[,i])
+  }
+}
+
