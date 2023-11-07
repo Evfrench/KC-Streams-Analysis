@@ -17,26 +17,26 @@ LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
 ## Check the Frequency of the data ##############################################
 
 colnames(AnnualDev) <- c('Year', colnames(AnnualDev[,-1]))
-Dev_Entries <- tibble(AnnualDev['Year'],rowSums(!is.na(AnnualDev[,-1])))
-names(Dev_Entries) <- c('Year','Entries')
+#Dev_Entries <- tibble(AnnualDev['Year'],rowSums(!is.na(AnnualDev[,-1])))
+#names(Dev_Entries) <- c('Year','Entries')
 
-Fec_Entries <- tibble(AnnualFec['Year'], rowSums(!is.na(AnnualFec[,-1])))
-names(Fec_Entries) <- c('Year', 'Entries')
+#Fec_Entries <- tibble(AnnualFec['Year'], rowSums(!is.na(AnnualFec[,-1])))
+#names(Fec_Entries) <- c('Year', 'Entries')
 
-TSS_Entries <- tibble(AnnualTSS['Year'], rowSums(!is.na(AnnualTSS[,-1])))
-names(TSS_Entries) <- c('Year', 'Entries')
+#TSS_Entries <- tibble(AnnualTSS['Year'], rowSums(!is.na(AnnualTSS[,-1])))
+#names(TSS_Entries) <- c('Year', 'Entries')
 
-ggplot(Dev_Entries, aes(x = Year, y = Entries)) +
-  geom_col() +
-  ggtitle('Site Development Entries per Year')
+#ggplot(Dev_Entries, aes(x = Year, y = Entries)) +
+#  geom_col() +
+#  ggtitle('Site Development Entries per Year')
 
-ggplot(Fec_Entries, aes(x = Year, y = Entries)) +
-  geom_col() +
-  ggtitle('Fecal Coliform Entries per Year')
+#ggplot(Fec_Entries, aes(x = Year, y = Entries)) +
+#  geom_col() +
+#  ggtitle('Fecal Coliform Entries per Year')
 
-ggplot(TSS_Entries, aes(x = Year, y = Entries)) +
-  geom_col() +
-  ggtitle('TSS Development Entries per Year')
+#ggplot(TSS_Entries, aes(x = Year, y = Entries)) +
+#  geom_col() +
+#  ggtitle('TSS Development Entries per Year')
 
 
 ## Clean The Data ######################################################
@@ -72,37 +72,37 @@ FilterDev <- AnnualDev[colnames(FilterTSS)] %>%
 
 ## Plot The Results ##################################################################
 
-PlotDev <- FilterDev %>% 
-  reshape2::melt(id.var = "Year")
+#PlotDev <- FilterDev %>% 
+#  reshape2::melt(id.var = "Year")
 
-PlotFec <- FilterFec %>% 
-  reshape2::melt(id.var = "Year")
+#PlotFec <- FilterFec %>% 
+#  reshape2::melt(id.var = "Year")
 
-PlotTSS <- FilterTSS %>% 
-  reshape2::melt(id.var = "Year")
+#PlotTSS <- FilterTSS %>% 
+#  reshape2::melt(id.var = "Year")
 
 # I'm going to use this set of plots to sort the monitoring sites into different groups
-ggplot(PlotDev, aes(Year, value)) +
-  facet_wrap(. ~ variable, shrink = FALSE) + 
-  geom_point() +
-  geom_line() +
-  ggtitle("Parcels Built per 100 Acres per Year") +
-  geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
-  scale_y_continuous(name = "Parcel/100 Acres")
+#ggplot(PlotDev, aes(Year, value)) +
+#  facet_wrap(. ~ variable, shrink = FALSE) + 
+#  geom_point() +
+#  geom_line() +
+#  ggtitle("Parcels Built per 100 Acres per Year") +
+#  geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
+#  scale_y_continuous(name = "Parcel/100 Acres")
 
-ggplot(PlotFec, aes(Year, value)) +
-  facet_wrap(. ~ variable, shrink = FALSE) + 
-  geom_point() +
-  geom_line() +
-  ggtitle("Annual Median Fecal Coliform, 1980-2020") +
-  scale_y_continuous(name = "CCU", limits = c(0,2000))
+#ggplot(PlotFec, aes(Year, value)) +
+#  facet_wrap(. ~ variable, shrink = FALSE) + 
+#  geom_point() +
+#  geom_line() +
+#  ggtitle("Annual Median Fecal Coliform, 1980-2020") +
+#  scale_y_continuous(name = "CCU", limits = c(0,2000))
 
-ggplot(PlotTSS, aes(Year, value)) +
-  facet_wrap(. ~ variable, shrink = FALSE) + 
-  geom_point() +
-  geom_line() +
-  ggtitle("Annual Median Total Suspended Solids, 1980-2020") +
-  scale_y_continuous(name = "mg/L")
+#ggplot(PlotTSS, aes(Year, value)) +
+#  facet_wrap(. ~ variable, shrink = FALSE) + 
+#  geom_point() +
+#  geom_line() +
+#  ggtitle("Annual Median Total Suspended Solids, 1980-2020") +
+#  scale_y_continuous(name = "mg/L")
 
 ## Sort the Data into groups ##################################################
 
@@ -223,10 +223,10 @@ ggplot() +
   scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
                     name="Peak Development\nPeriod",
                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
-  geom_line(data= TrendLowDev, aes(Year, TSS), color= 'darkred') +
-  geom_line(data= Trend80s, aes(Year, TSS), color= 'forestgreen') +
-  geom_line(data= Trend90s, aes(Year, TSS), color= 'blue') +
-  geom_line(data= Trend00s, aes(Year, TSS), color= 'orange') +
+  geom_line(data= TrendLowDev, aes(Year, TSS), color= 'darkred', size = 1.5) +
+  geom_line(data= Trend80s, aes(Year, TSS), color= 'forestgreen', size = 1.5) +
+  geom_line(data= Trend90s, aes(Year, TSS), color= 'blue', size = 1.5) +
+  geom_line(data= Trend00s, aes(Year, TSS), color= 'orange', size = 1.5) +
   ggtitle('TSS Plots of Each Development Period')
   
   
@@ -277,8 +277,128 @@ ggplot() +
   scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
                      name="Peak Development\nPeriod",
                      breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
-  geom_line(data= TrendLowDev, aes(Year, Fec), color= 'darkred') +
-  geom_line(data= Trend80s, aes(Year, Fec), color= 'forestgreen') +
-  geom_line(data= Trend90s, aes(Year, Fec), color= 'blue') +
-  geom_line(data= Trend00s, aes(Year, Fec), color= 'orange') +
+  geom_line(data= TrendLowDev, aes(Year, Fec), color= 'darkred', size = 1.5) +
+  geom_line(data= Trend80s, aes(Year, Fec), color= 'forestgreen', size = 1.5) +
+  geom_line(data= Trend90s, aes(Year, Fec), color= 'blue', size = 1.5) +
+  geom_line(data= Trend00s, aes(Year, Fec), color= 'orange', size = 1.5) +
   ggtitle('Fecal coliform Plots of Each Development Period') 
+
+## Grouped Dissolved Nitrite/Nitrate Analysis ###########################################
+
+AnnualNit <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv'))
+
+FilterNit <- AnnualNit[colnames(FilterTSS)] %>%
+  subset((Year >= 1980 & Year <= 2020))
+
+LowDevNit <- FilterNit[c('Year', colnames(LowDev))] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+RegLowDev <- glm(`value` ~ `Year`, data = LowDevNit)
+TrendLowDev <- tibble(Year = c(1980,2020), 
+                      Nit = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
+                              RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
+
+`80sNit` <- FilterNit[c('Year', name80)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg80s <- glm(`value` ~ `Year`, data = `80sNit`)
+Trend80s <- tibble(Year = c(1980,2020), 
+                   Nit = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
+                           Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
+
+`90sNit` <- FilterNit[c('Year', name90)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg90s <- glm(`value` ~ `Year`, data = `90sNit`)
+Trend90s <- tibble(Year = c(1980,2020), 
+                   Nit = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
+                           Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
+
+`00sNit` <- FilterNit[c('Year', name00)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg00s <- glm(`value` ~ `Year`, data = `00sNit`)
+Trend00s <- tibble(Year = c(1980,2020), 
+                   Nit = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
+                           Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
+ggplot() +
+  geom_point(data= LowDevNit, aes(x= Year, y= value, color = 'Low Dev')) +
+  geom_point(data= `80sNit`, aes(x= Year, y= value, color = '1980s Peak')) +
+  geom_point(data= `90sNit`, aes(x= Year, y= value, color = '1990s Peak')) +
+  geom_point(data= `00sNit`, aes(x= Year, y= value, color = '2000s Peak')) +
+  ylab("Nitrite/Nitrate (μg/L)") + 
+  #scale_y_continuous(limits = c(,)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(data= TrendLowDev, aes(Year, Nit), color= 'darkred', size = 1.5) +
+  geom_line(data= Trend80s, aes(Year, Nit), color= 'forestgreen', size = 1.5) +
+  geom_line(data= Trend90s, aes(Year, Nit), color= 'blue', size = 1.5) +
+  geom_line(data= Trend00s, aes(Year, Nit), color= 'orange', size = 1.5) +
+  ggtitle('Nitrite+Nitrate Plots of Each Development Period') 
+
+
+
+## Grouped Dissolved Phosphorus Analysis ##################################################
+
+AnnualPh <- as.data.frame(fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv'))
+
+FilterPh <- AnnualPh[colnames(FilterTSS)] %>%
+  subset((Year >= 1980 & Year <= 2020))
+
+LowDevPh <- FilterPh[c('Year', colnames(LowDev))] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+RegLowDev <- glm(`value` ~ `Year`, data = LowDevPh)
+TrendLowDev <- tibble(Year = c(1980,2020), 
+                      Ph = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
+                              RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
+
+`80sPh` <- FilterPh[c('Year', name80)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg80s <- glm(`value` ~ `Year`, data = `80sPh`)
+Trend80s <- tibble(Year = c(1980,2020), 
+                   Ph = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
+                           Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
+
+`90sPh` <- FilterPh[c('Year', name90)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg90s <- glm(`value` ~ `Year`, data = `90sPh`)
+Trend90s <- tibble(Year = c(1980,2020), 
+                   Ph = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
+                           Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
+
+`00sPh` <- FilterPh[c('Year', name00)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg00s <- glm(`value` ~ `Year`, data = `00sPh`)
+Trend00s <- tibble(Year = c(1980,2020), 
+                   Ph = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
+                           Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
+ggplot() +
+  geom_point(data= LowDevPh, aes(x= Year, y= value, color = 'Low Dev')) +
+  geom_point(data= `80sPh`, aes(x= Year, y= value, color = '1980s Peak')) +
+  geom_point(data= `90sPh`, aes(x= Year, y= value, color = '1990s Peak')) +
+  geom_point(data= `00sPh`, aes(x= Year, y= value, color = '2000s Peak')) +
+  ylab("Phosphate (μg/L)") + 
+  scale_y_continuous(limits = c(0,250)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(data= TrendLowDev, aes(Year, Ph), color= 'darkred', size = 1.5) +
+  geom_line(data= Trend80s, aes(Year, Ph), color= 'forestgreen', size = 1.5) +
+  geom_line(data= Trend90s, aes(Year, Ph), color= 'blue', size = 1.5) +
+  geom_line(data= Trend00s, aes(Year, Ph), color= 'orange', size = 1.5) +
+  ggtitle('Orthophosphate Phosphorus Plots of Each Development Period') 
+
+
