@@ -49,7 +49,7 @@ SelectDev <- AnnualDev %>%
 SelectFec <- AnnualFec %>%
   subset((Year >= 1980 & Year <= 2020)) %>%
   sapply(function(x) sum(!is.na(x)))
-SelectFec <- AnnualTSS %>%
+SelectTSS <- AnnualTSS %>%
   subset((Year >= 1980 & Year <= 2020)) %>%
   sapply(function(x) sum(!is.na(x)))
 
@@ -104,22 +104,29 @@ ggplot(PlotTSS, aes(Year, value)) +
   ggtitle("Annual Median Total Suspended Solids, 1980-2020") +
   scale_y_continuous(name = "mg/L")
 
+## Sort the Data into groups ##################################################
+
 # Make a data frame of just the low development rivers
 LowDev <- FilterDev %>%
   remove_rownames() %>%
   column_to_rownames(var = 'Year') %>%
   select_if(~ !any(. > 3))
-
-LowDevRivers <- LandCover %>%
-  select(Locator:Stream) %>%
-  subset(Locator %in% colnames(LowDev))
-LowDevRivers # Note: get rid of the multiple Duwamish sites please.
+# Note: get rid of the multiple Duwamish sites please.
 
 # Make a data frame of the other sites
 OtherDev <- FilterDev %>%
   remove_rownames() %>%
   column_to_rownames(var = 'Year') %>%
   select(- all_of(colnames(LowDev)))
+
+# I am removing the following historical sites (0305, 0307, 0309, 0311) 
+# these are all in the Duwamish system. The remaining node is 3106 with the most data
+rivers <- c('0305','0307','0309','0311')
+LowDev <- LowDev %>%
+  select(- all_of(rivers))
+LowDevRivers <- LandCover %>%
+  select(Locator:Stream) %>%
+  subset(Locator %in% colnames(LowDev))
 
 # this will return a vector with the column number(year) with the maximum normalized development
 max_val <- OtherDev %>% 
@@ -133,29 +140,145 @@ max_val <- OtherDev %>%
 # 00's: 21-30
 # 10's: 31-41
 
-
-Dev_80s <- tibble(FilterDev$Year)
+high_dev_names <- colnames(OtherDev)
+#Dev_80s <- tibble(FilterDev$Year)
 name80 <- character()
-Dev_90s <- tibble(FilterDev$Year)
+#Dev_90s <- tibble(FilterDev$Year)
 name90 <- character()
-Dev_00s <- tibble(FilterDev$Year)
+#Dev_00s <- tibble(FilterDev$Year)
 name00 <- character()
-Dev_10s <- tibble(FilterDev$Year)
-name10 <- character()
 
 for (i in 1:length(max_val)){
   if (max_val[i] >= 1 & max_val[i] <= 10){
-    Dev_80s <- Dev_80s %>% add_column(OtherDev[,i])
-    name80 <- append
+    #Dev_80s <- Dev_80s %>% add_column(OtherDev[,i])
+    name80 <- name80 %>% append(high_dev_names[i])
   }
   if (max_val[i] >= 11 & max_val[i] <= 20){
-    Dev_90s <- Dev_90s %>% add_column(OtherDev[,i])
+    #Dev_90s <- Dev_90s %>% add_column(OtherDev[,i])
+    name90 <- name90 %>% append(high_dev_names[i])
   }
-  if (max_val[i] >= 21 & max_val[i] <= 30){
-    Dev_00s <- Dev_00s %>% add_column(OtherDev[,i])
-  }
-  if (max_val[i] >= 31 & max_val[i] <= 41){
-    Dev_10s <- Dev_10s %>% add_column(OtherDev[,i])
+  if (max_val[i] >= 21 & max_val[i] <= 41){
+    #Dev_00s <- Dev_00s %>% add_column(OtherDev[,i])
+    name00 <- name00 %>% append(high_dev_names[i])
   }
 }
 
+River80s <- LandCover %>%
+  select(Locator:Stream) %>%
+  subset(Locator %in% name80)
+
+River90s <- LandCover %>%
+  select(Locator:Stream) %>%
+  subset(Locator %in% name90)
+
+River00s <- LandCover %>%
+  select(Locator:Stream) %>%
+  subset(Locator %in% name00)
+
+## Grouped TSS Plots ###########################################################
+# Make the grouped data frames based on peak development
+# Then fit a linear model to each group of data and plot that as well
+
+LowDevTSS <- FilterTSS[c('Year', colnames(LowDev))] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+RegLowDev <- glm(`value` ~ `Year`, data = LowDevTSS)
+TrendLowDev <- tibble(Year = c(1980,2020), 
+                      TSS = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
+                              RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
+
+`80sTSS` <- FilterTSS[c('Year', name80)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg80s <- glm(`value` ~ `Year`, data = `80sTSS`)
+Trend80s <- tibble(Year = c(1980,2020), 
+                      TSS = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
+                              Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
+
+`90sTSS` <- FilterTSS[c('Year', name90)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg90s <- glm(`value` ~ `Year`, data = `90sTSS`)
+Trend90s <- tibble(Year = c(1980,2020), 
+                   TSS = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
+                           Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
+
+`00sTSS` <- FilterTSS[c('Year', name00)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg00s <- glm(`value` ~ `Year`, data = `00sTSS`)
+Trend00s <- tibble(Year = c(1980,2020), 
+                   TSS = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
+                           Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
+ggplot() +
+  geom_point(data= LowDevTSS, aes(x= Year, y= value, color = 'Low Dev')) +
+  geom_point(data= `80sTSS`, aes(x= Year, y= value, color = '1980s Peak')) +
+  geom_point(data= `90sTSS`, aes(x= Year, y= value, color = '1990s Peak')) +
+  geom_point(data= `00sTSS`, aes(x= Year, y= value, color = '2000s Peak')) +
+  ylab("TSS (mg/L)") + 
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                    name="Peak Development\nPeriod",
+                    breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(data= TrendLowDev, aes(Year, TSS), color= 'darkred') +
+  geom_line(data= Trend80s, aes(Year, TSS), color= 'forestgreen') +
+  geom_line(data= Trend90s, aes(Year, TSS), color= 'blue') +
+  geom_line(data= Trend00s, aes(Year, TSS), color= 'orange') +
+  ggtitle('TSS Plots of Each Development Period')
+  
+  
+## Grouped Fecal Coliform Plots ###########################################################
+
+LowDevFec <- FilterFec[c('Year', colnames(LowDev))] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+RegLowDev <- glm(`value` ~ `Year`, data = LowDevFec)
+TrendLowDev <- tibble(Year = c(1980,2020), 
+                      Fec = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
+                              RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
+
+`80sFec` <- FilterFec[c('Year', name80)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg80s <- glm(`value` ~ `Year`, data = `80sFec`)
+Trend80s <- tibble(Year = c(1980,2020), 
+                   Fec = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
+                           Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
+
+`90sFec` <- FilterFec[c('Year', name90)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg90s <- glm(`value` ~ `Year`, data = `90sFec`)
+Trend90s <- tibble(Year = c(1980,2020), 
+                   Fec = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
+                           Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
+
+`00sFec` <- FilterFec[c('Year', name00)] %>%
+  remove_rownames() %>%
+  reshape2::melt(id.var = 'Year')
+
+Reg00s <- glm(`value` ~ `Year`, data = `00sFec`)
+Trend00s <- tibble(Year = c(1980,2020), 
+                   Fec = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
+                           Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
+ggplot() +
+  geom_point(data= LowDevFec, aes(x= Year, y= value, color = 'Low Dev')) +
+  geom_point(data= `80sFec`, aes(x= Year, y= value, color = '1980s Peak')) +
+  geom_point(data= `90sFec`, aes(x= Year, y= value, color = '1990s Peak')) +
+  geom_point(data= `00sFec`, aes(x= Year, y= value, color = '2000s Peak')) +
+  ylab("Fecal Coliform (CFU)") + 
+  scale_y_continuous(limits = c(-60,3000)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(data= TrendLowDev, aes(Year, Fec), color= 'darkred') +
+  geom_line(data= Trend80s, aes(Year, Fec), color= 'forestgreen') +
+  geom_line(data= Trend90s, aes(Year, Fec), color= 'blue') +
+  geom_line(data= Trend00s, aes(Year, Fec), color= 'orange') +
+  ggtitle('Fecal coliform Plots of Each Development Period') 
