@@ -258,6 +258,18 @@ ggplot(N_annual_plot, aes(Year, value)) +
   scale_y_continuous(name = "NO2+NO3, St. Dev's")
 # If I had to guess off these, then there are between 4 to 7 common trends?
 
+N_annual_plot1 <- N_annual %>%
+  as.data.frame() %>%
+  reshape2::melt(id.var = 'Year') 
+
+ggplot(N_annual_plot1, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median Nitrite+Nitrate Readings") +
+  scale_y_continuous(name = "NO2+NO3, μg/L")
+
+
 corrplot(corr = cor(N_annual[,-1], use = 'pairwise.complete.obs'), method = 'circle')
 
 ## DFA of Annual Data #########################################################
