@@ -11,33 +11,33 @@ AnnualFec <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual
 
 AnnualTSS <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Total_Suspended_Solids.csv'))
 
-AnnualDev <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') %>%
+AnnualDev <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') %>%  
   reshape2::dcast(YRBUILT ~ Locator, value.var = 'ParcelsBuiltPer100Acres') 
 
 LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
 ## Check the Frequency of the data ##############################################
 
 colnames(AnnualDev) <- c('Year', colnames(AnnualDev[,-1]))
-#Dev_Entries <- tibble(AnnualDev['Year'],rowSums(!is.na(AnnualDev[,-1])))
-#names(Dev_Entries) <- c('Year','Entries')
+Dev_Entries <- tibble(AnnualDev['Year'],rowSums(!is.na(AnnualDev[,-1])))
+names(Dev_Entries) <- c('Year','Entries')
 
 Fec_Entries <- tibble(AnnualFec['Year'], rowSums(!is.na(AnnualFec[,-1])))
 names(Fec_Entries) <- c('Year', 'Entries')
 
-#TSS_Entries <- tibble(AnnualTSS['Year'], rowSums(!is.na(AnnualTSS[,-1])))
-#names(TSS_Entries) <- c('Year', 'Entries')
+TSS_Entries <- tibble(AnnualTSS['Year'], rowSums(!is.na(AnnualTSS[,-1])))
+names(TSS_Entries) <- c('Year', 'Entries')
 
-#ggplot(Dev_Entries, aes(x = Year, y = Entries)) +
-#  geom_col() +
-#  ggtitle('Site Development Entries per Year')
+ggplot(Dev_Entries, aes(x = Year, y = Entries)) +
+  geom_col() +
+  ggtitle('Site Development Entries per Year')
 
 ggplot(Fec_Entries, aes(x = Year, y = Entries)) +
   geom_col() +
   ggtitle('Fecal Coliform Entries per Year')
 
-#ggplot(TSS_Entries, aes(x = Year, y = Entries)) +
-#  geom_col() +
-#  ggtitle('TSS Development Entries per Year')
+ggplot(TSS_Entries, aes(x = Year, y = Entries)) +
+  geom_col() +
+  ggtitle('TSS Development Entries per Year')
 
 
 ## Clean The Data ######################################################
@@ -79,8 +79,8 @@ FilterDev <- AnnualDev[colnames(FilterTSS)] %>%
 
 ## Plot The Results ##################################################################
 
-#PlotDev <- FilterDev %>% 
-#  reshape2::melt(id.var = "Year")
+PlotDev <- FilterDev %>% 
+  reshape2::melt(id.var = "Year")
 
 #PlotFec <- FilterFec %>% 
 #  reshape2::melt(id.var = "Year")
@@ -90,12 +90,12 @@ FilterDev <- AnnualDev[colnames(FilterTSS)] %>%
 
 # I'm going to use this set of plots to sort the monitoring sites into different groups
 #ggplot(PlotDev, aes(Year, value)) +
-#  facet_wrap(. ~ variable, shrink = FALSE) + 
-#  geom_point() +
-#  geom_line() +
-#  ggtitle("Parcels Built per 100 Acres per Year") +
-#  geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
-#  scale_y_continuous(name = "Parcel/100 Acres")
+facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Parcels Built per 100 Acres per Year") +
+  geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
+  scale_y_continuous(name = "Parcel/100 Acres")
 
 #ggplot(PlotFec, aes(Year, value)) +
 #  facet_wrap(. ~ variable, shrink = FALSE) + 
@@ -119,6 +119,11 @@ LowDev <- FilterDev %>%
   column_to_rownames(var = 'Year') %>%
   select_if(~ !any(. > 3))
 # Note: get rid of the multiple Duwamish sites please.
+
+LowDevRivers <- LandCover %>%
+  select(Locator:Stream, `Urban, Total`) %>%
+  subset(Locator %in% colnames(LowDev)) %>%
+  mutate(Dev_Peak = 'Low Dev')
 
 # Make a data frame of the other sites
 OtherDev <- FilterDev %>%
@@ -162,17 +167,28 @@ for (i in 1:length(max_val)){
   }
 }
 
+# This will create a list of rivers for each classification, along with a covariate of modern % developed land cover
 River80s <- LandCover %>%
-  select(Locator:Stream) %>%
-  subset(Locator %in% name80)
+  select(Locator:Stream, `Urban, Total`) %>%
+  subset(Locator %in% name80) %>%
+  mutate(Dev_Peak = '1980s')
 
 River90s <- LandCover %>%
-  select(Locator:Stream) %>%
-  subset(Locator %in% name90)
+  select(Locator:Stream, `Urban, Total`) %>%
+  subset(Locator %in% name90) %>%
+  mutate(Dev_Peak = '1990s')
 
 River00s <- LandCover %>%
-  select(Locator:Stream) %>%
-  subset(Locator %in% name00)
+  select(Locator:Stream, `Urban, Total`) %>%
+  subset(Locator %in% name00) %>%
+  mutate(Dev_Peak = '2000s')
+
+# Export the time series for site development, TSS, and Fecal Coliform
+#Site_Classifications <- rbind(LowDevRivers,River80s,River90s,River00s)
+#write.csv(Site_Classifications, file = './data_cache/Site_Dev_Classes.csv')
+#write.csv(FilterDev, file = './data_cache/CEWA565_Dev_ts.csv')
+#write.csv(FilterTSS, file = './data_cache/CEWA565_TSS_ts.csv')
+#write.csv(FilterFec, file = './data_cache/CEWA565_Fec_ts.csv')
 
 ## Grouped TSS Plots ###########################################################
 # Make the grouped data frames based on peak development
@@ -299,11 +315,10 @@ TrendLowDev <- tibble(Year = c(1980,2020),
                       Nit = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
                               RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
 
-LowDevNit2 <- LowDevNit %>%
-  group_by(Year) %>%
-  summarise(Value = mean(value, na.rm = T))
-
-GamLowDev <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = LowDevNit2, family = gaussian())
+GamLowDev <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = LowDevNit %>%
+                   group_by(Year) %>%
+                   summarise(Value = mean(value, na.rm = T)), 
+                 family = gaussian())
 
 
 # 80's Peak Group
@@ -316,11 +331,10 @@ Trend80s <- tibble(Year = c(1980,2020),
                    Nit = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
                            Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
 
-`80sNit2` <- `80sNit` %>%
-  group_by(Year) %>%
-  summarise(Value = mean(value, na.rm = T))
 
-Gam80s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `80sNit2`, family = gaussian())
+Gam80s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `80sNit` %>%
+                group_by(Year) %>%
+                summarise(Value = mean(value, na.rm = T)), family = gaussian())
 
 
 # 90's Peak Group
@@ -333,11 +347,10 @@ Trend90s <- tibble(Year = c(1980,2020),
                    Nit = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
                            Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
 
-`90sNit2` <- `90sNit` %>%
-  group_by(Year) %>%
-  summarise(Value = mean(value, na.rm = T))
 
-Gam90s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `90sNit2`, family = gaussian())
+Gam90s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `90sNit` %>%
+                group_by(Year) %>%
+                summarise(Value = mean(value, na.rm = T)), family = gaussian())
  
 # 2000's Peak Group
 `00sNit` <- FilterNit[c('Year', name00)] %>%
@@ -349,11 +362,10 @@ Trend00s <- tibble(Year = c(1980,2020),
                    Nit = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
                            Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
 
-`00sNit2` <- `00sNit` %>%
-  group_by(Year) %>%
-  summarise(Value = mean(value, na.rm = T))
 
-Gam00s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `00sNit2`, family = gaussian())
+Gam00s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `00sNit` %>%
+                group_by(Year) %>%
+                summarise(Value = mean(value, na.rm = T)), family = gaussian())
 
 # Plot with the regression Lines
 ggplot() +
@@ -468,7 +480,7 @@ Trend90s <- tibble(Year = c(1980,2020),
 
 Gam90s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `90sPh2`, family = gaussian())
 
-# 200s Peak Group
+# 2000s Peak Group
 
 `00sPh` <- FilterPh[c('Year', name00)] %>%
   remove_rownames() %>%
@@ -514,10 +526,10 @@ ggplot() +
   scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
                      name="Peak Development\nPeriod",
                      breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
-  geom_line(aes(LowDevPh2$Year, GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
-  geom_line(aes(`80sPh2`$Year, Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
-  geom_line(aes(`90sPh2`$Year, Gam90s$linear.predictors), color= 'blue', size = 1.5) +
-  geom_line(aes(`00sPh2`$Year, Gam00s$linear.predictors), color= 'orange', size = 1.5) +
+  geom_line(aes(GamLowDev$Model$Year, GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
+  geom_line(aes(Gam80s$Model$Year, Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
+  geom_line(aes(Gam90s$Model$Year, Gam90s$linear.predictors), color= 'blue', size = 1.5) +
+  geom_line(aes(Gam00s$Model$Year, Gam00s$linear.predictors), color= 'orange', size = 1.5) +
   ggtitle('Orthophosphate Phosphorus Plots of Each Development Period') 
 
 # Plot with the linear regression and smoothed GAMs
@@ -532,10 +544,10 @@ ggplot() +
   scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
                      name="Peak Development\nPeriod",
                      breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
-  geom_line(aes(LowDevPh2$Year, GamLowDev$linear.predictors), color= 'darkred', linewidth = 1.5) +
-  geom_line(aes(`80sPh2`$Year, Gam80s$linear.predictors), color= 'forestgreen', linewidth = 1.5) +
-  geom_line(aes(`90sPh2`$Year, Gam90s$linear.predictors), color= 'blue', linewidth = 1.5) +
-  geom_line(aes(`00sPh2`$Year, Gam00s$linear.predictors), color= 'orange', linewidth = 1.5) +
+  geom_line(aes(GamLowDev$Model$Year, GamLowDev$linear.predictors), color= 'darkred', linewidth = 1.5) +
+  geom_line(aes(Gam80s$Model$Year, Gam80s$linear.predictors), color= 'forestgreen', linewidth = 1.5) +
+  geom_line(aes(Gam90s$Model$Year, Gam90s$linear.predictors), color= 'blue', linewidth = 1.5) +
+  geom_line(aes(Gam00s$Model$Year, Gam00s$linear.predictors), color= 'orange', linewidth = 1.5) +
   ggtitle('Orthophosphate Phosphorus Plots of Each Development Period') 
 
 
@@ -545,10 +557,20 @@ ggplot() +
 # A315, Mill Creek
 # 0322, Nuwaukum Creek
 
+
+### Plotting the Outlier Streams ##########################################
+
+ggplot(data = LowDevPh %>% subset(variable %in% c('3106','0317','A315','0322')),
+       aes(Year,value)) +
+  facet_wrap(. ~ variable) +
+  geom_point() +
+  geom_hline(yintercept = 100, linetype = 'dashed') +
+  ggtitle('Sites with notably high Orthophosphate Concentrations') +
+  ylab('Phosphate (μg/L)')
+
 # Whats going on with these? Check their current land use, maybe there are farms? Green River makes sense
 
 
-# Fitting GAMS to Nitrite/Nitrate Groups #########################################
 
 
 
