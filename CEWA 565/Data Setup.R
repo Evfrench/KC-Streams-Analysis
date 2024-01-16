@@ -82,34 +82,34 @@ FilterDev <- AnnualDev[colnames(FilterTSS)] %>%
 PlotDev <- FilterDev %>% 
   reshape2::melt(id.var = "Year")
 
-#PlotFec <- FilterFec %>% 
-#  reshape2::melt(id.var = "Year")
+PlotFec <- FilterFec %>% 
+  reshape2::melt(id.var = "Year")
 
-#PlotTSS <- FilterTSS %>% 
-#  reshape2::melt(id.var = "Year")
+PlotTSS <- FilterTSS %>% 
+  reshape2::melt(id.var = "Year")
 
 # I'm going to use this set of plots to sort the monitoring sites into different groups
-#ggplot(PlotDev, aes(Year, value)) +
+ggplot(PlotDev, aes(Year, value)) +
 facet_wrap(. ~ variable, shrink = FALSE) + 
   geom_point() +
   geom_line() +
   ggtitle("Parcels Built per 100 Acres per Year") +
   geom_hline(yintercept = 3, color = 'black', linetype = 'dashed') +
-  scale_y_continuous(name = "Parcel/100 Acres")
+  scale_y_continuous(name = "Parcels/100 Acres")
 
-#ggplot(PlotFec, aes(Year, value)) +
-#  facet_wrap(. ~ variable, shrink = FALSE) + 
-#  geom_point() +
-#  geom_line() +
-#  ggtitle("Annual Median Fecal Coliform, 1980-2020") +
-#  scale_y_continuous(name = "CCU", limits = c(0,2000))
+ggplot(PlotFec, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median Fecal Coliform, 1980-2020") +
+  scale_y_continuous(name = "CFU", limits = c(0,3000))
 
-#ggplot(PlotTSS, aes(Year, value)) +
-#  facet_wrap(. ~ variable, shrink = FALSE) + 
-#  geom_point() +
-#  geom_line() +
-#  ggtitle("Annual Median Total Suspended Solids, 1980-2020") +
-#  scale_y_continuous(name = "mg/L")
+ggplot(PlotTSS, aes(Year, value)) +
+  facet_wrap(. ~ variable, shrink = FALSE) + 
+  geom_point() +
+  geom_line() +
+  ggtitle("Annual Median Total Suspended Solids, 1980-2020") +
+  scale_y_continuous(name = "mg/L")
 
 ## Sort the Data into groups ##################################################
 
@@ -194,6 +194,7 @@ River00s <- LandCover %>%
 # Make the grouped data frames based on peak development
 # Then fit a linear model to each group of data and plot that as well
 
+# low dev Group
 LowDevTSS <- FilterTSS[c('Year', colnames(LowDev))] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -203,6 +204,14 @@ TrendLowDev <- tibble(Year = c(1980,2020),
                       TSS = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
                               RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
 
+LowDevTSS2 <- LowDevTSS %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+GamLowDev <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = LowDevTSS2, 
+                 family = gaussian())
+
+# 1980s Group
 `80sTSS` <- FilterTSS[c('Year', name80)] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -212,6 +221,13 @@ Trend80s <- tibble(Year = c(1980,2020),
                       TSS = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
                               Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
 
+`80sTSS2` <- `80sTSS` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+Gam80s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `80sTSS2`, family = gaussian())
+
+# 1990s Group
 `90sTSS` <- FilterTSS[c('Year', name90)] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -221,6 +237,13 @@ Trend90s <- tibble(Year = c(1980,2020),
                    TSS = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
                            Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
 
+`90sTSS2` <- `90sTSS` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+Gam90s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `90sTSS2`, family = gaussian())
+
+# 2000s Group
 `00sTSS` <- FilterTSS[c('Year', name00)] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -229,6 +252,14 @@ Reg00s <- glm(`value` ~ `Year`, data = `00sTSS`)
 Trend00s <- tibble(Year = c(1980,2020), 
                    TSS = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
                            Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
+
+`00sTSS2` <- `00sTSS` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+Gam00s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `00sTSS2`, family = gaussian())
+
+# plot with linear trends
 ggplot() +
   geom_point(data= LowDevTSS, aes(x= Year, y= value, color = 'Low Dev')) +
   geom_point(data= `80sTSS`, aes(x= Year, y= value, color = '1980s Peak')) +
@@ -244,9 +275,46 @@ ggplot() +
   geom_line(data= Trend00s, aes(Year, TSS), color= 'orange', size = 1.5) +
   ggtitle('TSS Plots of Each Development Period')
   
-  
+# Plot with the smoothed GAMS
+
+ggplot() +
+  geom_point(data= LowDevTSS, aes(x= Year, y= value, color = 'Low Dev')) +
+  geom_point(data= `80sTSS`, aes(x= Year, y= value, color = '1980s Peak')) +
+  geom_point(data= `90sTSS`, aes(x= Year, y= value, color = '1990s Peak')) +
+  geom_point(data= `00sTSS`, aes(x= Year, y= value, color = '2000s Peak')) +
+  ylab("TSS (mg/L)") + 
+  #scale_y_continuous(limits = c(,)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(aes(LowDevTSS2$Year, GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
+  geom_line(aes(`80sTSS2`$Year, Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
+  geom_line(aes(`90sTSS2`$Year, Gam90s$linear.predictors), color= 'blue', size = 1.5) +
+  geom_line(aes(`00sTSS2`$Year, Gam00s$linear.predictors), color= 'orange', size = 1.5) +
+  ggtitle('TSS Plots of Each Development Period')  
+
+# Plot with the linear regression and smoothed GAMs
+
+ggplot() +
+  geom_line(data= TrendLowDev, aes(x= Year, y= TSS, color = 'Low Dev')) +
+  geom_line(data= Trend80s, aes(x= Year, y= TSS, color = '1980s Peak')) +
+  geom_line(data= Trend90s, aes(x= Year, y= TSS, color = '1990s Peak')) +
+  geom_line(data= Trend00s, aes(x= Year, y= TSS, color = '2000s Peak')) +
+  ylab("TSS (mg/L)") + 
+  scale_y_continuous(limits = c(0,8)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(aes(LowDevTSS2$Year, GamLowDev$linear.predictors), color= 'darkred', linewidth = 1.5) +
+  geom_line(aes(`80sTSS2`$Year, Gam80s$linear.predictors), color= 'forestgreen', linewidth = 1.5) +
+  geom_line(aes(`90sTSS2`$Year, Gam90s$linear.predictors), color= 'blue', linewidth = 1.5) +
+  geom_line(aes(`00sTSS2`$Year, Gam00s$linear.predictors), color= 'orange', linewidth = 1.5) +
+  ggtitle('TSS Plots of Each Development Period') 
+
+ 
 ## Grouped Fecal Coliform Plots ###########################################################
 
+# low dev Group
 LowDevFec <- FilterFec[c('Year', colnames(LowDev))] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -256,6 +324,14 @@ TrendLowDev <- tibble(Year = c(1980,2020),
                       Fec = c(RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*1980,
                               RegLowDev$coefficients[1] + RegLowDev$coefficients[2]*2020))
 
+LowDevFec2 <- LowDevFec %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+GamLowDev <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = LowDevFec2, 
+                 family = gaussian())
+
+# 1980s Group
 `80sFec` <- FilterFec[c('Year', name80)] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -265,6 +341,13 @@ Trend80s <- tibble(Year = c(1980,2020),
                    Fec = c(Reg80s$coefficients[1] + Reg80s$coefficients[2]*1980,
                            Reg80s$coefficients[1] + Reg80s$coefficients[2]*2020))
 
+`80sFec2` <- `80sFec` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+Gam80s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `80sFec2`, family = gaussian())
+
+# 1990s group
 `90sFec` <- FilterFec[c('Year', name90)] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -274,6 +357,13 @@ Trend90s <- tibble(Year = c(1980,2020),
                    Fec = c(Reg90s$coefficients[1] + Reg90s$coefficients[2]*1980,
                            Reg90s$coefficients[1] + Reg90s$coefficients[2]*2020))
 
+`90sFec2` <- `90sFec` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+Gam90s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `90sFec2`, family = gaussian())
+
+# 2000s Group
 `00sFec` <- FilterFec[c('Year', name00)] %>%
   remove_rownames() %>%
   reshape2::melt(id.var = 'Year')
@@ -282,6 +372,13 @@ Reg00s <- glm(`value` ~ `Year`, data = `00sFec`)
 Trend00s <- tibble(Year = c(1980,2020), 
                    Fec = c(Reg00s$coefficients[1] + Reg00s$coefficients[2]*1980,
                            Reg00s$coefficients[1] + Reg00s$coefficients[2]*2020))
+`00sFec2` <- `00sFec` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
+
+Gam00s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `00sFec2`, family = gaussian())
+
+# plot With Linear Trends
 ggplot() +
   geom_point(data= LowDevFec, aes(x= Year, y= value, color = 'Low Dev')) +
   geom_point(data= `80sFec`, aes(x= Year, y= value, color = '1980s Peak')) +
@@ -297,6 +394,43 @@ ggplot() +
   geom_line(data= Trend90s, aes(Year, Fec), color= 'blue', size = 1.5) +
   geom_line(data= Trend00s, aes(Year, Fec), color= 'orange', size = 1.5) +
   ggtitle('Fecal coliform Plots of Each Development Period') 
+
+# Plot with the smoothed GAMS
+
+ggplot() +
+  geom_point(data= LowDevFec, aes(x= Year, y= value, color = 'Low Dev')) +
+  geom_point(data= `80sFec`, aes(x= Year, y= value, color = '1980s Peak')) +
+  geom_point(data= `90sFec`, aes(x= Year, y= value, color = '1990s Peak')) +
+  geom_point(data= `00sFec`, aes(x= Year, y= value, color = '2000s Peak')) +
+  ylab("Fecal Coliform (CFU)") + 
+  scale_y_continuous(limits = c(0,3000)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(aes(LowDevFec2$Year, GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
+  geom_line(aes(`80sFec2`$Year, Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
+  geom_line(aes(`90sFec2`$Year, Gam90s$linear.predictors), color= 'blue', size = 1.5) +
+  geom_line(aes(`00sFec2`$Year, Gam00s$linear.predictors), color= 'orange', size = 1.5) +
+  ggtitle('Fecal Coliform Plots of Each Development Period')  
+
+# Plot with the linear regression and smoothed GAMs
+
+ggplot() +
+  geom_line(data= TrendLowDev, aes(x= Year, y= Fec, color = 'Low Dev')) +
+  geom_line(data= Trend80s, aes(x= Year, y= Fec, color = '1980s Peak')) +
+  geom_line(data= Trend90s, aes(x= Year, y= Fec, color = '1990s Peak')) +
+  geom_line(data= Trend00s, aes(x= Year, y= Fec, color = '2000s Peak')) +
+  ylab("Fecal Coliform (CFU)") +  
+  #scale_y_continuous(limits = c(0,1300)) +
+  scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
+                     name="Peak Development\nPeriod",
+                     breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
+  geom_line(aes(LowDevFec2$Year, GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
+  geom_line(aes(`80sFec2`$Year, Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
+  geom_line(aes(`90sFec2`$Year, Gam90s$linear.predictors), color= 'blue', size = 1.5) +
+  geom_line(aes(`00sFec2`$Year, Gam00s$linear.predictors), color= 'orange', size = 1.5) +
+  ggtitle('Fecal Coliform Plots of Each Development Period')  
+
 
 ## Grouped Dissolved Nitrite/Nitrate Analysis ###########################################
 
@@ -320,6 +454,9 @@ GamLowDev <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = LowDevNit %>%
                    summarise(Value = mean(value, na.rm = T)), 
                  family = gaussian())
 
+LowDevNit2 <- LowDevNit %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
 
 # 80's Peak Group
 `80sNit` <- FilterNit[c('Year', name80)] %>%
@@ -335,7 +472,9 @@ Trend80s <- tibble(Year = c(1980,2020),
 Gam80s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `80sNit` %>%
                 group_by(Year) %>%
                 summarise(Value = mean(value, na.rm = T)), family = gaussian())
-
+`80sNit2` <- `80sNit` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
 
 # 90's Peak Group
 `90sNit` <- FilterNit[c('Year', name90)] %>%
@@ -351,7 +490,11 @@ Trend90s <- tibble(Year = c(1980,2020),
 Gam90s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `90sNit` %>%
                 group_by(Year) %>%
                 summarise(Value = mean(value, na.rm = T)), family = gaussian())
- 
+
+`90sNit2` <- `90sNit` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T)) 
+
 # 2000's Peak Group
 `00sNit` <- FilterNit[c('Year', name00)] %>%
   remove_rownames() %>%
@@ -366,6 +509,10 @@ Trend00s <- tibble(Year = c(1980,2020),
 Gam00s <- gam(`Value` ~ s(`Year`, k = 10, bs = 'tp'), data = `00sNit` %>%
                 group_by(Year) %>%
                 summarise(Value = mean(value, na.rm = T)), family = gaussian())
+
+`00sNit2` <- `00sNit` %>%
+  group_by(Year) %>%
+  summarise(Value = mean(value, na.rm = T))
 
 # Plot with the regression Lines
 ggplot() +
@@ -522,14 +669,14 @@ ggplot() +
   geom_point(data= `90sPh`, aes(x= Year, y= value, color = '1990s Peak')) +
   geom_point(data= `00sPh`, aes(x= Year, y= value, color = '2000s Peak')) +
   ylab("Phosphate (μg/L)") + 
-  #scale_y_continuous(limits = c(,)) +
+  #scale_y_continuous(limits = c(0,300)) +
   scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
                      name="Peak Development\nPeriod",
                      breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
-  geom_line(aes(GamLowDev$Model$Year, GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
-  geom_line(aes(Gam80s$Model$Year, Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
-  geom_line(aes(Gam90s$Model$Year, Gam90s$linear.predictors), color= 'blue', size = 1.5) +
-  geom_line(aes(Gam00s$Model$Year, Gam00s$linear.predictors), color= 'orange', size = 1.5) +
+  geom_line(aes(x =GamLowDev$Model$Year, y= GamLowDev$linear.predictors), color= 'darkred', size = 1.5) +
+  geom_line(aes(x= Gam80s$Model$Year, y= Gam80s$linear.predictors), color= 'forestgreen', size = 1.5) +
+  geom_line(aes(x= Gam90s$Model$Year, y= Gam90s$linear.predictors), color= 'blue', size = 1.5) +
+  geom_line(aes(x= Gam00s$Model$Year, y= Gam00s$linear.predictors), color= 'orange', size = 1.5) +
   ggtitle('Orthophosphate Phosphorus Plots of Each Development Period') 
 
 # Plot with the linear regression and smoothed GAMs
@@ -540,14 +687,14 @@ ggplot() +
   geom_line(data= Trend90s, aes(x= Year, y= Ph, color = '1990s Peak')) +
   geom_line(data= Trend00s, aes(x= Year, y= Ph, color = '2000s Peak')) +
   ylab("Phosphate (μg/L)") + 
-  scale_y_continuous(limits = c(0,75)) +
+  #scale_y_continuous(limits = c(0,75)) +
   scale_color_manual(values=c("darkred", "forestgreen", "blue","orange"), 
                      name="Peak Development\nPeriod",
                      breaks=c('Low Dev', '1980s Peak', '1990s Peak','2000s Peak')) +
-  geom_line(aes(GamLowDev$Model$Year, GamLowDev$linear.predictors), color= 'darkred', linewidth = 1.5) +
-  geom_line(aes(Gam80s$Model$Year, Gam80s$linear.predictors), color= 'forestgreen', linewidth = 1.5) +
-  geom_line(aes(Gam90s$Model$Year, Gam90s$linear.predictors), color= 'blue', linewidth = 1.5) +
-  geom_line(aes(Gam00s$Model$Year, Gam00s$linear.predictors), color= 'orange', linewidth = 1.5) +
+  geom_line(aes(x= GamLowDev$Model$Year, y= GamLowDev$linear.predictors), color= 'darkred', linewidth = 1.5) +
+  geom_line(aes(x= Gam80s$Model$Year, y= Gam80s$linear.predictors), color= 'forestgreen', linewidth = 1.5) +
+  geom_line(aes(x= Gam90s$Model$Year, y= Gam90s$linear.predictors), color= 'blue', linewidth = 1.5) +
+  geom_line(aes(x= Gam00s$Model$Year, y= Gam00s$linear.predictors), color= 'orange', linewidth = 1.5) +
   ggtitle('Orthophosphate Phosphorus Plots of Each Development Period') 
 
 
@@ -570,8 +717,33 @@ ggplot(data = LowDevPh %>% subset(variable %in% c('3106','0317','A315','0322')),
 
 # Whats going on with these? Check their current land use, maybe there are farms? Green River makes sense
 
+### Separating the Low Dev group ######################################
+# Start by importing the data frame I made in python
+site_summary <-  as.data.frame(fread('~/KC-Streams-Analysis/data_cache/ANOVA_sites.csv'))
+
+site_summary['Dev_Peak'][site_summary['Dev_Peak'] == 'Low Dev' & site_summary['% Basin Developed'] >= 50] <- 'Dev Before 1980'
+
+ggplot() +
+  geom_point(data= site_summary, aes(x= `% Basin Developed`, y= TSS_mean, color = Dev_Peak), size = 3) +
+  scale_color_manual(values=c( "forestgreen", "blue","orange","darkred","purple")) +
+  ggtitle('Mean Site TSS Concentrations vs % Developed Land, \nSeparated by Peak Dev Group') +
+  ylab('Mean TSS (mg/L)')
+
+ggplot() +
+  geom_point(data= site_summary, aes(x= `% Basin Developed`, y= TSS_logmean, color = Dev_Peak), size = 3) +
+  scale_color_manual(values=c( "forestgreen", "blue","orange","darkred","purple")) +
+  ggtitle('Log Mean Site TSS Concentrations vs % Developed Land, \nSeparated by Peak Dev Group') +
+  ylab('Log Mean TSS')
 
 
+ggplot() +
+  geom_point(data= site_summary, aes(x= `% Basin Developed`, y= Fecal_mean, color = Dev_Peak), size = 3) +
+  scale_color_manual(values=c( "forestgreen", "blue","orange","darkred","purple")) +
+  ggtitle('Mean Site Fecal Coliform Concentrations vs % Developed Land, \nSeparated by Peak Dev Group') +
+  ylab('Mean Fecal Coliform (CFU)')
 
-
-
+ggplot() +
+  geom_point(data= site_summary, aes(x= `% Basin Developed`, y= Fecal_logmean, color = Dev_Peak), size = 3) +
+  scale_color_manual(values=c( "forestgreen", "blue","orange","darkred","purple")) +
+  ggtitle('Log Mean Site Fecal Coliform Concentrations vs % Developed Land, \nSeparated by Peak Dev Group') +
+  ylab('Log Mean Fecal Coliform')

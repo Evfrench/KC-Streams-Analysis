@@ -238,7 +238,7 @@ Pmod_results <- Pmod_results %>%
 
 write.csv(Pmod_results,'./data_cache/PO4_LandCover_Models.csv')
 
-# Fitting various linear models to the phosphate data ############################
+# Fitting various linear models to the fecal data ############################
 
 F_recent <- fread('./data_cache/median_annual_Fecal_Coliform.csv') %>%
   subset(Year < 2023 & Year > 2015)%>%
