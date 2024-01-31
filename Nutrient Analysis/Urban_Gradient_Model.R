@@ -8,8 +8,10 @@ library(mgcv)
 library(ggplot2)
 library(miscTools)
 library(readxl)
+library(psych)
+library(GGally)
 
-# Fitting various linear models to the nitrate data ############################
+# Fitting linear models to the nitrate data ############################
 
 # Import Nitrate/Nitrite data, the land cover data is from 2019 so that will be the central year, lets say +/- 3 years
 # this will give a maximum of 7 years worth of data
@@ -22,9 +24,15 @@ N_recent <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitr
   rownames_to_column(var = 'Locator') %>%
   rowwise(Locator) %>%
   summarise(count = sum(! is.na(c_across(V1:V7))), 
-            mean = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+            mean_NO3 = mean(c_across(V1:V7), na.rm = TRUE)) %>%
   left_join(read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %"), by = 'Locator') %>%
   subset(count >=4)
+
+# Create a scatterplot matrix of all of the landcover categories and the mean nitrate concentrations
+pairs.panels(N_recent[, c(7,13,14,19,22,5,3)], smooth = FALSE, lm = TRUE, cex.cor = 1, main = 'Scatterplot Matrix for Landcover Data (Nitrate)')
+
+# Alternate scatterplot matrix method
+#ggpairs()
 
 # For model selection we need to record the number of points
 n <- nrow(N_recent)
@@ -37,67 +45,67 @@ Nmod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AI
 for (rep in 1:13){
   if (rep == 1){ 
     # 1. Total Developed Area
-    N_mod <- glm(mean ~ `Urban, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed Area'
     }
   if (rep == 2){ 
     # 2. Developed, High Intensity
-    N_mod <- glm(mean ~ `Developed, High Intensity`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Developed, High Intensity`, data = N_recent, family = gaussian())
     mod_form <- 'Developed, High Intensity'
   }
   if (rep == 3){ 
     # 3. Developed, Medium Intensity
-    N_mod <- glm(mean ~ `Developed, Medium Intensity`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Developed, Medium Intensity`, data = N_recent, family = gaussian())
     mod_form <- 'Developed, Medium Intensity'
   }
   if (rep == 4){ 
     # 4. Total Agricultural Area
-    N_mod <- glm(mean ~ `Agriculture, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Agriculture, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Agricultural Area'
   }
   if (rep == 5){ 
     # 5. Total Forested Area
-    N_mod <- glm(mean ~ `Forest, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Forest, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Forested Area'
   }
   if (rep == 6){ 
     # 6. Deciduous Forest
-    N_mod <- glm(mean ~ `Deciduous Forest`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Deciduous Forest`, data = N_recent, family = gaussian())
     mod_form <- 'Deciduous Forest'
   }
   if (rep == 7){ 
     # 7. Total Developed + Total Agricultural
-    N_mod <- glm(mean ~ `Urban, Total` + `Agriculture, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Agriculture, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Total Agricultural'
   }
   if (rep == 8){ 
     # 8. Total Developed + Deciduous Forest
-    N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Deciduous Forest`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Deciduous Forest'
   }
   if (rep == 9){ 
     # 9. Total Developed + Total Wetlands
-    N_mod <- glm(mean ~ `Urban, Total` + `Wetlands, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Wetlands, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Total Wetlands'
   }
   if (rep == 10){ 
     # 10. Total Developed + Open Water
-    N_mod <- glm(mean ~ `Urban, Total` + `Open Water`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Open Water`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Open Water'
   }
   if (rep == 11){ 
     # 11. Total Developed + Deciduous Forest + Total Agricultural
-    N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Agriculture, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Deciduous Forest` + `Agriculture, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Deciduous Forest + Total Agricultural'
   }
   if (rep == 12){ 
     # 12. Total Developed + Deciduous Forest + Total Wetlands
-    N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Wetlands, Total`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Deciduous Forest` + `Wetlands, Total`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Deciduous Forest + Total Wetlands'
   }
   if (rep == 13){ 
     # 13. Total Developed + Deciduous Forest + Open Water
-    N_mod <- glm(mean ~ `Urban, Total` + `Deciduous Forest` + `Open Water`, data = N_recent, family = gaussian())
+    N_mod <- glm(mean_NO3 ~ `Urban, Total` + `Deciduous Forest` + `Open Water`, data = N_recent, family = gaussian())
     mod_form <- 'Total Developed + Deciduous Forest + Open Water'
   }
   
@@ -122,7 +130,7 @@ Nmod_results <- Nmod_results %>%
 write.csv(Nmod_results,'./data_cache/NO2-3_LandCover_Models.csv')
 
 
-# Fitting various linear models to the phosphate data ############################
+# Fitting linear models to the phosphate data ############################
 
 P_recent <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv') %>%
   subset(Year < 2023 & Year > 2015)%>%
@@ -132,9 +140,13 @@ P_recent <- fread('./data_cache/median_annual_Orthophosphate_Phosphorus.csv') %>
   rownames_to_column(var = 'Locator') %>%
   rowwise(Locator) %>%
   summarise(count = sum(! is.na(c_across(V1:V7))), 
-            mean = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+            mean_PO4 = mean(c_across(V1:V7), na.rm = TRUE)) %>%
   left_join(read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %"), by = 'Locator') %>%
   subset(count >=4)
+
+# Create a scatterplot matrix of the data
+pairs.panels(P_recent[, c(7,13,14,19,22,5,3)], smooth = FALSE, cex.cor = 1, main = 'Scatterplot Matrix for Landcover Data (Orthophosphate)')
+
 
 # For model selection we need to record the number of points
 n <- nrow(P_recent)
@@ -238,7 +250,7 @@ Pmod_results <- Pmod_results %>%
 
 write.csv(Pmod_results,'./data_cache/PO4_LandCover_Models.csv')
 
-# Fitting various linear models to the fecal data ############################
+# Fitting linear models to the fecal data ############################
 
 F_recent <- fread('./data_cache/median_annual_Fecal_Coliform.csv') %>%
   subset(Year < 2023 & Year > 2015)%>%
@@ -354,3 +366,29 @@ Fmod_results <- Fmod_results %>%
 
 write.csv(Fmod_results,'./data_cache/FecalColi_LandCover_Models.csv')
 
+# Site Land Cover Histograms ################################
+
+dev_dist <- quantile(N_recent$`Urban, Total`, probs = c(0.1, 0.5, 0.9))
+forest_dist <- quantile(N_recent$`Forest, Total`, probs = c(0.1, 0.5, 0.9))
+decid_dist <- quantile(N_recent$`Deciduous Forest`, probs = c(0.1, 0.5, 0.9))
+agr_dist <- quantile(N_recent$`Agriculture, Total`, probs = c(0.1, 0.5, 0.9))
+wet_dist <- quantile(N_recent$`Wetlands, Total`, probs = c(0.1, 0.5, 0.9))
+wat_dist <- quantile(N_recent$`Open Water`, probs = c(0.1, 0.5, 0.9))
+
+# Total Developed
+ggplot(N_recent, aes(x = `Urban, Total`)) +
+  geom_histogram(bins = 20) + 
+  scale_x_continuous(limits = c(0,100)) +
+  ggtitle('% Total Developed Land Cover') 
+
+# Total Forest 
+ggplot(N_recent, aes(x = `Forest, Total`)) +
+  geom_histogram(bins = 20) + 
+  scale_x_continuous(limits = c(0,100)) +
+  ggtitle('% Total Forested Land Cover') 
+
+# Deciduous Forest
+ggplot(N_recent, aes(x = `Deciduous Forest`)) +
+  geom_histogram(bins = 20) + 
+  scale_x_continuous(limits = c(0,100)) +
+  ggtitle('% Deciduous Forest Land Cover') 

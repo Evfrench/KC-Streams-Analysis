@@ -432,7 +432,7 @@ ggplot() +
   ggtitle('Fecal Coliform Plots of Each Development Period')  
 
 
-## Grouped Dissolved Nitrite/Nitrate Analysis ###########################################
+   ## Grouped Dissolved Nitrite/Nitrate Analysis ###########################################
 
 AnnualNit <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv'))
 
@@ -717,7 +717,7 @@ ggplot(data = LowDevPh %>% subset(variable %in% c('3106','0317','A315','0322')),
 
 # Whats going on with these? Check their current land use, maybe there are farms? Green River makes sense
 
-### Separating the Low Dev group ######################################
+# Separating the Low Dev group ######################################
 # Start by importing the data frame I made in python
 site_summary <-  as.data.frame(fread('~/KC-Streams-Analysis/data_cache/ANOVA_sites.csv'))
 

@@ -20,7 +20,8 @@ names(datSelect) <- c('Year','NO2/3_Entries','PO4_Entries')
 
 # This creates a plot with the number sites with non-empty readings every year
 ggplot() +
-  geom_col(data = datSelect, aes(x = Year, y = `NO2/3_Entries`)) 
+  geom_col(data = datSelect, aes(x = Year, y = `NO2/3_Entries`)) +
+  ggtitle('Combined Nitrite + Nitrate Entries Per Year')
 
 ggplot() +
   geom_col(data = datSelect, aes(x = Year, y = PO4_Entries))

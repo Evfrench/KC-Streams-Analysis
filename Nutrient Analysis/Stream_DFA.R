@@ -64,9 +64,9 @@ ggplot(Nmonthly_graph1, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   ylab('% Deviation from Median') +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100,200)) +
+  scale_y_continuous(limits = c(-100,200), n.breaks = 13) +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("NO2/NO3 % Monthly Deviations from Annual Median (separated by site)")
+  ggtitle("NO3 % Monthly Deviations from Annual Median (separated by site)")
 
 # (median of all years, separated by site)
 # Before running the DFA, lets do a cross-correlation function to see if there is any basis
@@ -541,6 +541,7 @@ ggplot(Pmonthly_graph1, aes(x= Month, y= annual_dev)) +
 ggplot(Pmonthly_graph1, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
+  scale_y_continuous(limits = c(-75, 150), n.breaks = 10) +
   ylab('% Deviation from Median') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("PO4 % Monthly Deviations from Annual Median (separated by site)")

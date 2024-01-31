@@ -1,6 +1,8 @@
 ## function to extract water quality data from Socrata
 # contains additional functions to format the water quality data for different purposes
+library(plyr)
 library(dplyr)
+library(mgcv)
 library(data.table)
 library(tidyverse)
 library(RSocrata)
@@ -9,6 +11,11 @@ library(miscTools)
 library(forecast)
 library(zoo)
 library(readr)
+library(readxl)
+library(ggplot2)
+library(psych)
+library(GGally)
+library(corrplot)
 bigTable <- fread('./data_cache/KC_WQ_Data')
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
 
@@ -268,7 +275,7 @@ get_socrata_data_func <- function(locns = c('0852'),
   
 # Everything past here has been moved to a methods file
 
-summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
+summarize_WQ_data <- function(params, timeframe)
 {
   # Returns either the annual median or the monthly arithmetic average for the data, depending on the input
   # Begin by making a vector of all the unique locator codes
@@ -276,7 +283,7 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
                  "Orthophosphate_Phosphorus", "Total_Phosphorus", "Total_Hydrolyzable Phosphorus")
   
   
-  locs <- unique(input.data$Locator)
+  locs <- unique(bigTable$Locator)
   locs <- locs[order(locs)]
   
   # Initialize empty frames for use in the for loop
@@ -285,16 +292,16 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
   df3 <- tibble()
   
   if (timeframe == 'annual'){
-  median_out <- as.data.frame(unique(input.data$Year)) # creates a data frame of every year in the data
+  median_out <- as.data.frame(unique(bigTable$Year)) # creates a data frame of every year in the data
   names(median_out) <- c('Year')
   median_out <- arrange(median_out, median_out$Year)
   
 
    # Fill out columns for every location in the data set
   for (loc in locs) {
-    df1 <- data.frame(input.data$Year[input.data$Locator == loc], 
-                      input.data$Month[input.data$Locator == loc],
-                      input.data[, ..params][input.data$Locator == loc])
+    df1 <- data.frame(bigTable$Year[bigTable$Locator == loc], 
+                      bigTable$Month[bigTable$Locator == loc],
+                      bigTable[, ..params][bigTable$Locator == loc])
     names(df1) <- c('Year','Month','Conc')
     
     if (params %in% paramconv) {
@@ -326,16 +333,16 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
   }
   
   if (timeframe == 'monthly'){
-    input.data$Year_mon <- as.yearmon(input.data$Decimal_year)
+    bigTable$Year_mon <- as.yearmon(bigTable$Decimal_year)
     
-    median_out <- as.data.frame(unique(input.data$Year_mon)) # creates a data frame of every year in the data
+    median_out <- as.data.frame(unique(bigTable$Year_mon)) # creates a data frame of every year in the data
     names(median_out) <- c('Year_mon')
     median_out <- arrange(median_out, median_out$Year_mon)
     
     # Fill out columns for every location in the data set
     for (loc in locs) {
-      df1 <- data.frame(input.data$Year_mon[input.data$Locator == loc], 
-                        input.data[, ..params][input.data$Locator == loc])
+      df1 <- data.frame(bigTable$Year_mon[bigTable$Locator == loc], 
+                        bigTable[, ..params][bigTable$Locator == loc])
       names(df1) <- c('Year_mon','Conc')
       
       if (params %in% paramconv) {
@@ -349,7 +356,8 @@ summarize_WQ_data <- function(input.data = data.frame(), params, timeframe)
       median_out <- full_join(median_out,df2, by = 'Year_mon')
     }
     names(median_out) <- c('Year_mon',locs) # rename all columns to match their locations
-    
+    cache_name = paste0('./data_cache/mean_monthly_',paste0(params),'.csv')
+    write_csv(median_out, cache_name, col_name=TRUE)
   }
   
   for(column in colnames(median_out)){
@@ -375,3 +383,47 @@ demedian <- function(x = data.frame())
   rownames(out) <- rname
   return(out)
 }
+
+LT_Slope_Dist <- function(input.data= tibble(), 
+                          window= integer(length = 4), 
+                          cutoff= integer(length = 2), 
+                          units= character(length = 1)){
+  # This function will filter out sites and extract the long term trends
+  # The trend is based on the window, a series of four numbers, the first 2 are the baseline years, the second 2 are the test or recent years
+  
+  # Determines how many years each site has in the baseline and test groups
+  BaseSelect <- input.data %>%
+    subset((Year >= window[1] & Year <= window[2])) %>%
+    sapply(function(x) sum(!is.na(x)))
+  
+  TestSelect <- input.data %>%
+    subset((Year >= window[3] & Year <= window[4])) %>%
+    sapply(function(x) sum(!is.na(x)))
+  
+  # This removes the sites that do not meet the cutoff 
+  input.data <- as.data.frame(input.data)
+  input.filtered <- as.data.table(input.data[names(BaseSelect[BaseSelect > cutoff[1]])[names(BaseSelect[BaseSelect > cutoff[1]]) %in% names(TestSelect[TestSelect > cutoff[2]])]])
+  
+  Median_diffyr <- numeric()
+  
+  for (site in colnames(input.filtered[-1])) {
+    Loop.frame <- input.filtered[,c('Year',..site)] 
+    Loop.frame <- na.omit(Loop.frame) # Removes all the NA rows, so years without samples are not counted in the central year
+    Loop.frame <- Loop.frame[,'Year']
+    Loop.framediff <- sapply(Loop.frame[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(Loop.frame[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
+    Median_diffyr[site] <- Loop.framediff
+    remove(Loop.frame, Loop.framediff)
+  }
+  
+  # Calculates the baseline and recent averages, then calculates the difference 
+  Median_diff <- sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
+  Median_slp <- as.data.frame(Median_diff[-1]*10/Median_diffyr[-1]) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
+  colnames(Median_slp) <- c(paste0('Median Slope (', units,'/decade)')) 
+  
+  # add % decline
+  Median_pdiff <- 100*(sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE)))/sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
+  Median_slp$`% Change Per Decade` <- Median_pdiff[-1]*10/Median_diffyr[-1]
+  
+  return(as_tibble(Median_slp))
+}
+
