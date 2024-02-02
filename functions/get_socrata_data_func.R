@@ -16,7 +16,25 @@ library(ggplot2)
 library(psych)
 library(GGally)
 library(corrplot)
+
+# Initialize some of the common data
 bigTable <- fread('./data_cache/KC_WQ_Data')
+LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
+
+# This creates a scatterplot matrix of all the land cover categories in the NLCD
+#pairs.panels(LandCover[, c(3:22)], smooth = FALSE, scale = TRUE, lm = TRUE, cex.cor = 3, main = 'Scatterplot Matrix for Landcover Data')
+# This plot tells me that the best parameters to test are as follows: 
+# Developed, All Intensities
+# Developed, Open Space
+# Deciduous Forest
+# Total Agricultural
+# Wetlands, Total
+# Open Water
+#
+# So I will eliminate the other land cover types
+CoverVariables <-  LandCover[, c(1:2,5,6,12,17,20,3)]
+
+
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
 
 # Checks for the 'Chlorophyll a' parameter
@@ -427,3 +445,122 @@ LT_Slope_Dist <- function(input.data= tibble(),
   return(as_tibble(Median_slp))
 }
 
+Land_Cover_Modeling <- function(WQ_Data = tibble(), 
+                                LandCover_Data = tibble(), 
+                                param = character(), 
+                                window = numeric(length = 2),
+                                log_space = FALSE){
+  
+  
+  # Treats the data in either log or absolute space, depending on the inputs
+  # This takes the average of the years in the defined of the water quality data, and removes any sites with half the number of years in the window
+  if (log_space == FALSE){
+    mod_inputs <- WQ_Data %>%
+      subset(Year <= window[2] & Year >= window[1])%>%
+      select(- all_of('Year')) %>%
+      t() %>% 
+      as.data.frame() %>%
+      rownames_to_column(var = 'Locator') %>%
+      rowwise(Locator) %>%
+      summarise(count = sum(! is.na(c_across(V1:V7))), 
+                mean_Conc = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+      left_join(LandCover_Data, by = 'Locator') %>%
+      subset(count > (window[2]-window[1])/2) %>%
+      select(- all_of("count"))
+  }
+  else {
+    mod_inputs <- WQ_Data %>%
+      subset(Year <= window[2] & Year >= window[1])%>%
+      select(- all_of('Year')) %>%
+      t() %>% 
+      as.data.frame() %>%
+      rownames_to_column(var = 'Locator') %>%
+      rowwise(Locator) %>%
+      summarise(count = sum(! is.na(c_across(V1:V7))), 
+                mean_Conc = mean(log(c_across(V1:V7)), na.rm = TRUE)) %>%
+      left_join(LandCover_Data, by = 'Locator') %>%
+      subset(count > (window[2]-window[1])/2) %>%
+      select(- all_of("count"))
+  }
+  
+  # Saves the original Landcover names and replaces the names in the data frame with letters
+  OrigNames <- names(mod_inputs)
+  names(mod_inputs) <- c('Locator', 'mean_Conc', 'Stream', 'a', 'b', 'c', 'd', 'e', 'f')
+  
+  # Creates all combinations of the original names
+  PrimName <- paste(paste(param,'Const.', sep = ' = '), OrigNames[4], sep = ' + ')
+  SecondName <- OrigNames[5:9]
+  SecondComb <- combn(SecondName,2)
+  name_formula <- list()
+  
+  # Create all combinations of the variables for the model
+  PrimaryEq <- paste('mean_Conc','a', sep = ' ~ ')
+  SecondaryVar <- names(mod_inputs)[5:9]
+  SecondaryComb <- combn(SecondaryVar,2)
+  model_formula <- list()
+  
+  # This loop will create a list of all 16 model combination formulas
+  for (i in 1:16) {
+    if (i == 1){
+      model_formula[i] <- PrimaryEq
+      name_formula[i] <- PrimName
+    }
+    if(i >= 2 && i <= 6){
+      model_formula[i] <- paste(PrimaryEq, SecondaryVar[i-1], sep = ' + ') 
+      name_formula[i] <- paste(PrimName, SecondName[i-1], sep = ' + ')  
+    }
+    if(i >=7 && i <= 16){
+      model_formula[i] <- paste(PrimaryEq, SecondaryComb[1,i-6], SecondaryComb[2,i-6], sep = ' + ') 
+      name_formula[i] <- paste(PrimName, SecondComb[1,i-6], SecondComb[2,i-6], sep = ' + ')  
+    }
+  }
+  
+  
+  
+  n <- nrow(mod_inputs)
+  
+  # Creates an empty table for the model diagnostics
+  mod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AICc' = numeric(),
+                        'AICwt' = numeric(), 'Intercept' = numeric(), 'coef_1' = numeric(), 
+                        'coef_2' = numeric(), 'coef_3' = numeric())
+  
+  # Creates an empty list for the function output, this will store the model results and the diagnostics table
+  out_list <- list()
+  
+  # This will loop through all the defined model formulas, put the results in the mod_results table, add extra diagnostics, then save the actual model in out_list 
+  for (i in 1:length(model_formula)) {
+    # Fit a general linear model to the selected parameters
+    mod <- glm(as.formula(model_formula[[i]]), data = mod_inputs, family = gaussian)
+    
+    # Add additional diagnostics
+    r2 <- rSquared(mod$y, mod$residuals) 
+    k <- length(mod$coefficients) - 1
+    aicc <- mod$aic + (2*k*(k+1))/(n-k-1)
+    
+    # Add a new row to the results table
+    mod_results <- mod_results %>% add_row(Description = name_formula[[i]], R_Squared = r2[1,1], 
+                                           AICc = mod$aic, Intercept = mod$coefficients[1], 
+                                           coef_1 = mod$coefficients[2], coef_2 = mod$coefficients[3], 
+                                           coef_3 = mod$coefficients[4])
+    
+    # Add the model results to the function output and change the name in the list
+    out_list[[i+1]] <- mod
+    names(out_list)[i+1] <- name_formula[[i]]
+  }
+  
+  # Add model selection diagnostics
+  mod_results$relLik <- exp(-0.5 * (mod_results$AICc - min(mod_results$AICc)))
+  mod_results$AICwt <- mod_results$relLik/sum(mod_results$relLik)
+  mod_results <- mod_results %>% 
+    arrange(-AICwt) %>%
+    column_to_rownames(var = 'Description') %>%
+    round(digits = 3) %>%
+    rownames_to_column(var = 'Description')
+  
+  # Move the results table into the output list
+  out_list[[1]] <- mod_results
+  names(out_list)[1] <- 'Results Table'
+  
+  
+  return(out_list)
+}
