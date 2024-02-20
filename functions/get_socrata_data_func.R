@@ -319,7 +319,8 @@ summarize_WQ_data <- function(params, timeframe)
   for (loc in locs) {
     df1 <- data.frame(bigTable$Year[bigTable$Locator == loc], 
                       bigTable$Month[bigTable$Locator == loc],
-                      bigTable[, ..params][bigTable$Locator == loc])
+                      bigTable[, ..params][bigTable$Locator == loc]) %>%
+      drop_na()
     names(df1) <- c('Year','Month','Conc')
     
     if (params %in% paramconv) {
@@ -328,7 +329,7 @@ summarize_WQ_data <- function(params, timeframe)
     
     df2 <- df1 %>%
       group_by(Year, Month) %>%
-      summarise(ave = mean(Conc, na.rm = TRUE), .groups = 'drop_last')
+      summarise(ave = mean(Conc, na.rm = TRUE), .groups = 'drop_last') 
     
     df3 <- df2 %>%
       select(- all_of('Month')) %>%
@@ -360,7 +361,8 @@ summarize_WQ_data <- function(params, timeframe)
     # Fill out columns for every location in the data set
     for (loc in locs) {
       df1 <- data.frame(bigTable$Year_mon[bigTable$Locator == loc], 
-                        bigTable[, ..params][bigTable$Locator == loc])
+                        bigTable[, ..params][bigTable$Locator == loc]) %>%
+        drop_na()
       names(df1) <- c('Year_mon','Conc')
       
       if (params %in% paramconv) {
@@ -462,8 +464,8 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
       as.data.frame() %>%
       rownames_to_column(var = 'Locator') %>%
       rowwise(Locator) %>%
-      summarise(count = sum(! is.na(c_across(V1:V7))), 
-                mean_Conc = mean(c_across(V1:V7), na.rm = TRUE)) %>%
+      summarise(count = sum(! is.na(c_across(V1:V6))), 
+                mean_Conc = mean(c_across(V1:V6), na.rm = TRUE)) %>%
       left_join(LandCover_Data, by = 'Locator') %>%
       subset(count > (window[2]-window[1])/2) %>%
       select(- all_of("count"))
@@ -476,8 +478,8 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
       as.data.frame() %>%
       rownames_to_column(var = 'Locator') %>%
       rowwise(Locator) %>%
-      summarise(count = sum(! is.na(c_across(V1:V7))), 
-                mean_Conc = mean(log(c_across(V1:V7)), na.rm = TRUE)) %>%
+      summarise(count = sum(! is.na(c_across(V1:V6))), 
+                mean_Conc = mean(log(c_across(V1:V6)), na.rm = TRUE)) %>%
       left_join(LandCover_Data, by = 'Locator') %>%
       subset(count > (window[2]-window[1])/2) %>%
       select(- all_of("count"))
@@ -563,4 +565,24 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
   
   
   return(out_list)
+}
+
+Seasonal_Analysis <- function(input_data = tibble()){
+  # This function takes monthly data and transforms it into a long table for graphing
+  
+  long_table <- input_data %>%
+    reshape2::melt(id.var='Year_mon') %>% #make the table long
+    mutate(Year = year(Year_mon),
+           Month = month(Year_mon)) %>% # separate the year_mon into two separate columns, the remove any empty fields
+    drop_na() %>%
+    group_by(Year, variable) %>%
+    mutate(num = n()) %>% 
+    subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
+    group_by(variable,Year) %>%
+    reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)), # calculates the median concentration for each year, then the monthly deviation from the median
+            Month = Month) %>%
+    group_by(variable,Month) %>%
+    reframe(med_annual_dev = median(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average
+  
+  return(long_table) 
 }
