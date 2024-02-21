@@ -1,5 +1,6 @@
 ## function to extract water quality data from Socrata
 # contains additional functions to format the water quality data for different purposes
+# Libraries ##################################################################################################
 library(plyr)
 library(dplyr)
 library(mgcv)
@@ -17,7 +18,7 @@ library(psych)
 library(GGally)
 library(corrplot)
 
-# Initialize some of the common data
+# Initialize some of the common data ###########################################################
 bigTable <- fread('./data_cache/KC_WQ_Data')
 LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
 
@@ -444,7 +445,8 @@ LT_Slope_Dist <- function(input.data= tibble(),
   Median_pdiff <- 100*(sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE)))/sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
   Median_slp$`% Change Per Decade` <- Median_pdiff[-1]*10/Median_diffyr[-1]
   
-  return(as_tibble(Median_slp))
+ 
+  return(Median_slp)
 }
 
 Land_Cover_Modeling <- function(WQ_Data = tibble(), 
@@ -464,8 +466,8 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
       as.data.frame() %>%
       rownames_to_column(var = 'Locator') %>%
       rowwise(Locator) %>%
-      summarise(count = sum(! is.na(c_across(V1:V6))), 
-                mean_Conc = mean(c_across(V1:V6), na.rm = TRUE)) %>%
+      summarise(count = sum(! is.na(c_across(V1:V7))), 
+                mean_Conc = mean(c_across(V1:V7), na.rm = TRUE)) %>%
       left_join(LandCover_Data, by = 'Locator') %>%
       subset(count > (window[2]-window[1])/2) %>%
       select(- all_of("count"))
@@ -478,8 +480,8 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
       as.data.frame() %>%
       rownames_to_column(var = 'Locator') %>%
       rowwise(Locator) %>%
-      summarise(count = sum(! is.na(c_across(V1:V6))), 
-                mean_Conc = mean(log(c_across(V1:V6)), na.rm = TRUE)) %>%
+      summarise(count = sum(! is.na(c_across(V1:V7))), 
+                mean_Conc = mean(log(c_across(V1:V7)), na.rm = TRUE)) %>%
       left_join(LandCover_Data, by = 'Locator') %>%
       subset(count > (window[2]-window[1])/2) %>%
       select(- all_of("count"))

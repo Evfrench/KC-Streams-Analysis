@@ -5,48 +5,48 @@ source('./functions/get_socrata_data_func.R')
 remove_sites <- c('0305','0307','0308','0309','3106')
 
 # Create the required data frames
-Fec_Annual <- summarize_WQ_data('E._coli','annual') %>% select(- all_of(remove_sites))
-Fec_Monthly <- summarize_WQ_data('E._coli','monthly') %>% select(- all_of(remove_sites))
+Nit_Annual <- summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','annual') %>% select(- all_of(remove_sites))
+Nit_Monthly <- summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','monthly') %>% select(- all_of(remove_sites))
 
 # If already run once, these will load the frames from the data cache
-Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
-Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/mean_monthly_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
-Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
+Nit_Annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
+Nit_Monthly <- fread('~/KC-Streams-Analysis/data_cache/mean_monthly_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
+Nit_Monthly$Year_mon <- as.yearmon(Nit_Monthly$Year_mon)
 
 # Plot the number of entries per year with the fixed code
-Fec_Entries <- tibble(as.data.frame(Fec_Annual)['Year'], rowSums(!is.na(Fec_Annual[,-1])))
-names(Fec_Entries) <- c('Year', 'Entries')
-ggplot(Fec_Entries, aes(x = Year, y = Entries)) +
+Nit_Entries <- tibble(as.data.frame(Nit_Annual)['Year'], rowSums(!is.na(Nit_Annual[,-1])))
+names(Nit_Entries) <- c('Year', 'Entries')
+ggplot(Nit_Entries, aes(x = Year, y = Entries)) +
   geom_col() +
-  ggtitle('Fecal Coliform Entries per Year')
+  ggtitle('Nitrate Entries per Year')
 
 # Long Term Trend Analysis ##################################################################
 #
 # Baseline: 1979 - 2008, 5 yrs required
 # Current: 2013 - 2020, 5 yrs required (Note descrepancy in the code)
 # Results: x sites, 
-#### You need site names tied to row names in this function #######
+
 # This function will calculate the long term slopes as defined by the function inputs stated above
-fecal_slopes <- LT_Slope_Dist(Fec_Annual, window = c(1979,2008,2013,2020), cutoff = c(5,5), units = c('CFU/100mL'))
+Nitrate_slopes <- LT_Slope_Dist(Nit_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('μg/L'))
 
 # Get the IQR of the distribution and percent change distribution
-fec_quant <- quantile(fecal_slopes$`Median Slope (CFU/100mL/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-fec_pquant <- quantile(fecal_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Nit_quant <- quantile(Nitrate_slopes$`Median Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Nit_pquant <- quantile(Nitrate_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(fecal_slopes, aes(x = `Median Slope (CFU/100mL/decade)`)) +
+ggplot(Nitrate_slopes, aes(x = `Median Slope (μg/L/decade)`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  geom_vline(xintercept = c(fec_quant[2], fec_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
-  geom_vline(xintercept = fec_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
-  ggtitle('Fecal Coliform Slope Distribution') 
+  geom_vline(xintercept = c(Nit_quant[2], Nit_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
+  geom_vline(xintercept = Nit_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
+  ggtitle('Nitrate Slope Distribution') 
 
-ggplot(fecal_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(Nitrate_slopes, aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  geom_vline(xintercept = c(fec_pquant[2], fec_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
-  geom_vline(xintercept = fec_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
-  ggtitle('Fecal Coliform Slope Distribution, Percent Change') 
+  geom_vline(xintercept = c(Nit_pquant[2], Nit_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
+  geom_vline(xintercept = Nit_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
+  ggtitle('Nitrate Slope Distribution, Percent Change') 
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -55,10 +55,10 @@ ggplot(fecal_slopes, aes(x = `% Change Per Decade`)) +
 # Look at log space time series and the normal space to be sure you are making a good decision
 
 # Fits allll of the models I originally looped through myself automatically
-fec_lc_mods <- Land_Cover_Modeling(Fec_Annual, CoverVariables, param = "Fecal_Coliform", window = c(2000, 2006), log_space = TRUE)
-Fecal_LC_results <- fec_lc_mods[[1]]
+Nit_lc_mods <- Land_Cover_Modeling(Nit_Annual, CoverVariables, param = "Nitrate", window = c(2016, 2022), log_space = FALSE)
+Nitrate_LC_results <- Nit_lc_mods[[1]]
 # Saves the results table in a CSV
-write.csv(fec_lc_mods[[1]],'./data_cache/Fec_Coli_LandCover_Models.csv')
+write.csv(Nit_lc_mods[[1]],'./data_cache/Nitrate_LandCover_Models.csv')
 
 ## Residual analysis ################################
 # residual by predicted
@@ -67,7 +67,7 @@ write.csv(fec_lc_mods[[1]],'./data_cache/Fec_Coli_LandCover_Models.csv')
 # Cook's D values
 
 
-top_model <- fec_lc_mods[["Fecal_Coliform = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total"]]
+#top_model <- Nit_lc_mods[["Nital_Coliform = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total"]]
 
 # quantiles
 qqnorm(top_model$residuals)
@@ -113,12 +113,41 @@ ggplot() +
 # NOTE: saving the workspace image and restarting will coerce the 'yearmon' class in this data frame to a decimal year
 # It must be converted back whenever the workspace is reopened
 
-Fec_Seasonal <- Seasonal_Analysis(Fec_Monthly)
+Nit_Seasonal <- Seasonal_Analysis(Nit_Monthly)
 
-ggplot(Fec_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(Nit_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-250, 1000), n.breaks = 10) +
+  #scale_y_continuous(limits = c(-250, 500), n.breaks = 10) +
   ylab('% Deviation from Median') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("E. Coli % Monthly Deviations from Annual Median")
+  ggtitle("Nitrate % Monthly Deviations from Annual Median")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
