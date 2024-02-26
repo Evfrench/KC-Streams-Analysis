@@ -19,8 +19,8 @@ library(GGally)
 library(corrplot)
 
 # Initialize some of the common data ###########################################################
-bigTable <- fread('./data_cache/KC_WQ_Data')
-LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
+bigTable <- fread('./data_cache/SourceData/KC_WQ_Data')
+LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
 
 # This creates a scatterplot matrix of all the land cover categories in the NLCD
 #pairs.panels(LandCover[, c(3:22)], smooth = FALSE, scale = TRUE, lm = TRUE, cex.cor = 3, main = 'Scatterplot Matrix for Landcover Data')
@@ -196,7 +196,7 @@ get_socrata_data_func <- function(locns = c('0852'),
   # Start by fetching location data
   # https://data.kingcounty.gov/Environment-Waste-Management/WLRD-Sites/wbhs-bbzf
   loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
-  cache_name = './data_cache/cache_WLRD_location_dataset.csv'
+  cache_name = './data_cache/Misc/cache_WLRD_location_dataset.csv'
   # Rename cache file to re-fetch data
   if(file.exists(cache_name)) {
     locs <- read_csv(cache_name)
@@ -223,7 +223,7 @@ get_socrata_data_func <- function(locns = c('0852'),
   locs <- filter(locs,Locator %in% locns)
   # Do each location individually, for ease of caching
   # Base cache name on location
-  cache_name = paste0('./data_cache/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
+  cache_name = paste0('./data_cache/Misc/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
   
   if(file.exists(cache_name)) {
     data_out <- read_csv(cache_name)
@@ -347,7 +347,7 @@ summarize_WQ_data <- function(params, timeframe)
   names(median_out) <- c('Year',locs) # rename all columns to match their locations
 
   #save data frame for later usage
-  cache_name = paste0('./data_cache/median_annual_',paste0(params),'.csv')
+  cache_name = paste0('./data_cache/NutrientData/median_annual_',paste0(params),'.csv')
   write_csv(median_out, cache_name, col_name=TRUE)
   
   }
@@ -377,7 +377,7 @@ summarize_WQ_data <- function(params, timeframe)
       median_out <- full_join(median_out,df2, by = 'Year_mon')
     }
     names(median_out) <- c('Year_mon',locs) # rename all columns to match their locations
-    cache_name = paste0('./data_cache/mean_monthly_',paste0(params),'.csv')
+    cache_name = paste0('./data_cache/NutrientData/mean_monthly_',paste0(params),'.csv')
     write_csv(median_out, cache_name, col_name=TRUE)
   }
   

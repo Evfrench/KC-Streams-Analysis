@@ -4,14 +4,15 @@ source('./functions/get_socrata_data_func.R')
 # These monitoring sites are redundant and will be removed from any analysis
 remove_sites <- c('0305','0307','0308','0309','3106')
 
-# Create the required data frames
-Fec_Annual <- summarize_WQ_data('E._coli','annual') %>% select(- all_of(remove_sites))
-Fec_Monthly <- summarize_WQ_data('E._coli','monthly') %>% select(- all_of(remove_sites))
-
 # If already run once, these will load the frames from the data cache
-Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
-Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/mean_monthly_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
+Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
+Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
 Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
+
+# This set will call the log-space data
+#Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+#Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+#Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # Plot the number of entries per year with the fixed code
 Fec_Entries <- tibble(as.data.frame(Fec_Annual)['Year'], rowSums(!is.na(Fec_Annual[,-1])))
@@ -55,10 +56,10 @@ ggplot(fecal_slopes, aes(x = `% Change Per Decade`)) +
 # Look at log space time series and the normal space to be sure you are making a good decision
 
 # Fits allll of the models I originally looped through myself automatically
-fec_lc_mods <- Land_Cover_Modeling(Fec_Annual, CoverVariables, param = "Fecal_Coliform", window = c(2000, 2006), log_space = TRUE)
+fec_lc_mods <- Land_Cover_Modeling(Fec_Annual, CoverVariables, param = "Fecal_Coliform", window = c(2000, 2006))
 Fecal_LC_results <- fec_lc_mods[[1]]
 # Saves the results table in a CSV
-write.csv(fec_lc_mods[[1]],'./data_cache/Fec_Coli_LandCover_Models.csv')
+write.csv(fec_lc_mods[[1]],'./data_cache/LandCover/Fec_Coli_LandCover_Models.csv')
 
 ## Residual analysis ################################
 # residual by predicted

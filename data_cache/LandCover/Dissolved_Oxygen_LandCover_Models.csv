@@ -1,0 +1,17 @@
+"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Dissolved Oxygen = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.251,214.86,0.531,12.047,-0.016,-0.07,-0.25,1
+"2","Dissolved Oxygen = Const. + Developed, All Intensities + Wetlands, Total",0.206,216.944,0.187,11.551,-0.013,-0.207,NA,0.353
+"3","Dissolved Oxygen = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.217,218.022,0.109,11.642,-0.014,-0.207,-0.076,0.206
+"4","Dissolved Oxygen = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.212,218.423,0.089,11.617,-0.014,-0.017,-0.203,0.168
+"5","Dissolved Oxygen = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.207,218.899,0.07,11.525,-0.014,0.004,-0.212,0.133
+"6","Dissolved Oxygen = Const. + Developed, All Intensities",0.079,225.49,0.003,10.905,-0.011,NA,NA,0.005
+"7","Dissolved Oxygen = Const. + Developed, All Intensities + Agriculture, Total",0.091,226.567,0.002,11.017,-0.012,-0.025,NA,0.003
+"8","Dissolved Oxygen = Const. + Developed, All Intensities + Open Water",0.09,226.648,0.001,11,-0.012,-0.078,NA,0.003
+"9","Dissolved Oxygen = Const. + Developed, All Intensities + Developed, Open Space",0.088,226.851,0.001,11.057,-0.011,-0.014,NA,0.002
+"10","Dissolved Oxygen = Const. + Developed, All Intensities + Deciduous Forest",0.086,226.985,0.001,11.036,-0.012,-0.025,NA,0.002
+"11","Dissolved Oxygen = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.105,227.508,0.001,11.136,-0.013,-0.028,-0.087,0.002
+"12","Dissolved Oxygen = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.1,227.9,0.001,11.173,-0.012,-0.014,-0.025,0.001
+"13","Dissolved Oxygen = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.1,227.917,0.001,11.17,-0.013,-0.031,-0.088,0.001
+"14","Dissolved Oxygen = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.097,228.136,0.001,11.133,-0.013,-0.023,-0.024,0.001
+"15","Dissolved Oxygen = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.096,228.229,0.001,11.112,-0.011,-0.011,-0.068,0.001
+"16","Dissolved Oxygen = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.092,228.512,0.001,11.146,-0.011,-0.012,-0.021,0.001

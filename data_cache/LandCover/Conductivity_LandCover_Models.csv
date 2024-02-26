@@ -1,0 +1,17 @@
+"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Conductivity = Const. + Developed, All Intensities + Deciduous Forest",0.663,739.125,0.285,52.765,1.948,6.905,NA,1
+"2","Conductivity = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.669,739.816,0.202,40.913,1.997,7.428,2.935,0.708
+"3","Conductivity = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.667,740.119,0.173,57.566,1.916,6.718,-3.149,0.608
+"4","Conductivity = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.667,740.149,0.171,58.562,1.968,-0.626,7.134,0.599
+"5","Conductivity = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.667,740.163,0.17,48.959,1.998,6.826,0.934,0.595
+"6","Conductivity = Const. + Developed, All Intensities + Open Water",0.545,760.398,0,95.08,1.692,-5.413,NA,0
+"7","Conductivity = Const. + Developed, All Intensities",0.531,760.596,0,88.49,1.737,NA,NA,0
+"8","Conductivity = Const. + Developed, All Intensities + Agriculture, Total",0.539,761.369,0,82.887,1.807,1.241,NA,0
+"9","Conductivity = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.551,761.448,0,89.751,1.756,1.082,-5.048,0
+"10","Conductivity = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.547,762.078,0,100.031,1.674,-1.596,-5.396,0
+"11","Conductivity = Const. + Developed, All Intensities + Wetlands, Total",0.533,762.272,0,93.572,1.719,-1.631,NA,0
+"12","Conductivity = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.545,762.343,0,93.333,1.687,0.174,-5.57,0
+"13","Conductivity = Const. + Developed, All Intensities + Developed, Open Space",0.531,762.595,0,88.811,1.738,-0.029,NA,0
+"14","Conductivity = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.542,762.905,0,88.618,1.789,1.312,-1.942,0
+"15","Conductivity = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.539,763.368,0,83.09,1.807,-0.018,1.241,0
+"16","Conductivity = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.533,764.251,0,92.731,1.715,0.115,-1.771,0

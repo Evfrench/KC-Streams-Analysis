@@ -4,13 +4,9 @@ source('./functions/get_socrata_data_func.R')
 # These monitoring sites are redundant and will be removed from any analysis
 remove_sites <- c('0305','0307','0308','0309','3106')
 
-# Create the required data frames
-Nit_Annual <- summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','annual') %>% select(- all_of(remove_sites))
-Nit_Monthly <- summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','monthly') %>% select(- all_of(remove_sites))
-
 # If already run once, these will load the frames from the data cache
-Nit_Annual <- fread('~/KC-Streams-Analysis/data_cache/median_annual_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
-Nit_Monthly <- fread('~/KC-Streams-Analysis/data_cache/mean_monthly_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
+Nit_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
+Nit_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
 Nit_Monthly$Year_mon <- as.yearmon(Nit_Monthly$Year_mon)
 
 # Plot the number of entries per year with the fixed code
@@ -52,13 +48,11 @@ ggplot(Nitrate_slopes, aes(x = `% Change Per Decade`)) +
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022
 
-# Look at log space time series and the normal space to be sure you are making a good decision
-
 # Fits allll of the models I originally looped through myself automatically
 Nit_lc_mods <- Land_Cover_Modeling(Nit_Annual, CoverVariables, param = "Nitrate", window = c(2016, 2022), log_space = FALSE)
 Nitrate_LC_results <- Nit_lc_mods[[1]]
 # Saves the results table in a CSV
-write.csv(Nit_lc_mods[[1]],'./data_cache/Nitrate_LandCover_Models.csv')
+write.csv(Nit_lc_mods[[1]],'./data_cache/LandCover/Nitrate_LandCover_Models.csv')
 
 ## Residual analysis ################################
 # residual by predicted
@@ -67,7 +61,7 @@ write.csv(Nit_lc_mods[[1]],'./data_cache/Nitrate_LandCover_Models.csv')
 # Cook's D values
 
 
-#top_model <- Nit_lc_mods[["Nital_Coliform = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total"]]
+top_model <- Nit_lc_mods[["Nitrate = Const. + Developed, All Intensities + Deciduous Forest + Open Water"]]
 
 # quantiles
 qqnorm(top_model$residuals)
@@ -98,10 +92,10 @@ ggplot() +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
-# Agriculture
+# Open Water
 ggplot() +
-  geom_point(aes(top_model$model$d , top_model$residuals)) +
-  xlab('% Agriculture') +
+  geom_point(aes(top_model$model$f , top_model$residuals)) +
+  xlab('% Open Water') +
   scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
@@ -118,36 +112,8 @@ Nit_Seasonal <- Seasonal_Analysis(Nit_Monthly)
 ggplot(Nit_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  #scale_y_continuous(limits = c(-250, 500), n.breaks = 10) +
+  scale_y_continuous(limits = c(-100, 400), n.breaks = 10) +
   ylab('% Deviation from Median') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Nitrate % Monthly Deviations from Annual Median")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

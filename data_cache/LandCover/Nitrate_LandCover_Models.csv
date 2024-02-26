@@ -1,0 +1,17 @@
+"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Nitrate = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.32,1052.493,0.49,303.835,6.264,42.292,-58.828,1
+"2","Nitrate = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.299,1054.572,0.173,161.996,7.544,44.701,12.793,0.354
+"3","Nitrate = Const. + Developed, All Intensities + Deciduous Forest",0.278,1054.709,0.162,214.144,6.863,45.786,NA,0.33
+"4","Nitrate = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.283,1056.178,0.078,283.988,6.573,42.704,-17.296,0.158
+"5","Nitrate = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.281,1056.422,0.069,185.074,6.764,3.14,44.636,0.14
+"6","Nitrate = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.235,1060.816,0.008,673.66,4.372,-43.072,-72.623,0.016
+"7","Nitrate = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.226,1061.63,0.005,440.888,4.58,9.857,-81.98,0.01
+"8","Nitrate = Const. + Developed, All Intensities + Open Water",0.197,1062.21,0.004,540.001,4.854,-73.085,NA,0.008
+"9","Nitrate = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.218,1062.351,0.004,477.769,5.596,12.635,-68.824,0.007
+"10","Nitrate = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.207,1063.381,0.002,501.919,4.58,11.542,-57.64,0.004
+"11","Nitrate = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.206,1063.47,0.002,524.291,5.853,16.534,-47.464,0.004
+"12","Nitrate = Const. + Developed, All Intensities + Wetlands, Total",0.17,1064.582,0.001,586.733,4.973,-43.546,NA,0.002
+"13","Nitrate = Const. + Developed, All Intensities + Agriculture, Total",0.161,1065.392,0.001,384.196,6.292,14.804,NA,0.002
+"14","Nitrate = Const. + Developed, All Intensities",0.132,1065.785,0.001,451.038,5.465,NA,NA,0.001
+"15","Nitrate = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.176,1066.115,0.001,305.414,6.158,7.007,14.945,0.001
+"16","Nitrate = Const. + Developed, All Intensities + Developed, Open Space",0.146,1066.597,0,374.337,5.325,6.877,NA,0.001

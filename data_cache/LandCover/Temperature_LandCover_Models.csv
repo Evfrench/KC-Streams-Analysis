@@ -1,0 +1,17 @@
+"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Temperature = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.463,167.807,0.397,9.062,0.023,0.044,0.163,1
+"2","Temperature = Const. + Developed, All Intensities + Open Water",0.436,169.267,0.191,9.307,0.022,0.148,NA,0.482
+"3","Temperature = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.444,170.34,0.112,9.176,0.022,0.042,0.148,0.282
+"4","Temperature = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.443,170.466,0.105,9.41,0.022,-0.01,0.157,0.265
+"5","Temperature = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.439,170.985,0.081,9.262,0.022,0.009,0.151,0.204
+"6","Temperature = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.417,173.637,0.022,9.019,0.023,0.047,0.072,0.054
+"7","Temperature = Const. + Developed, All Intensities",0.382,173.854,0.019,9.487,0.021,NA,NA,0.049
+"8","Temperature = Const. + Developed, All Intensities + Deciduous Forest",0.398,173.918,0.019,9.31,0.022,0.034,NA,0.047
+"9","Temperature = Const. + Developed, All Intensities + Wetlands, Total",0.389,174.97,0.011,9.353,0.021,0.043,NA,0.028
+"10","Temperature = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.402,175.502,0.008,9.381,0.022,-0.008,0.037,0.021
+"11","Temperature = Const. + Developed, All Intensities + Developed, Open Space",0.383,175.706,0.008,9.538,0.021,-0.005,NA,0.019
+"12","Temperature = Const. + Developed, All Intensities + Agriculture, Total",0.382,175.794,0.007,9.467,0.021,0.004,NA,0.018
+"13","Temperature = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.398,175.892,0.007,9.298,0.022,0.034,0.003,0.018
+"14","Temperature = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.394,176.451,0.005,9.418,0.021,-0.009,0.054,0.013
+"15","Temperature = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.389,176.944,0.004,9.342,0.021,0.003,0.042,0.01
+"16","Temperature = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.383,177.649,0.003,9.518,0.021,-0.005,0.004,0.007
