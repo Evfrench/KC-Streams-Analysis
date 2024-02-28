@@ -19,7 +19,7 @@ ggplot(Nit_Entries, aes(x = Year, y = Entries)) +
 # Long Term Trend Analysis ##################################################################
 #
 # Baseline: 1979 - 2008, 5 yrs required
-# Current: 2013 - 2020, 5 yrs required (Note descrepancy in the code)
+# Current: 2013 - 2020, 5 yrs required (
 # Results: x sites, 
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
@@ -48,9 +48,10 @@ ggplot(Nitrate_slopes, aes(x = `% Change Per Decade`)) +
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022
 
-# Fits allll of the models I originally looped through myself automatically
+# Fits all of the models I originally looped through myself automatically
 Nit_lc_mods <- Land_Cover_Modeling(Nit_Annual, CoverVariables, param = "Nitrate", window = c(2016, 2022), log_space = FALSE)
 Nitrate_LC_results <- Nit_lc_mods[[1]]
+Nitrate_LC_inputs <- Nit_lc_mods[[2]]
 # Saves the results table in a CSV
 write.csv(Nit_lc_mods[[1]],'./data_cache/LandCover/Nitrate_LandCover_Models.csv')
 
@@ -60,7 +61,7 @@ write.csv(Nit_lc_mods[[1]],'./data_cache/LandCover/Nitrate_LandCover_Models.csv'
 # residual by exogenous variables (studentized?)
 # Cook's D values
 
-
+# I looked through the results table and picked the "best" model
 top_model <- Nit_lc_mods[["Nitrate = Const. + Developed, All Intensities + Deciduous Forest + Open Water"]]
 
 # quantiles
@@ -74,6 +75,14 @@ ggplot() +
   ylab('Residuals') +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(top_model$y, top_model$residuals)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # By Exogenous Variables
 # Developed, all intensities
@@ -99,6 +108,33 @@ ggplot() +
   scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
+
+
+## Weighted Composite Model Residuals ###########################################################
+#
+# R-squared = 0.318
+#
+# rSquared(Nitrate_LC_inputs$mean_Conc, Nitrate_LC_inputs$combined_Resid)
+
+# quantiles
+qqnorm(Nitrate_LC_inputs$combined_Resid)
+qqline(Nitrate_LC_inputs$combined_Resid)
+
+# By Predicted Values
+ggplot() +
+  geom_point(aes(Nitrate_LC_inputs$combined_Pred, Nitrate_LC_inputs$combined_Resid)) +
+  xlab('Predicted Value') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(Nitrate_LC_inputs$mean_Conc, Nitrate_LC_inputs$combined_Resid)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # Examining Seasonality ##################################################################################
 # This will use monthly data to do a seasonality analysis, I don't think this needs a function of its own

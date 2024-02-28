@@ -548,26 +548,45 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
                                            coef_3 = mod$coefficients[4])
     
     # Add the model results to the function output and change the name in the list
-    out_list[[i+1]] <- mod
-    names(out_list)[i+1] <- name_formula[[i]]
+    out_list[[i+2]] <- mod
+    names(out_list)[i+2] <- name_formula[[i]]
   }
   
   # Add model selection diagnostics
   mod_results$relLik <- exp(-0.5 * (mod_results$AICc - min(mod_results$AICc)))
   mod_results$AICwt <- mod_results$relLik/sum(mod_results$relLik)
+  
+  # Create composite model data in the input data frame
+  names(mod_inputs) <- OrigNames
+  mod_inputs <- mod_inputs %>%  # Create the predictions and residuals columns
+   mutate(combined_Pred = 0, 
+          combined_Resid = 0,
+          .after = mean_Conc)
+  
+  # Calculate the predictions
+  for (i in 1:nrow(mod_results)) {
+    mod_inputs$combined_Pred <- mod_inputs$combined_Pred + (out_list[[i+2]]$linear.predictors*mod_results$AICwt[i])
+  }
+  
+  # Calculate the residuals
+  mod_inputs$combined_Resid <- mod_inputs$mean_Conc - mod_inputs$combined_Pred
+  
+  # Arrange the table by decreasing AICwt
   mod_results <- mod_results %>% 
     arrange(-AICwt) %>%
     column_to_rownames(var = 'Description') %>%
     round(digits = 3) %>%
     rownames_to_column(var = 'Description')
   
-  # Move the results table into the output list
+  # Move the results table and the input table into the output list
   out_list[[1]] <- mod_results
-  names(out_list)[1] <- 'Results Table'
+  out_list[[2]] <- mod_inputs
+  names(out_list)[c(1,2)] <- c('Results Table', 'Inputs + Composite Predictions')
   
   
   return(out_list)
 }
+
 
 Seasonal_Analysis <- function(input_data = tibble()){
   # This function takes monthly data and transforms it into a long table for graphing

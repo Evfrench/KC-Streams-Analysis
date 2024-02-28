@@ -51,6 +51,8 @@ ggplot(TSS_slopes, aes(x = `% Change Per Decade`)) +
 # Fits allll of the models I originally looped through myself automatically
 TSS_lc_mods <- Land_Cover_Modeling(TSS_Annual, CoverVariables, param = "TSS", window = c(2016, 2022), log_space = FALSE)
 TSS_LC_results <- TSS_lc_mods[[1]]
+TSS_LC_inputs <- TSS_lc_mods[[2]]
+
 # Saves the results table in a CSV
 write.csv(TSS_lc_mods[[1]],'./data_cache/LandCover/TSS_LandCover_Models.csv')
 
@@ -74,6 +76,14 @@ ggplot() +
   ylab('Residuals') +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(top_model$y, top_model$residuals)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # By Exogenous Variables
 # Developed, all intensities
@@ -99,6 +109,33 @@ ggplot() +
   scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
+
+## Weighted Composite Model Residuals ###########################################################
+#
+# R-squared = 0.203
+#
+# rSquared(TSS_LC_inputs$mean_Conc, TSS_LC_inputs$combined_Resid)
+
+# quantiles
+qqnorm(TSS_LC_inputs$combined_Resid)
+qqline(TSS_LC_inputs$combined_Resid)
+
+# By Predicted Values
+ggplot() +
+  geom_point(aes(TSS_LC_inputs$combined_Pred, TSS_LC_inputs$combined_Resid)) +
+  xlab('Predicted Value') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(TSS_LC_inputs$mean_Conc, TSS_LC_inputs$combined_Resid)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
+
 
 # Examining Seasonality ##################################################################################
 # This will use monthly data to do a seasonality analysis, I don't think this needs a function of its own

@@ -10,9 +10,9 @@ Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly
 Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This set will call the log-space data
-#Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
-#Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
-#Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
+Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # Plot the number of entries per year with the fixed code
 Fec_Entries <- tibble(as.data.frame(Fec_Annual)['Year'], rowSums(!is.na(Fec_Annual[,-1])))
@@ -56,8 +56,9 @@ ggplot(fecal_slopes, aes(x = `% Change Per Decade`)) +
 # Look at log space time series and the normal space to be sure you are making a good decision
 
 # Fits allll of the models I originally looped through myself automatically
-fec_lc_mods <- Land_Cover_Modeling(Fec_Annual, CoverVariables, param = "Fecal_Coliform", window = c(2000, 2006))
+fec_lc_mods <- Land_Cover_Modeling(Fec_Annual, CoverVariables, param = "Fecal_Coliform", window = c(2016, 2022))
 Fecal_LC_results <- fec_lc_mods[[1]]
+Fecal_LC_inputs <- fec_lc_mods[[2]]
 # Saves the results table in a CSV
 write.csv(fec_lc_mods[[1]],'./data_cache/LandCover/Fec_Coli_LandCover_Models.csv')
 
@@ -81,6 +82,14 @@ ggplot() +
   ylab('Residuals') +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(top_model$y, top_model$residuals)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # By Exogenous Variables
 # Developed, all intensities
@@ -106,6 +115,32 @@ ggplot() +
   scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
+
+## Weighted Composite Model Residuals ###########################################################
+#
+# R-squared = 0.532
+#
+# rSquared(Fecal_LC_inputs$mean_Conc, Fecal_LC_inputs$combined_Resid)
+
+# quantiles
+qqnorm(Fecal_LC_inputs$combined_Resid)
+qqline(Fecal_LC_inputs$combined_Resid)
+
+# By Predicted Values
+ggplot() +
+  geom_point(aes(Fecal_LC_inputs$combined_Pred, Fecal_LC_inputs$combined_Resid)) +
+  xlab('Predicted Value') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(Fecal_LC_inputs$mean_Conc, Fecal_LC_inputs$combined_Resid)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # Examining Seasonality ##################################################################################
 # This will use monthly data to do a seasonality analysis, I don't think this needs a function of its own

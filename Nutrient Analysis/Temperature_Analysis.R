@@ -16,12 +16,16 @@ ggplot(Temp_Entries, aes(x = Year, y = Entries)) +
   geom_col() +
   ggtitle('Temperature Entries per Year')
 
+# Consider using Temperature to calculate DO saturation, and compare to DO conc ################
+
+
+
 # Long Term Trend Analysis ##################################################################
 #
 # Baseline: 1979 - 2008, 5 yrs required
 # Current: 2013 - 2020, 5 yrs required (Note descrepancy in the code)
 # Results: x sites, 
-#### You need site names tied to row names in this function #######
+
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Temp_slopes <- LT_Slope_Dist(Temp_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('deg.C'))
 
@@ -53,6 +57,8 @@ ggplot(Temp_slopes, aes(x = `% Change Per Decade`)) +
 # Fits all of the models I originally looped through myself automatically
 Temp_lc_mods <- Land_Cover_Modeling(Temp_Annual, CoverVariables, param = "Temperature", window = c(2016, 2022), log_space = FALSE)
 Temp_LC_results <- Temp_lc_mods[[1]]
+Temp_LC_inputs <- Temp_lc_mods[[2]]
+
 # Saves the results table in a CSV
 write.csv(Temp_lc_mods[[1]],'./data_cache/LandCover/Temperature_LandCover_Models.csv')
 
@@ -76,6 +82,14 @@ ggplot() +
   ylab('Residuals') +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(top_model$y, top_model$residuals)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # By Exogenous Variables
 # Developed, all intensities
@@ -101,6 +115,32 @@ ggplot() +
   scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
+
+## Weighted Composite Model Residuals ###########################################################
+#
+# R-squared = 0.459
+#
+# rSquared(Temp_LC_inputs$mean_Conc, Temp_LC_inputs$combined_Resid)
+
+# quantiles
+qqnorm(Temp_LC_inputs$combined_Resid)
+qqline(Temp_LC_inputs$combined_Resid)
+
+# By Predicted Values
+ggplot() +
+  geom_point(aes(Temp_LC_inputs$combined_Pred, Temp_LC_inputs$combined_Resid)) +
+  xlab('Predicted Value') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(Temp_LC_inputs$mean_Conc, Temp_LC_inputs$combined_Resid)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # Examining Seasonality ##################################################################################
 # This will use monthly data to do a seasonality analysis, I don't think this needs a function of its own

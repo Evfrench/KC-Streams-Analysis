@@ -21,7 +21,7 @@ ggplot(DO_Entries, aes(x = Year, y = Entries)) +
 # Baseline: 1979 - 2008, 5 yrs required
 # Current: 2013 - 2020, 5 yrs required (Note descrepancy in the code)
 # Results: x sites, 
-#### You need site names tied to row names in this function #######
+
 # This function will calculate the long term slopes as defined by the function inputs stated above
 DO_slopes <- LT_Slope_Dist(DO_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('mg/L'))
 
@@ -53,6 +53,8 @@ ggplot(DO_slopes, aes(x = `% Change Per Decade`)) +
 # Fits all of the models I originally looped through myself automatically
 DO_lc_mods <- Land_Cover_Modeling(DO_Annual, CoverVariables, param = "Dissolved Oxygen", window = c(2016, 2022), log_space = FALSE)
 DO_LC_results <- DO_lc_mods[[1]]
+DO_LC_inputs <- DO_lc_mods[[2]]
+
 # Saves the results table in a CSV
 write.csv(DO_lc_mods[[1]],'./data_cache/LandCover/Dissolved_Oxygen_LandCover_Models.csv')
 
@@ -76,6 +78,14 @@ ggplot() +
   ylab('Residuals') +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(top_model$y, top_model$residuals)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # By Exogenous Variables
 # Developed, all intensities
@@ -101,6 +111,32 @@ ggplot() +
   scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
+
+## Weighted Composite Model Residuals ###########################################################
+#
+# R-squared = 0.245
+#
+# rSquared(DO_LC_inputs$mean_Conc, DO_LC_inputs$combined_Resid)
+
+# quantiles
+qqnorm(DO_LC_inputs$combined_Resid)
+qqline(DO_LC_inputs$combined_Resid)
+
+# By Predicted Values
+ggplot() +
+  geom_point(aes(DO_LC_inputs$combined_Pred, DO_LC_inputs$combined_Resid)) +
+  xlab('Predicted Value') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Predicted Values vs Residuals')
+
+# By Response Variables
+ggplot() +
+  geom_point(aes(DO_LC_inputs$mean_Conc, DO_LC_inputs$combined_Resid)) +
+  xlab('Response Variables') +
+  ylab('Residuals') +
+  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+  ggtitle('Response Variables vs Residuals')
 
 # Examining Seasonality ##################################################################################
 # This will use monthly data to do a seasonality analysis, I don't think this needs a function of its own
