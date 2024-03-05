@@ -1,0 +1,17 @@
+"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Turbidity = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.228,274.519,0.428,1.052,0.027,0.107,0.085,1
+"2","Turbidity = Const. + Developed, All Intensities + Agriculture, Total",0.176,277.125,0.116,1.584,0.024,0.089,NA,0.272
+"3","Turbidity = Const. + Developed, All Intensities + Deciduous Forest",0.167,277.904,0.079,1.396,0.023,0.114,NA,0.184
+"4","Turbidity = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.189,278.016,0.075,1.756,0.023,0.085,-0.127,0.174
+"5","Turbidity = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.183,278.492,0.059,0.918,0.025,0.135,0.118,0.137
+"6","Turbidity = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.178,278.935,0.047,1.702,0.025,-0.011,0.089,0.11
+"7","Turbidity = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.178,278.94,0.047,1.579,0.022,0.107,-0.12,0.11
+"8","Turbidity = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.176,279.102,0.043,1.542,0.024,0.089,0.014,0.101
+"9","Turbidity = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.176,279.141,0.042,1.595,0.024,-0.022,0.122,0.099
+"10","Turbidity = Const. + Developed, All Intensities",0.108,280.773,0.019,1.987,0.019,NA,NA,0.044
+"11","Turbidity = Const. + Developed, All Intensities + Open Water",0.127,281.211,0.015,2.177,0.018,-0.156,NA,0.035
+"12","Turbidity = Const. + Developed, All Intensities + Developed, Open Space",0.11,282.572,0.008,2.113,0.02,-0.011,NA,0.018
+"13","Turbidity = Const. + Developed, All Intensities + Wetlands, Total",0.11,282.644,0.007,1.877,0.02,0.035,NA,0.017
+"14","Turbidity = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.129,283.071,0.006,2.064,0.018,0.036,-0.156,0.014
+"15","Turbidity = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.128,283.158,0.006,2.235,0.018,-0.006,-0.151,0.013
+"16","Turbidity = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.114,284.292,0.003,1.993,0.02,-0.016,0.054,0.008

@@ -28,6 +28,7 @@ ggplot(Temp_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Temp_slopes <- LT_Slope_Dist(Temp_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('deg.C'))
+write.csv(Temp_slopes,'./data_cache/LongTermTrends/Temperature_Slopes.csv')
 
 # Get the IQR of the distribution and percent change distribution
 Temp_quant <- quantile(Temp_slopes$`Median Slope (deg.C/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
@@ -96,15 +97,13 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$a , top_model$residuals)) +
   xlab('% Developed, all intensities') +
-  scale_y_continuous(limits = c(-3,3)) +
-  geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
+   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
 # Deciduous Forest
 ggplot() +
   geom_point(aes(top_model$model$c , top_model$residuals)) +
   xlab('% Deciduous Forest') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -112,7 +111,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$f , top_model$residuals)) +
   xlab('% Open Water') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 

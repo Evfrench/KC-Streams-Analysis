@@ -24,6 +24,7 @@ ggplot(Srp_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Phosphate_slopes <- LT_Slope_Dist(Srp_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('μg/L'))
+write.csv(Phosphate_slopes,'./data_cache/LongTermTrends/Phosphate_Slopes.csv')
 
 # Get the IQR of the distribution and percent change distribution
 Srp_quant <- quantile(Phosphate_slopes$`Median Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
@@ -55,12 +56,6 @@ Srp_lc_mods <- Land_Cover_Modeling(Srp_Annual, CoverVariables, param = "Phosphat
 Phosphate_LC_results <- Srp_lc_mods[[1]]
 Phosphate_LC_inputs <- Srp_lc_mods[[2]]
 
-# Saves the results table in a CSV
-write.csv(Srp_lc_mods[[1]],'./data_cache/LandCover/Phosphate_LandCover_Models.csv')
-
-# Fits allll of the models I originally looped through myself automatically
-Srp_lc_mods <- Land_Cover_Modeling(Srp_Annual, CoverVariables, param = "Phosphate", window = c(2016, 2022), log_space = FALSE)
-Phosphate_LC_results <- Srp_lc_mods[[1]]
 # Saves the results table in a CSV
 write.csv(Srp_lc_mods[[1]],'./data_cache/LandCover/Phosphate_LandCover_Models.csv')
 
@@ -98,7 +93,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$a , top_model$residuals)) +
   xlab('% Developed, all intensities') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -106,7 +100,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$c , top_model$residuals)) +
   xlab('% Decidous Forest') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 

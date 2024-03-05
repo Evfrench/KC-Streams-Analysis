@@ -1,3 +1,9 @@
+#========================================================================================
+#
+# This parameter is especially dependent on discharge, prime candidate for WRTDS model
+#
+#========================================================================================
+
 # Source The Function, Initialize data frames, Call any Additional Libraries ############################################
 source('./functions/get_socrata_data_func.R')
 
@@ -19,11 +25,12 @@ ggplot(TSS_Entries, aes(x = Year, y = Entries)) +
 # Long Term Trend Analysis ##################################################################
 #
 # Baseline: 1979 - 2008, 5 yrs required
-# Current: 2013 - 2020, 5 yrs required (Note descrepancy in the code)
+# Current: 2013 - 2020, 5 yrs required (Note discrepancy in the code)
 # Results: x sites, 
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 TSS_slopes <- LT_Slope_Dist(TSS_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('mg/L'))
+write.csv(TSS_slopes,'./data_cache/LongTermTrends/TSS_Slopes.csv')
 
 # Get the IQR of the distribution and percent change distribution
 TSS_quant <- quantile(TSS_slopes$`Median Slope (mg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
@@ -48,7 +55,7 @@ ggplot(TSS_slopes, aes(x = `% Change Per Decade`)) +
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022
 
-# Fits allll of the models I originally looped through myself automatically
+# Fits all of the models I originally looped through myself automatically
 TSS_lc_mods <- Land_Cover_Modeling(TSS_Annual, CoverVariables, param = "TSS", window = c(2016, 2022), log_space = FALSE)
 TSS_LC_results <- TSS_lc_mods[[1]]
 TSS_LC_inputs <- TSS_lc_mods[[2]]
@@ -90,7 +97,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$a , top_model$residuals)) +
   xlab('% Developed, all intensities') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -98,15 +104,13 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$c , top_model$residuals)) +
   xlab('% Decidous Forest') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
-# Wetlands, Total
+# Agriculture, Total
 ggplot() +
-  geom_point(aes(top_model$model$e , top_model$residuals)) +
-  xlab('% Wetlands') +
-  scale_y_continuous(limits = c(-3,3)) +
+  geom_point(aes(top_model$model$d , top_model$residuals)) +
+  xlab('% Agriculture') +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -149,7 +153,7 @@ TSS_Seasonal <- Seasonal_Analysis(TSS_Monthly)
 ggplot(TSS_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100, 300), n.breaks = 10) +
+  scale_y_continuous(limits = c(-100, 400), n.breaks = 10) +
   ylab('% Deviation from Median') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("TSS % Monthly Deviations from Annual Median")

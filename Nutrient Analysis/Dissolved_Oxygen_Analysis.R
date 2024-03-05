@@ -24,6 +24,7 @@ ggplot(DO_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 DO_slopes <- LT_Slope_Dist(DO_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('mg/L'))
+write.csv(DO_slopes,'./data_cache/LongTermTrends/Dissolved_Oxygen_Slopes.csv')
 
 # Get the IQR of the distribution and percent change distribution
 DO_quant <- quantile(DO_slopes$`Median Slope (mg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
@@ -92,7 +93,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$a , top_model$residuals)) +
   xlab('% Developed, all intensities') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -100,7 +100,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$c , top_model$residuals)) +
   xlab('% Deciduous Forest') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -108,7 +107,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$e , top_model$residuals)) +
   xlab('% Wetlands') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -150,7 +148,7 @@ DO_Seasonal <- Seasonal_Analysis(DO_Monthly)
 ggplot(DO_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-75, 50), n.breaks = 10) +
+  #scale_y_continuous(limits = c(-75, 50), n.breaks = 10) +
   ylab('% Deviation from Median') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Dissolved Oxygen % Monthly Deviations from Annual Median")

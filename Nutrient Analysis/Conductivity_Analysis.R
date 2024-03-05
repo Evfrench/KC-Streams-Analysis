@@ -1,4 +1,3 @@
-
 # Source The Function, Initialize data frames, Call any Additional Libraries ############################################
 source('./functions/get_socrata_data_func.R')
 
@@ -24,6 +23,7 @@ ggplot(Cond_Entries, aes(x = Year, y = Entries)) +
 # Results: x sites, 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 cond_slopes <- LT_Slope_Dist(Cond_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('umhos/cm'))
+write.csv(cond_slopes,'./data_cache/LongTermTrends/Conductivity_Slopes.csv')
 
 # Get the IQR of the distribution and percent change distribution
 Cond_quant <- quantile(cond_slopes$`Median Slope (umhos/cm/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
@@ -92,7 +92,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$a , top_model$residuals)) +
   xlab('% Developed, all intensities') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -100,7 +99,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$c , top_model$residuals)) +
   xlab('% Deciduous Forest') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 

@@ -24,6 +24,7 @@ ggplot(TP_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 TP_slopes <- LT_Slope_Dist(TP_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('μg/L'))
+write.csv(TP_slopes,'./data_cache/LongTermTrends/TP_Slopes.csv')
 
 # Get the IQR of the distribution and percent change distribution
 TP_quant <- quantile(TP_slopes$`Median Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
@@ -90,7 +91,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$a , top_model$residuals)) +
   xlab('% Developed, all intensities') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -98,7 +98,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$c , top_model$residuals)) +
   xlab('% Decidous Forest') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
@@ -106,7 +105,6 @@ ggplot() +
 ggplot() +
   geom_point(aes(top_model$model$d , top_model$residuals)) +
   xlab('% Agricultural Land') +
-  scale_y_continuous(limits = c(-3,3)) +
   geom_hline(yintercept = 0, linetype = 'solid', color = 'black', linewidth = 1) +
   ylab('residuals')
 
