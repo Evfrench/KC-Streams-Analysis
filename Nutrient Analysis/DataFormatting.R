@@ -15,7 +15,7 @@ summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','monthly')
 summarize_WQ_data('Total_Nitrogen','annual')
 summarize_WQ_data('Total_Nitrogen','monthly')
 
-# Phosphate/SRP #######################################################################################################
+# Phosphate/SRP ############################################################################################################
 
 summarize_WQ_data('Orthophosphate_Phosphorus','annual')
 summarize_WQ_data('Orthophosphate_Phosphorus','monthly')
@@ -25,7 +25,7 @@ summarize_WQ_data('Orthophosphate_Phosphorus','monthly')
 summarize_WQ_data('Total_Phosphorus','annual')
 summarize_WQ_data('Total_Phosphorus','monthly')
 
-# Fecal Coliform #############################################################################################################
+# Fecal Coliform ##########################################################################################################
 
 summarize_WQ_data('Fecal_Coliform','annual')
 summarize_WQ_data('Fecal_Coliform','monthly')
