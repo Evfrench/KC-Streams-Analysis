@@ -66,6 +66,14 @@ write.csv(Alk_lc_mods[[1]],'./data_cache/LandCover/Alkalinity_LandCover_Models.c
 
 top_model <- Alk_lc_mods[["Total Alkalinity = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total"]]
 
+# Comparing Model Values to response Variable
+ggplot() +
+  geom_point(aes(top_model$y, top_model$linear.predictors)) +
+  xlab('Response Variables') +
+  ylab('Predicted Values') +
+  geom_line(aes(x = 0:max(top_model$y), y = 0:max(top_model$y)))+
+  ggtitle('Response Variables vs Predicted Values')
+
 # quantiles
 qqnorm(top_model$residuals)
 qqline(top_model$residuals)
@@ -113,6 +121,14 @@ ggplot() +
 # R-squared = 0.602
 #
 # rSquared(Alk_LC_inputs$mean_Conc, Alk_LC_inputs$combined_Resid)
+
+# Comparing Model Values to response Variable
+ggplot() +
+  geom_point(aes(Alk_LC_inputs$mean_Conc, Alk_LC_inputs$combined_Pred)) +
+  xlab('Response Variables') +
+  ylab('Predicted Values') +
+  geom_line(aes(x = 0:max(Alk_LC_inputs$mean_Conc), y = 0:max(Alk_LC_inputs$mean_Conc)))+
+  ggtitle('Response Variables vs Predicted Values')
 
 # quantiles
 qqnorm(Alk_LC_inputs$combined_Resid)
