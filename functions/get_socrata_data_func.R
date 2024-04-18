@@ -19,10 +19,9 @@ library(GGally)
 library(corrplot)
 
 # Initialize some of the common data ###########################################################
-bigTable <- fread('./data_cache/SourceData/KC_WQ_Data')
-LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
 
 # This creates a scatterplot matrix of all the land cover categories in the NLCD
+#LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
 #pairs.panels(LandCover[, c(3:22)], smooth = FALSE, scale = TRUE, lm = TRUE, cex.cor = 3, main = 'Scatterplot Matrix for Landcover Data')
 # This plot tells me that the best parameters to test are as follows: 
 # Developed, All Intensities
@@ -33,7 +32,7 @@ LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "
 # Open Water
 #
 # So I will eliminate the other land cover types
-CoverVariables <-  LandCover[, c(1:2,5,6,12,17,20,3)]
+CoverVariables <-  read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")[, c(1:2,5,6,12,17,20,3)]
 
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
@@ -45,12 +44,6 @@ source("./functions/lab_chlorophyll_correction.R")
 # Total Phosphorus, Total Nitrogen, Orthophosphate Phosphorus, Nitrite + Nitrate Nitrogen
 source("./functions/lab_nutrient_correction.R")
 
-# example of correcting data
-Date<-c('2006-12-15','2006-12-15','2006-12-15')
-Value<-c(0.012, 0.1,0.0005)
-Parameter<-'Total Phosphorus'
-# Function is pass by reference (edits variables in place)
-lab_nutrient_correction(Value = Value,Date=Date,Parameter=Parameter)
 
 # default parameters
 default_data_parms = c(
@@ -296,6 +289,14 @@ get_socrata_data_func <- function(locns = c('0852'),
 
 summarize_WQ_data <- function(params, timeframe)
 {
+  bigTable <- fread('./data_cache/SourceData/KC_WQ_Data') %>% 
+    mutate(Locator=ifelse(Locator=='FF321','F321',                  #Join past/present locations
+                          ifelse(Locator=='A632','0632',
+                                 ifelse(Locator=='N484A','N484',
+                                        ifelse(Locator %in% c('0456','0456A'),'A456',
+                                               ifelse(Locator=='X438', '0438',
+                                                      ifelse(Locator=='X630','A630',
+                                                             Locator)))))))
   # Returns either the annual median or the monthly arithmetic average for the data, depending on the input
   # Begin by making a vector of all the unique locator codes
   paramconv <- c("Ammonia_Nitrogen", "Organic_Nitrogen", "Nitrite_+_Nitrate_Nitrogen", "Total_Kjeldahl_Nitrogen", "Total_Nitrogen",
@@ -405,12 +406,22 @@ demedian <- function(x = data.frame())
   return(out)
 }
 
+####
+#
+#
+#
+#
+####
+
 LT_Slope_Dist <- function(input.data= tibble(), 
                           window= integer(length = 4), 
                           cutoff= integer(length = 2), 
-                          units= character(length = 1)){
+                          units= character(length = 1),
+                          hydro= FALSE){
   # This function will filter out sites and extract the long term trends
   # The trend is based on the window, a series of four numbers, the first 2 are the baseline years, the second 2 are the test or recent years
+  
+  if(hydro == T){input.data <- input.data %>% rename(Year = WtrYear)} # Stream gages will be timed based on water year, so this will rename the year column to work with this function
   
   # Determines how many years each site has in the baseline and test groups
   BaseSelect <- input.data %>%
@@ -427,27 +438,58 @@ LT_Slope_Dist <- function(input.data= tibble(),
   
   Median_diffyr <- numeric()
   
-  for (site in colnames(input.filtered[-1])) {
-    Loop.frame <- input.filtered[,c('Year',..site)] 
-    Loop.frame <- na.omit(Loop.frame) # Removes all the NA rows, so years without samples are not counted in the central year
-    Loop.frame <- Loop.frame[,'Year']
-    Loop.framediff <- sapply(Loop.frame[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(Loop.frame[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
-    Median_diffyr[site] <- Loop.framediff
-    remove(Loop.frame, Loop.framediff)
+  # Use geometric mean if performed on hydrological parameters
+  if(hydro == TRUE){
+    
+    for (site in colnames(input.filtered[-1])) {
+      Loop.frame <- input.filtered[,c('Year',..site)] 
+      Loop.frame <- na.omit(Loop.frame) # Removes all the NA rows, so years without samples are not counted in the central year
+      Loop.frame <- Loop.frame[,'Year']
+      Loop.framediff <- sapply(Loop.frame[Year >= window[3] & Year <= window[4]], function(x) mean(x, na.rm = TRUE)) - sapply(Loop.frame[Year <= window[2] & Year >= window[1]], function(x) mean(x, na.rm = TRUE))
+      Median_diffyr[site] <- Loop.framediff
+      remove(Loop.frame, Loop.framediff)
+    }
+    
+    # Calculates baseline and recent geometric averages, then calculates the difference
+    Median_diff <- sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) mean(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) mean(x, na.rm = TRUE))
+    Median_slp <- as.data.frame(Median_diff[-1]/Median_diffyr[-1]) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/yr)
+    colnames(Median_slp) <- c(paste0('Mean Slope (', units,'/wtryear)')) 
+    
+    # add % decline
+    Median_pdiff <- 100*(sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) mean(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) mean(x, na.rm = TRUE)))/sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) mean(x, na.rm = TRUE))
+    Median_slp$`% Change Per Water Year` <- Median_pdiff[-1]/Median_diffyr[-1]
   }
   
-  # Calculates the baseline and recent averages, then calculates the difference 
-  Median_diff <- sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
-  Median_slp <- as.data.frame(Median_diff[-1]*10/Median_diffyr[-1]) #This is the average slope. Units are μmicrogram/Liter/year (μg/L/decade)
-  colnames(Median_slp) <- c(paste0('Median Slope (', units,'/decade)')) 
+  else{
+    
+    for (site in colnames(input.filtered[-1])) {
+      Loop.frame <- input.filtered[,c('Year',..site)] 
+      Loop.frame <- na.omit(Loop.frame) # Removes all the NA rows, so years without samples are not counted in the central year
+      Loop.frame <- Loop.frame[,'Year']
+      Loop.framediff <- sapply(Loop.frame[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(Loop.frame[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
+      Median_diffyr[site] <- Loop.framediff
+      remove(Loop.frame, Loop.framediff)
+    }
+    # Calculates the baseline and recent averages, then calculates the difference 
+    Median_diff <- sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
+    Median_slp <- as.data.frame(Median_diff[-1]*10/Median_diffyr[-1]) #This is the average slope. Units are μmicrogram/Liter/10year (μg/L/decade)
+    colnames(Median_slp) <- c(paste0('Median Slope (', units,'/decade)')) 
+    
+    # add % decline
+    Median_pdiff <- 100*(sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE)))/sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
+    Median_slp$`% Change Per Decade` <- Median_pdiff[-1]*10/Median_diffyr[-1]
+  }
   
-  # add % decline
-  Median_pdiff <- 100*(sapply(input.filtered[Year >= window[3] & Year <= window[4]], function(x) median(x, na.rm = TRUE)) - sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE)))/sapply(input.filtered[Year <= window[2] & Year >= window[1]], function(x) median(x, na.rm = TRUE))
-  Median_slp$`% Change Per Decade` <- Median_pdiff[-1]*10/Median_diffyr[-1]
-  
- 
   return(Median_slp)
 }
+
+####
+#
+#
+#
+#
+#
+####
 
 Land_Cover_Modeling <- function(WQ_Data = tibble(), 
                                 LandCover_Data = tibble(), 
@@ -519,12 +561,8 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
     }
   }
   
-  
-  
-  n <- nrow(mod_inputs)
-  
   # Creates an empty table for the model diagnostics
-  mod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'AICc' = numeric(),
+  mod_results <- tibble('Description' = character(), 'R_Squared' = numeric(), 'RMSE' = numeric(), 'AICc' = numeric(),
                         'AICwt' = numeric(), 'Intercept' = numeric(), 'coef_1' = numeric(), 
                         'coef_2' = numeric(), 'coef_3' = numeric())
   
@@ -537,12 +575,13 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
     mod <- glm(as.formula(model_formula[[i]]), data = mod_inputs, family = gaussian)
     
     # Add additional diagnostics
+    n <- nrow(mod_inputs)
     r2 <- rSquared(mod$y, mod$residuals) 
     k <- length(mod$coefficients) - 1
     aicc <- mod$aic + (2*k*(k+1))/(n-k-1)
     
     # Add a new row to the results table
-    mod_results <- mod_results %>% add_row(Description = name_formula[[i]], R_Squared = r2[1,1], 
+    mod_results <- mod_results %>% add_row(Description = name_formula[[i]], R_Squared = r2[1,1], RMSE = sd(mod$residuals),
                                            AICc = mod$aic, Intercept = mod$coefficients[1], 
                                            coef_1 = mod$coefficients[2], coef_2 = mod$coefficients[3], 
                                            coef_3 = mod$coefficients[4])
@@ -588,22 +627,55 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
 }
 
 
-Seasonal_Analysis <- function(input_data = tibble()){
+Seasonal_Analysis <- function(input_data = tibble(), form = "Percent"){
   # This function takes monthly data and transforms it into a long table for graphing
   
-  long_table <- input_data %>%
-    reshape2::melt(id.var='Year_mon') %>% #make the table long
-    mutate(Year = year(Year_mon),
-           Month = month(Year_mon)) %>% # separate the year_mon into two separate columns, the remove any empty fields
-    drop_na() %>%
-    group_by(Year, variable) %>%
-    mutate(num = n()) %>% 
-    subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
-    group_by(variable,Year) %>%
-    reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)), # calculates the median concentration for each year, then the monthly deviation from the median
-            Month = Month) %>%
-    group_by(variable,Month) %>%
-    reframe(med_annual_dev = median(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average
+  if(form == 'Percent'){
+    long_table <- input_data %>%
+      reshape2::melt(id.var='Year_mon') %>% #make the table long
+      mutate(Year = year(Year_mon),
+             Month = month(Year_mon)) %>% # separate the year_mon into two separate columns, the remove any empty fields
+      drop_na() %>%
+      group_by(Year, variable) %>%
+      mutate(num = n()) %>% 
+      subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
+      group_by(variable,Year) %>%
+      reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)), # calculates the median concentration for each year, then the monthly deviation from the median
+              Month = Month) %>%
+      group_by(variable,Month) %>%
+      reframe(med_annual_dev = median(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average
+  }
   
+  if(form == 'Mean-Dev'){
+    long_table <- input_data %>%
+      reshape2::melt(id.var='Year_mon') %>% #make the table long
+      mutate(Year = year(Year_mon),
+             Month = month(Year_mon)) %>% # separate the year_mon into two separate columns, the remove any empty fields
+      drop_na() %>%
+      group_by(Year, variable) %>%
+      mutate(num = n()) %>% 
+      subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
+      group_by(variable,Year) %>%
+      reframe(annual_dev = (value - mean(value, na.rm=TRUE)), # calculates the mean concentration for each year, then the monthly deviation from the median
+              Month = Month) %>%
+      group_by(variable,Month) %>%
+      reframe(mean_annual_dev = mean(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average
+  }
+  if(form == 'Absolute'){
+    long_table <- input_data %>%
+      reshape2::melt(id.var='Year_mon') %>% #make the table long
+      mutate(Year = year(Year_mon),
+             Month = month(Year_mon)) %>% # separate the year_mon into two separate columns, the remove any empty fields
+      drop_na() %>%
+      group_by(Year, variable) %>%
+      mutate(num = n()) %>% 
+      subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
+      group_by(variable,Month) %>%
+      reframe(mean_month = mean(value, na.rm= TRUE)) # merges all of years for each site into one average
+  }
   return(long_table) 
 }
+
+
+
+
