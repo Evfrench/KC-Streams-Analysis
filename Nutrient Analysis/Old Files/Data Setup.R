@@ -6,6 +6,7 @@ library(mgcv)
 source('./functions/get_socrata_data_func.R')
 
 # You need TSS and Fecal data, parcel dev records, and that's it. Oh and Current Land Cover
+# THIS IS CURRENTLY BROKEN ####################################################
 
 AnnualFec <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Fecal_Coliform.csv'))
 
