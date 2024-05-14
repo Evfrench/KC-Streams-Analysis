@@ -1,17 +1,17 @@
-"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
-"1","TSS = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.211,275.917,0.291,1.906,0.026,0.076,0.097,1
-"2","TSS = Const. + Developed, All Intensities + Agriculture, Total",0.185,276.231,0.249,2.284,0.024,0.101,NA,0.855
-"3","TSS = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.196,277.307,0.145,2.441,0.023,0.097,-0.115,0.499
-"4","TSS = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.187,278.051,0.1,2.401,0.024,0.102,-0.04,0.344
-"5","TSS = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.186,278.123,0.097,2.195,0.024,0.008,0.101,0.332
-"6","TSS = Const. + Developed, All Intensities + Deciduous Forest",0.13,280.86,0.025,2.304,0.021,0.084,NA,0.084
-"7","TSS = Const. + Developed, All Intensities",0.098,281.444,0.018,2.74,0.018,NA,NA,0.063
-"8","TSS = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.142,281.898,0.015,2.49,0.02,0.077,-0.122,0.05
-"9","TSS = Const. + Developed, All Intensities + Open Water",0.116,282.048,0.014,2.92,0.017,-0.148,NA,0.047
-"10","TSS = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.132,282.7,0.01,2.139,0.022,0.092,0.041,0.034
-"11","TSS = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.13,282.86,0.009,2.304,0.021,0,0.084,0.031
-"12","TSS = Const. + Developed, All Intensities + Developed, Open Space",0.099,283.367,0.007,2.661,0.018,0.007,NA,0.024
-"13","TSS = Const. + Developed, All Intensities + Wetlands, Total",0.098,283.419,0.007,2.788,0.018,-0.015,NA,0.023
-"14","TSS = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.119,283.794,0.006,2.791,0.017,0.013,-0.16,0.019
-"15","TSS = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.116,284.026,0.005,2.965,0.017,-0.014,-0.148,0.017
-"16","TSS = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.1,285.301,0.003,2.72,0.018,0.009,-0.027,0.009
+"","Description","R_Squared","RMSE","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","TSS = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.217,1.586,276.009,0.267,1.887,0.026,0.081,0.097,1
+"2","TSS = Const. + Developed, All Intensities + Agriculture, Total",0.194,1.609,276.03,0.264,2.244,0.025,0.103,NA,0.989
+"3","TSS = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.204,1.599,277.174,0.149,2.4,0.024,0.099,-0.111,0.558
+"4","TSS = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.196,1.608,277.894,0.104,2.35,0.024,0.104,-0.035,0.39
+"5","TSS = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.196,1.608,277.904,0.103,2.146,0.025,0.009,0.103,0.388
+"6","TSS = Const. + Developed, All Intensities + Deciduous Forest",0.138,1.664,280.776,0.025,2.253,0.021,0.097,NA,0.092
+"7","TSS = Const. + Developed, All Intensities",0.105,1.696,281.483,0.017,2.717,0.019,NA,NA,0.065
+"8","TSS = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.15,1.652,281.771,0.015,2.442,0.02,0.091,-0.125,0.056
+"9","TSS = Const. + Developed, All Intensities + Open Water",0.122,1.68,282.115,0.013,2.901,0.018,-0.147,NA,0.047
+"10","TSS = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.14,1.662,282.647,0.01,2.105,0.022,0.104,0.036,0.036
+"11","TSS = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.139,1.664,282.761,0.009,2.28,0.021,-0.003,0.099,0.034
+"12","TSS = Const. + Developed, All Intensities + Developed, Open Space",0.106,1.695,283.404,0.007,2.636,0.019,0.007,NA,0.025
+"13","TSS = Const. + Developed, All Intensities + Wetlands, Total",0.105,1.696,283.464,0.006,2.761,0.019,-0.014,NA,0.024
+"14","TSS = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.125,1.677,283.866,0.005,2.771,0.017,0.013,-0.158,0.02
+"15","TSS = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.122,1.679,284.095,0.005,2.946,0.017,-0.014,-0.147,0.018
+"16","TSS = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.107,1.694,285.349,0.002,2.693,0.018,0.009,-0.024,0.009

@@ -1,17 +1,17 @@
-"","Description","R_Squared","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
-"1","Phosphate = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.607,531.941,0.875,0.504,0.419,0.926,0.914,1
-"2","Phosphate = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.577,537.112,0.066,7.087,0.378,0.91,-1.457,0.075
-"3","Phosphate = Const. + Developed, All Intensities + Agriculture, Total",0.555,538.837,0.028,5.105,0.393,0.956,NA,0.032
-"4","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.559,540.192,0.014,3.729,0.39,0.122,0.958,0.016
-"5","Phosphate = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.557,540.409,0.013,6.254,0.389,0.97,-0.389,0.014
-"6","Phosphate = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.533,544.183,0.002,6.449,0.355,0.917,-1.455,0.002
-"7","Phosphate = Const. + Developed, All Intensities + Deciduous Forest",0.511,545.521,0.001,4.23,0.37,1.003,NA,0.001
-"8","Phosphate = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.515,546.912,0,2.157,0.378,1.095,0.513,0.001
-"9","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.511,547.485,0,3.942,0.369,0.031,0.992,0
-"10","Phosphate = Const. + Developed, All Intensities + Open Water",0.482,549.489,0,11.567,0.324,-1.764,NA,0
-"11","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.491,550.267,0,9.714,0.319,0.184,-1.931,0
-"12","Phosphate = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.483,551.436,0,12.027,0.323,-0.148,-1.763,0
-"13","Phosphate = Const. + Developed, All Intensities",0.449,551.97,0,9.42,0.339,NA,NA,0
-"14","Phosphate = Const. + Developed, All Intensities + Developed, Open Space",0.452,553.518,0,8.147,0.337,0.114,NA,0
-"15","Phosphate = Const. + Developed, All Intensities + Wetlands, Total",0.449,553.912,0,9.917,0.337,-0.159,NA,0
-"16","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.454,555.288,0,8.881,0.333,0.141,-0.332,0
+"","Description","R_Squared","RMSE","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Phosphate = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.62,9.532,530.638,0.925,0,0.419,1.114,0.883,1
+"2","Phosphate = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.584,9.977,537.118,0.036,6.956,0.38,0.915,-1.439,0.039
+"3","Phosphate = Const. + Developed, All Intensities + Agriculture, Total",0.562,10.233,538.724,0.016,4.929,0.396,0.964,NA,0.018
+"4","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.566,10.182,540.004,0.009,3.442,0.394,0.13,0.968,0.009
+"5","Phosphate = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.564,10.206,540.348,0.007,6.058,0.391,0.975,-0.367,0.008
+"6","Phosphate = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.555,10.309,541.774,0.004,5.575,0.357,1.186,-1.477,0.004
+"7","Phosphate = Const. + Developed, All Intensities + Deciduous Forest",0.532,10.57,543.326,0.002,3.336,0.373,1.267,NA,0.002
+"8","Phosphate = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.536,10.529,544.765,0.001,1.382,0.381,1.352,0.483,0.001
+"9","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.533,10.57,545.317,0.001,3.468,0.373,-0.015,1.276,0.001
+"10","Phosphate = Const. + Developed, All Intensities + Open Water",0.49,11.044,549.551,0,11.586,0.325,-1.77,NA,0
+"11","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.498,10.949,550.33,0,9.694,0.32,0.185,-1.932,0
+"12","Phosphate = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.49,11.039,551.481,0,12.137,0.323,-0.171,-1.771,0
+"13","Phosphate = Const. + Developed, All Intensities",0.456,11.398,552.032,0,9.369,0.341,NA,NA,0
+"14","Phosphate = Const. + Developed, All Intensities + Developed, Open Space",0.46,11.361,553.564,0,8.048,0.339,0.116,NA,0
+"15","Phosphate = Const. + Developed, All Intensities + Wetlands, Total",0.457,11.393,553.968,0,9.909,0.339,-0.168,NA,0
+"16","Phosphate = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.462,11.342,555.326,0,8.838,0.334,0.143,-0.34,0

@@ -1,0 +1,17 @@
+"","Description","R_Squared","RMSE","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Oxygen Saturation = Const. + Developed, All Intensities + Deciduous Forest + Wetlands, Total",0.192,8.876,520.516,0.325,103.232,-0.098,-0.496,-2.007,1
+"2","Oxygen Saturation = Const. + Developed, All Intensities + Wetlands, Total",0.165,9.019,520.78,0.285,100.102,-0.082,-1.768,NA,0.876
+"3","Oxygen Saturation = Const. + Developed, All Intensities + Agriculture, Total + Wetlands, Total",0.173,8.98,522.173,0.142,100.735,-0.091,-0.16,-1.735,0.437
+"4","Oxygen Saturation = Const. + Developed, All Intensities + Wetlands, Total + Open Water",0.169,8.996,522.431,0.125,100.602,-0.086,-1.769,-0.397,0.384
+"5","Oxygen Saturation = Const. + Developed, All Intensities + Developed, Open Space + Wetlands, Total",0.166,9.018,522.768,0.105,99.985,-0.083,0.016,-1.787,0.324
+"6","Oxygen Saturation = Const. + Developed, All Intensities",0.033,9.707,529.222,0.004,94.419,-0.059,NA,NA,0.013
+"7","Oxygen Saturation = Const. + Developed, All Intensities + Agriculture, Total",0.046,9.642,530.278,0.002,95.405,-0.071,-0.214,NA,0.008
+"8","Oxygen Saturation = Const. + Developed, All Intensities + Developed, Open Space",0.043,9.656,530.478,0.002,95.835,-0.057,-0.125,NA,0.007
+"9","Oxygen Saturation = Const. + Developed, All Intensities + Open Water",0.037,9.687,530.927,0.002,94.91,-0.062,-0.392,NA,0.005
+"10","Oxygen Saturation = Const. + Developed, All Intensities + Deciduous Forest",0.036,9.694,531.043,0.002,95.107,-0.062,-0.145,NA,0.005
+"11","Oxygen Saturation = Const. + Developed, All Intensities + Developed, Open Space + Agriculture, Total",0.056,9.589,531.489,0.001,96.873,-0.069,-0.128,-0.218,0.004
+"12","Oxygen Saturation = Const. + Developed, All Intensities + Agriculture, Total + Open Water",0.052,9.613,531.844,0.001,96.075,-0.076,-0.23,-0.475,0.003
+"13","Oxygen Saturation = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total",0.047,9.636,532.177,0.001,95.886,-0.073,-0.109,-0.206,0.003
+"14","Oxygen Saturation = Const. + Developed, All Intensities + Developed, Open Space + Open Water",0.045,9.645,532.319,0.001,96.083,-0.059,-0.115,-0.292,0.003
+"15","Oxygen Saturation = Const. + Developed, All Intensities + Developed, Open Space + Deciduous Forest",0.044,9.653,532.43,0.001,96.113,-0.059,-0.117,-0.077,0.003
+"16","Oxygen Saturation = Const. + Developed, All Intensities + Deciduous Forest + Open Water",0.04,9.67,532.687,0.001,95.765,-0.067,-0.169,-0.434,0.002
