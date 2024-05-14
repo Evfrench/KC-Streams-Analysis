@@ -17,15 +17,22 @@ seasonal_flow <- Seasonal_Analysis(monthly, form = 'Mean-Dev')
 ggplot(seasonal_flow, aes(x= Month, y= mean_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  #scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
+  scale_y_continuous(limits = c(-15, 15), n.breaks = 10) +
   ylab('Deviation from Mean (cfs)') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Discharge Deviation from Annual Mean")
 
-
+ggplot(seasonal_flow, aes(x= Month, y= mean_month)) +
+  geom_boxplot(aes(group= Month)) +
+  scale_x_continuous(breaks = 1:12,labels = 1:12) +
+  scale_y_continuous(limits = c(0, 100), n.breaks = 10) +
+  ylab('Discharge (cfs)') +
+  geom_hline(yintercept = median(seasonal_flow$mean_month), linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Monthly Cycling of Stream Discharge")
 # Long Term Hydrologic Trends ######################
 # Upper and Lower 10% of ave daily discharges over time
-# seasonal mean flow per year, then plot
+# Last 10 years vs Previous 20
+# 5 in one, 10 in the other
 
 # Plot the upper, lower, and middle daily discharge per water year
 annualquant <- readRDS(file = '~/KC-Streams-Analysis/data_cache/Hydrological/DailyAveFlow_allgages.RDS') %>%
@@ -40,6 +47,7 @@ annualentries <-  data.frame(table(annualquant$WtrYear))
 
 ### Trends for the upper 90th percentile ##################################
 uppertrends <- LT_Slope_Dist(reshape2::dcast(annualquant, WtrYear ~ SITE_CODE, value.var = 'Annual90'), window = c(1994,2013,2014,2023), cutoff = c(9,4), units = 'cfs', hydro = TRUE)
+
 upperquant <- quantile(uppertrends$`Mean Slope (cfs/wtryear)`, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = T)
 upperpquant <- quantile(uppertrends$`% Change Per Water Year`, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = T)
 
@@ -61,6 +69,7 @@ ggplot(uppertrends, aes(x = `% Change Per Water Year`)) +
 
 ### Trends for the lower 10th percentile ########################################
 lowertrends <- LT_Slope_Dist(reshape2::dcast(annualquant, WtrYear ~ SITE_CODE, value.var = 'Annual10'), window = c(1994,2013,2014,2023), cutoff = c(9,4), units = 'cfs', hydro = TRUE)
+
 lowerquant <- quantile(lowertrends$`Mean Slope (cfs/wtryear)`, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = T)
 lowerpquant <- quantile(lowertrends$`% Change Per Water Year`, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = T)
 
@@ -82,6 +91,8 @@ ggplot(lowertrends, aes(x = `% Change Per Water Year`)) +
 
 ### Trends for the 50th Percentile ################################################
 midtrends <- LT_Slope_Dist(reshape2::dcast(annualquant, WtrYear ~ SITE_CODE, value.var = 'Annual50'), window = c(1994,2013,2014,2023), cutoff = c(9,4), units = 'cfs', hydro = TRUE)
+
+
 midquant <- quantile(midtrends$`Mean Slope (cfs/wtryear)`, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = T)
 midpquant <- quantile(midtrends$`% Change Per Water Year`, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = T)
 
@@ -100,3 +111,22 @@ ggplot(midtrends, aes(x = `% Change Per Water Year`)) +
   ggtitle('Daily Average Discharge: 50th Annual Percentile, Percent Change') 
 
 # Check out the time series for the more interesting gages
+
+
+sites <- data.frame(SITE_CODE= unique(annualquant$SITE_CODE), SITE_NAME= unique(annualquant$SITE_NAME))
+# Merge the quantiles and add site descriptions
+mergedtrends <- uppertrends %>%
+  rownames_to_column(var = 'SITE_CODE') %>%
+  left_join(rownames_to_column(midtrends, var = 'SITE_CODE'), by = 'SITE_CODE') %>%
+  left_join(rownames_to_column(lowertrends, var = 'SITE_CODE'), by = 'SITE_CODE') %>%
+  left_join(sites, by = 'SITE_CODE')
+colnames(mergedtrends) <- c('SITE_CODE', 'Mean Slope (cfs/wtryear), 90th Percentile', '% Change Per Water Year, 90th Percentile',
+                            'Mean Slope (cfs/wtryear), 50th Percentile', '% Change Per Water Year, 50th Percentile',
+                            'Mean Slope (cfs/wtryear), 10th Percentile', '% Change Per Water Year, 10th Percentile',
+                            'SITE_NAME')
+
+write.csv(mergedtrends,'./data_cache/LongTermTrends/DailyAveQ_Annual_Slopes.csv')
+
+
+
+# seasonal mean flow per year, then plot

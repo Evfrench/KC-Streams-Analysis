@@ -18,9 +18,9 @@ Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly
 Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This set will call the log-space data
-#Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
-#Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
-#Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
+Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This will call E. coli data
 Ecoli_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_E._coli.csv') %>% select(- all_of(remove_sites))

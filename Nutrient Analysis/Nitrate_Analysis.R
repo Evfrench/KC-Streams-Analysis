@@ -52,7 +52,7 @@ ggplot(Nitrate_slopes, aes(x = `% Change Per Decade`)) +
 # Fits all of the models I originally looped through myself automatically
 Nit_lc_mods <- Land_Cover_Modeling(Nit_Annual, CoverVariables, param = "Nitrate", window = c(2016, 2022), log_space = FALSE)
 Nitrate_LC_results <- Nit_lc_mods[[1]]
-Nitrate_LC_inputs <- Nit_lc_mods[[2]]
+ Nitrate_LC_inputs <- Nit_lc_mods[[2]]
 # Saves the results table in a CSV
 write.csv(Nit_lc_mods[[1]],'./data_cache/LandCover/Nitrate_LandCover_Models.csv')
 

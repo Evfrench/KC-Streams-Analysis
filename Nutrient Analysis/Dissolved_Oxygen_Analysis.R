@@ -222,4 +222,14 @@ ggplot(DOSatP_Seasonal, aes(x= Month, y= mean_month)) +
   ggtitle("Dissolved Oxygen Saturation, Avg Monthly")
 
 
+# Fits all of the models I originally looped through myself automatically
+write_csv(DOSatP_Annual, './data_cache/NutrientData/median_annual_Dissolved_Oxygen_Saturation.csv', col_name=TRUE)
+DOSatP_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Dissolved_Oxygen_Saturation.csv')
+
+DOSat_lc_mods <- Land_Cover_Modeling(DOSatP_Annual, CoverVariables, param = "Oxygen Saturation", window = c(2016, 2022), log_space = FALSE)
+DOsat_LC_results <- DOSat_lc_mods[[1]]
+DOsat_LC_inputs <- DOSat_lc_mods[[2]]
+
+# Saves the results table in a CSV
+write.csv(DOSat_lc_mods[[1]],'./data_cache/LandCover/Dissolved_Oxygen_Saturation_LandCover_Models.csv')
 
