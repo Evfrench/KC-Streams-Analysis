@@ -33,6 +33,7 @@ library(corrplot)
 #
 # So I will eliminate the other land cover types
 CoverVariables <-  read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")[, c(1:2,5,6,12,17,20,3)]
+#pairs.panels(CoverVariables[, c(3:8)], smooth = FALSE, scale = FALSE, lm = FALSE, cex.cor = 0.5, main = 'Scatterplot Matrix for Landcover Data')
 
 
 # Clark's lab data method changes adjustment function [https://green2.kingcounty.gov/ScienceLibrary/Document.aspx?ArticleID=324]
@@ -572,7 +573,7 @@ Land_Cover_Modeling <- function(WQ_Data = tibble(),
   # This will loop through all the defined model formulas, put the results in the mod_results table, add extra diagnostics, then save the actual model in out_list 
   for (i in 1:length(model_formula)) {
     # Fit a general linear model to the selected parameters
-    mod <- glm(as.formula(model_formula[[i]]), data = mod_inputs, family = gaussian)
+    mod <- glm(as.formula(model_formula[[i]]), data = mod_inputs, family = gaussian(link = "identity"))
     
     # Add additional diagnostics
     n <- nrow(mod_inputs)
