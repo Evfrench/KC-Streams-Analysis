@@ -69,3 +69,7 @@ biplot(Decomp, choices = c(1,3))
 biplot(Decomp, choices = c(2,3))
 
 # I want to choose 0321 rural, 0322 agr, 0446 Urban (urban strong trends), 0484 suburban, A432 (urban weak trends), A499 Cochran Springs
+
+# 0317, 0322, 0434, 0474, 0478, 0631, A315, A320
+# 0430, 0444, 0446, 0470, 0484, A631, A656, B434, Cherry_1, C484, N484
+# Note the number of samples for each site and time series, Ask KC about summer PO4 between 2005-2010, 57 point above 30 times the median. 

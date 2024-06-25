@@ -1,21 +1,36 @@
 source('./functions/get_socrata_data_func.R')  
 bigTable <- fread('./data_cache/SourceData/KC_WQ_Data')
 remove_sites <- c('0305','0307','0308','0309','3106')
-# Monthly Summary of SRP of all sites, divided by the site median ########
+# Monthly Summary of SRP of all sites, divided by the site median ################
 
 SRP <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Orthophosphate_Phosphorus.csv') %>%
+  select(- all_of(remove_sites)) 
+%>%
+  mutate(Year_mon = as.yearmon(Year_mon)) %>%
+  reshape2::melt(na.rm = T, id.var = 'Year_mon', value.name = 'Conc') %>%
+  group_by(variable) %>%
+  mutate(norm_conc = Conc/median(Conc))
+
+hist(log10(SRP$value), ylim = c(0,200), breaks = 40)
+
+
+ggplot(data = SRP, aes(x = Year_mon, y = norm_conc)) +
+  facet_wrap(.~ variable) +
+  geom_point() +
+  scale_y_log10()
+
+
+TP <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Total_Phosphorus.csv') %>%
   select(- all_of(remove_sites)) %>%
   mutate(Year_mon = as.yearmon(Year_mon)) %>%
   reshape2::melt(na.rm = T, id.var = 'Year_mon', value.name = 'Conc') %>%
   group_by(variable) %>%
   mutate(value = Conc/median(Conc))
 
-
-ggplot(data = SRP, aes(x = Year_mon, y = value)) +
+ggplot(data = TP, aes(x = Year_mon, y = value)) +
   facet_wrap(.~ variable) +
   geom_point() +
   scale_y_log10()
-
 
 Nit <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Nitrite_+_Nitrate_Nitrogen.csv') %>%
   select(- all_of(remove_sites)) %>%

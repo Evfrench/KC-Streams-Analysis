@@ -17,6 +17,8 @@ library(ggplot2)
 library(psych)
 library(GGally)
 library(corrplot)
+library(gratia)
+library(qgam)
 
 # Initialize some of the common data ###########################################################
 
@@ -236,7 +238,7 @@ get_socrata_data_func <- function(locns = c('0852'),
                 Year=year(CollectDate),
                 Month=month(CollectDate),
                 LabSampleNum=sample_number,
-                Locator=locator,
+                Locator= locator,
                 Depth=depth,
                 Parameter=parameter,
                 Value=value,#if_else(is.na(overridevalue),value,overridevalue),
@@ -678,5 +680,84 @@ Seasonal_Analysis <- function(input_data = tibble(), form = "Percent"){
 }
 
 
+# Standardized method for extracting, fitting, and plotting nutrient data for monitoring sites. 
+# Currently it will automatically fit the following percentiles: 10th, 25th, 50th, 75th, 90th
+# Future additions: Q = FALSE, Gage_Code = c(NULL), Season = FALSE
+# Optional flow component, seasonal component, specifyable quantiles
+# Prompts for the date windows
+
+
+QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate Nitrogen')){
+
+  outlist <- list()
+  # This will begin by querying the socrata database for each of the site_codes mentioned for all parameters  
+  
+  WQ_Params <- get_socrata_data_func(locns = SiteCode, parms = Params,
+                                     SiteType = 'Streams and Rivers') %>%
+    mutate(Locator=ifelse(Locator=='FF321','F321',                  #Join past/present locations
+                          ifelse(Locator=='A632','0632',
+                                 ifelse(Locator=='N484A','N484',
+                                        ifelse(Locator %in% c('0456','0456A'),'A456',
+                                               ifelse(Locator=='X438', '0438',
+                                                      ifelse(Locator=='X630','A630',
+                                                             Locator))))))) %>%
+    mutate(Parameter = replace(Parameter, Parameter == 'Dissolved Oxygen, Field', 'Dissolved Oxygen'),  # merge the two DO and conductivity fields
+           Parameter = replace(Parameter, Parameter == 'Conductivity, Field', 'Conductivity'),
+           Units = replace(Units, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total_Nitrogen",
+                                                   "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus"), 'ug/L'),
+           Censored = if_else(Value <= MDL, TRUE, FALSE, missing = FALSE),
+           Date = date(CollectDate),
+           Dec_Date = decimal_date(Date) - min(decimal_date(Date))) %>%
+    rowwise() %>%
+    mutate(Value = replace(Value, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total_Nitrogen",
+                                                   "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus"), Value*1000)) # Convert nutrient values to micrograms per liter for convenience
+  
+  SiteCode <- unique(WQ_Params$Locator)
+  count = 0
+  
+  for (i in 1:length(SiteCode)) {
+    for (j in 1:length(Params)) {
+      
+      count = count + 1
+      title <- paste(SiteCode[i], Params[j], sep = ": ")
+      
+      dat <- WQ_Params %>% 
+        subset(Date > dmy('31-12-1978') & Date < dmy('01-01-2023')) %>%
+        subset(Locator == SiteCode[i]) %>%
+        subset(Parameter == Params[j])
+      
+      
+      multiquant <- mqgam(Value ~ s(Dec_Date, k = 20, bs = 'ad'), data = dat, qu = c(0.1,0.25,0.5,0.75,0.90))
+      
+      dat <- as_tibble(dat) %>% 
+        mutate(q10 = qdo(multiquant, qu = 0.1, fitted),
+               q25 = qdo(multiquant, qu = 0.25, fitted),
+               q50 = qdo(multiquant, qu = 0.5, fitted),
+               q75 = qdo(multiquant, qu = 0.75, fitted),
+               q90 = qdo(multiquant, qu = 0.9, fitted))
+      
+      print(ggplot(data = dat) +
+              geom_point(aes(x = Date, y = Value), col = "darkgrey") +
+              geom_line(aes(x = Date, y = q50),
+                        col = "black", lwd = 1) +
+              geom_line(aes(x = Date, y = q25),
+                        col = "black", lwd = 0.5) +
+              geom_line(aes(x = Date, y = q75),
+                        col = "black", lwd = 0.5) +
+              geom_line(aes(x = Date, y = q10),
+                        col = "black", lwd = 0.5, linetype = 'twodash') +
+              geom_line(aes(x = Date, y = q90),
+                        col = "black", lwd = 0.5, linetype = 'twodash') +
+              scale_y_continuous(#limits = c(0,3), 
+                name = unique(dat$Units)[1]) +
+              ggtitle(label = title))
+      
+      outlist[[count]] <- dat
+      names(outlist)[count] <- title
+      
+    }
+  }
+  return(outlist)
+  }
 
 
