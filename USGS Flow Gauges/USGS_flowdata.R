@@ -7,7 +7,7 @@ library(zoo)
 
 # for dataRetrieval help, visit https://waterdata.usgs.gov/blog/dataretrieval/?
 
-# Getting data for just Green River
+# Getting data for rivers draining the Puget Sound
 gages<-c(12113000,12112600)
 usgs.flow = data.frame()
 
