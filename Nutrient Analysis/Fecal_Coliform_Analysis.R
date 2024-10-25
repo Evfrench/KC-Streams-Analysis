@@ -10,7 +10,8 @@
 source('./functions/get_socrata_data_func.R')
 
 # These monitoring sites are redundant and will be removed from any analysis
-remove_sites <- c('0305','0307','0308','0309','3106')
+remove_sites <- c('0305','0307','0308','0309','3106',
+                  'C484','A438','F321','S484','A319','B319','0632','A631','S478','D474','KTHA01','KTHA02','0486','BB470') #
 
 # If already run once, these will load the frames from the data cache
 Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform.csv') %>% select(- all_of(remove_sites))
@@ -19,8 +20,8 @@ Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This set will call the log-space data
 Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
-Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
-Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
+#Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+#Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This will call E. coli data
 Ecoli_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_E._coli.csv') %>% select(- all_of(remove_sites))
@@ -54,15 +55,20 @@ ggplot(Ecoli_Entries, aes(x = Year, y = Entries)) +
 # Results: x sites, 
 #### You need site names tied to row names in this function #######
 # This function will calculate the long term slopes as defined by the function inputs stated above
-fecal_slopes <- LT_Slope_Dist(Fec_Annual, window = c(1979,2008,2013,2020), cutoff = c(5,5), units = c('CFU/100mL'))
+fecal_slopes <- LT_Slope_Dist(Fec_Annual, units = c('CFU/100mL'))
 write.csv(fecal_slopes,'./data_cache/LongTermTrends/fecal_Slopes.csv')
 
+if (quantile(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, alternative = 'less')
+} else {
+  results <- wilcox.test(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, alternative = 'greater')
+}
 # Get the IQR of the distribution and percent change distribution
-fec_quant <- quantile(fecal_slopes$`Median Slope (CFU/100mL/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+fec_quant <- quantile(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
 fec_pquant <- quantile(fecal_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(fecal_slopes, aes(x = `Median Slope (log(CFU/100mL)/decade)`)) +
+ggplot(fecal_slopes, aes(x = `Mean Slope (CFU/100mL/decade)`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(fec_quant[2], fec_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
@@ -174,7 +180,7 @@ ggplot() +
 # NOTE: saving the workspace image and restarting will coerce the 'yearmon' class in this data frame to a decimal year
 # It must be converted back whenever the workspace is reopened
 
-Fec_Seasonal <- Seasonal_Analysis(Fec_Monthly)
+Fec_Seasonal <- Seasonal_Analysis(Fec_Monthly, form = 'Relative')
 
 ggplot(Fec_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
@@ -193,3 +199,28 @@ ggplot(Ecoli_Seasonal, aes(x= Month, y= med_annual_dev)) +
   ylab('% Deviation from Median') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("E. Coli % Monthly Deviations from Annual Median")
+
+
+Fec_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
+
+for (i in 1:12) {
+  if (quantile(subset(Fec_Seasonal, Month == i)$geo_mean_dev, probs = 0.5) < 1) {
+    test <- wilcox.test(subset(Fec_Seasonal, Month == i)$geo_mean_dev, mu =1, alternative = 'less')
+  } else {
+    test <- wilcox.test(subset(Fec_Seasonal, Month == i)$geo_mean_dev, mu =1, alternative = 'greater')
+  }
+  
+  Fec_Q_Months <- Fec_Q_Months %>% add_row(Month = i, `10th` = quantile(subset(Fec_Seasonal, Month == i)$geo_mean_dev, probs = 0.1),
+                                           `25th` = quantile(subset(Fec_Seasonal, Month == i)$geo_mean_dev, probs = 0.25),
+                                           `50th` = quantile(subset(Fec_Seasonal, Month == i)$geo_mean_dev, probs = 0.5),
+                                           `75th` = quantile(subset(Fec_Seasonal, Month == i)$geo_mean_dev, probs = 0.75),
+                                           `90th` = quantile(subset(Fec_Seasonal, Month == i)$geo_mean_dev, probs = 0.9),
+                                           `p-val` = test$p.value)
+  remove(test)
+}
+
+write.csv(Fec_Q_Months, file = './data_cache/SeasonalityResults/FecalColiform_Monthly_Dist.csv')
+# Extra Stuff
+
+FC_Table <- inner_join(rownames_to_column(fecal_slopes, var = 'Locator'),Fecal_LC_inputs, by = 'Locator')
+write.csv(FC_Table,'./data_cache/Misc/FecColi_Combined.csv')

@@ -2,7 +2,8 @@
 source('./functions/get_socrata_data_func.R')
 
 # These monitoring sites are redundant and will be removed from any analysis
-remove_sites <- c('0305','0307','0308','0309','3106')
+remove_sites <- c('0305','0307','0308','0309','3106',
+                  'C484','A438','F321','S484','A319','B319','0632','A631','S478','D474','KTHA01','KTHA02','0486','BB470') #
 
 # If already run once, these will load the frames from the data cache
 TN_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Total_Nitrogen.csv') %>% select(- all_of(remove_sites))
@@ -23,16 +24,21 @@ ggplot(TN_Entries, aes(x = Year, y = Entries)) +
 # Results: x sites, 
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
-TN_slopes <- LT_Slope_Dist(TN_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('μg/L'))
+TN_slopes <- LT_Slope_Dist(TN_Annual, units = c('μg/L'))
 write.csv(TN_slopes,'./data_cache/LongTermTrends/TN_Slopes.csv')
 
+if (quantile(TN_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(TN_slopes$`Mean Slope (μg/L/decade)`, alternative = 'less')
+} else {
+  results <- wilcox.test(TN_slopes$`Mean Slope (μg/L/decade)`, alternative = 'greater')
+}
 # Get the IQR of the distribution and percent change distribution
-TN_quant <- quantile(TN_slopes$`Median Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TN_quant <- quantile(TN_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
 TN_pquant <- quantile(TN_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(TN_slopes, aes(x = `Median Slope (μg/L/decade)`)) +
-  geom_histogram(bins = 12) + 
+ggplot(TN_slopes, aes(x = `Mean Slope (μg/L/decade)`)) +
+  geom_histogram(binwidth = 50) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TN_quant[2], TN_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TN_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
@@ -141,13 +147,38 @@ ggplot() +
 # NOTE: saving the workspace image and restarting will coerce the 'yearmon' class in this data frame to a decimal year
 # It must be converted back whenever the workspace is reopened
 
-TN_Seasonal <- Seasonal_Analysis(TN_Monthly)
+TN_Seasonal <- Seasonal_Analysis(TN_Monthly, form = 'Relative')
 
-ggplot(TN_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(TN_Seasonal, aes(x= Month, y=geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Total Nitrogen % Monthly Deviations from Annual Median")
+  #scale_y_continuous(limits = c(-100, 250), n.breaks = 10) +
+  scale_y_log10() +
+  ylab('Deviation from Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Total Nitrogen Monthly Deviations from Annual Median")
 
+TN_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
+
+for (i in 1:12) {
+  if (quantile(subset(TN_Seasonal, Month == i)$geo_mean_dev, probs = 0.5) < 1) {
+    test <- wilcox.test(subset(TN_Seasonal, Month == i)$geo_mean_dev, mu =1, alternative = 'less')
+  } else {
+    test <- wilcox.test(subset(TN_Seasonal, Month == i)$geo_mean_dev, mu =1, alternative = 'greater')
+  }
+  
+  TN_Q_Months <- TN_Q_Months %>% add_row(Month = i, `10th` = quantile(subset(TN_Seasonal, Month == i)$geo_mean_dev, probs = 0.1),
+                                           `25th` = quantile(subset(TN_Seasonal, Month == i)$geo_mean_dev, probs = 0.25),
+                                           `50th` = quantile(subset(TN_Seasonal, Month == i)$geo_mean_dev, probs = 0.5),
+                                           `75th` = quantile(subset(TN_Seasonal, Month == i)$geo_mean_dev, probs = 0.75),
+                                           `90th` = quantile(subset(TN_Seasonal, Month == i)$geo_mean_dev, probs = 0.9),
+                                           `p-val` = test$p.value)
+  remove(test)
+}
+
+write.csv(TN_Q_Months, file = './data_cache/SeasonalityResults/TotalN_Monthly_Dist.csv')
+
+# Extra Stuff
+
+TN_Table <- inner_join(rownames_to_column(TN_slopes, var = 'Locator'),TN_LC_inputs, by = 'Locator')
+write.csv(TN_Table,'./data_cache/Misc/TotalNitrogen_Combined.csv')

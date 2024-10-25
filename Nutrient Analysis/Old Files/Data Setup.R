@@ -1,8 +1,4 @@
 ## Call Libraries & Load Data ##################################################
-library(plyr)
-library(miscTools)
-library(readxl)
-library(mgcv)
 source('./functions/get_socrata_data_func.R')
 
 # You need TSS and Fecal data, parcel dev records, and that's it. Oh and Current Land Cover
@@ -12,8 +8,11 @@ AnnualFec <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual
 
 AnnualTSS <- as.data.frame(fread('~/KC-Streams-Analysis/data_cache/median_annual_Total_Suspended_Solids.csv'))
 
-AnnualDev <- readRDS('~/KC-Streams-Analysis/data_cache/watershed_build_years.RDS') %>%  
-  reshape2::dcast(YRBUILT ~ Locator, value.var = 'ParcelsBuiltPer100Acres') 
+AnnualNormDev <- readRDS('~/KC-Streams-Analysis/data_cache/SourceData/watershed_build_years.RDS') %>%  
+  reshape2::dcast(YRBUILT ~ Locator, value.var = 'ParcelsBuiltPer100Acres')
+
+AnnualDev <- readRDS('~/KC-Streams-Analysis/data_cache/SourceData/watershed_build_years.RDS') %>%  
+  reshape2::dcast(YRBUILT ~ Locator, value.var = 'ParcelsBuilt') 
 
 LandCover <- read_excel("data_cache/streams_2019lulc.xlsx", sheet = "LULC - %")
 ## Check the Frequency of the data ##############################################

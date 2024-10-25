@@ -1,6 +1,6 @@
 source('./functions/get_socrata_data_func.R')
 library(factoextra)
-# Put together the sites for PCA using long term trends
+  # Put together the sites for PCA using long term trends
 
 Nit <- read.csv('./data_cache/LongTermTrends/Nitrate_Slopes.csv')
 TN <- read.csv('./data_cache/LongTermTrends/TN_Slopes.csv')
@@ -73,3 +73,42 @@ biplot(Decomp, choices = c(2,3))
 # 0317, 0322, 0434, 0474, 0478, 0631, A315, A320
 # 0430, 0444, 0446, 0470, 0484, A631, A656, B434, Cherry_1, C484, N484
 # Note the number of samples for each site and time series, Ask KC about summer PO4 between 2005-2010, 57 point above 30 times the median. 
+
+
+
+# Let's re-examine the nitrogen seasonal analysis, look at individual site level now #########################
+remove_sites <- c('0305','0307','0308','0309','3106')
+Nit_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Nitrite_+_Nitrate_Nitrogen.csv') %>% select(- all_of(remove_sites))
+Nit_Monthly$Year_mon <- as.yearmon(Nit_Monthly$Year_mon)
+
+
+Nit_Month <- Nit_Monthly %>%
+  reshape2::melt(id.vars = 'Year_mon') %>%
+  mutate(Year = year(Year_mon), 
+         Month = month(Year_mon, label = T, abbr = F),
+         .before = 1) %>%
+  subset(Year_mon >= as.yearmon('Oct 1977')) %>%
+  group_by(variable) %>%
+  reframe(normalized_val = value/mean(value, na.rm = T), # calculates the median concentration for each year, then the monthly deviation from the median
+          Year = Year,
+          Month = Month) %>%
+  rowwise() %>%
+  mutate(Wtr_Year = replace(Year, Month %in% c('October', 'November', 'December'), Year+1))  %>%
+  select(- all_of('Year'))
+
+
+
+  long_table <- Nit_Monthly %>%
+    reshape2::melt(id.var='Year_mon') %>% #make the table long
+    mutate(Year = year(Year_mon), 
+           Month = month(Year_mon, label = T, abbr = F),
+           .before = 1) %>% # separate the year_mon into two separate columns, the remove any empty fields
+    drop_na() %>%
+    group_by(Year, variable) %>%
+    mutate(num = n()) %>% 
+    subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
+    group_by(variable,Year) %>%
+    reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)), # calculates the median concentration for each year, then the monthly deviation from the median
+            Month = Month) %>%
+    group_by(variable,Month) %>%
+    reframe(med_annual_dev = median(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average

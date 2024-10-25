@@ -9,18 +9,19 @@ monthly <- readRDS(file = '~/KC-Streams-Analysis/data_cache/Hydrological/DailyAv
   drop_na() %>%
   mutate(Year_mon = as.yearmon(Date)) %>%
   group_by(SITE_CODE, Year_mon) %>%
-  summarize(AveQ30 = mean(AveQ, na.rm = TRUE))%>%
-  reshape2::dcast(Year_mon ~ SITE_CODE, value.var = 'AveQ30')
+  summarize(AveQ30 = mean(log(AveQ), na.rm = TRUE))%>%
+  reshape2::dcast(Year_mon ~ SITE_CODE, value.var = 'AveQ30') %>%
+  subset(Year_mon >= 1980)
 
 seasonal_flow <- Seasonal_Analysis(monthly, form = 'Mean-Dev')
 
 ggplot(seasonal_flow, aes(x= Month, y= mean_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-15, 15), n.breaks = 10) +
-  ylab('Deviation from Mean (cfs)') +
+  #scale_y_continuous(limits = c(-15, 15), n.breaks = 10) +
+  ylab('Deviation from Mean log(cfs)') +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Discharge Deviation from Annual Mean")
+  ggtitle("Discharge Deviation from Annual Log Mean")
 
 ggplot(seasonal_flow, aes(x= Month, y= mean_month)) +
   geom_boxplot(aes(group= Month)) +

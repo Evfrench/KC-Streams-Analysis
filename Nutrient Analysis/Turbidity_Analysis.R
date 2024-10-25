@@ -2,7 +2,8 @@
 source('./functions/get_socrata_data_func.R')
 
 # These monitoring sites are redundant and will be removed from any analysis
-remove_sites <- c('0305','0307','0308','0309','3106')
+remove_sites <- c('0305','0307','0308','0309','3106',
+                  'C484','A438','F321','S484','A319','B319','0632','A631','S478','D474','KTHA01','KTHA02','0486','BB470') #
 
 # If already run once, these will load the frames from the data cache
 Turb_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Turbidity.csv') %>% select(- all_of(remove_sites))
@@ -23,15 +24,21 @@ ggplot(Turb_Entries, aes(x = Year, y = Entries)) +
 # Results: x sites, 
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
-Turb_slopes <- LT_Slope_Dist(Turb_Annual, window = c(1979,2008,2013,2022), cutoff = c(5,5), units = c('NTU'))
+Turb_slopes <- LT_Slope_Dist(Turb_Annual, units = c('NTU'))
 write.csv(Turb_slopes,'./data_cache/LongTermTrends/Turbidity_Slopes.csv')
 
+if (quantile(Turb_slopes$`Mean Slope (NTU/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(Turb_slopes$`Mean Slope (NTU/decade)`, alternative = 'less')
+} else {
+  results <- wilcox.test(Turb_slopes$`Mean Slope (NTU/decade)`, alternative = 'greater')
+}
+
 # Get the IQR of the distribution and percent change distribution
-Turb_quant <- quantile(Turb_slopes$`Median Slope (NTU/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Turb_quant <- quantile(Turb_slopes$`Mean Slope (NTU/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
 Turb_pquant <- quantile(Turb_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(Turb_slopes, aes(x = `Median Slope (NTU/decade)`)) +
+ggplot(Turb_slopes, aes(x = `Mean Slope (NTU/decade)`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Turb_quant[2], Turb_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
@@ -142,7 +149,7 @@ ggplot() +
 # NOTE: saving the workspace image and restarting will coerce the 'yearmon' class in this data frame to a decimal year
 # It must be converted back whenever the workspace is reopened
 
-Turb_Seasonal <- Seasonal_Analysis(Turb_Monthly)
+Turb_Seasonal <- Seasonal_Analysis(Turb_Monthly, form = 'Relative')
 
 ggplot(Turb_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_boxplot(aes(group= Month)) +
@@ -152,3 +159,22 @@ ggplot(Turb_Seasonal, aes(x= Month, y= med_annual_dev)) +
   geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Turbidity % Monthly Deviations from Annual Median")
 
+Turb_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
+
+for (i in 1:12) {
+  if (quantile(subset(Turb_Seasonal, Month == i)$geo_mean_dev, probs = 0.5) < 1) {
+    test <- wilcox.test(subset(Turb_Seasonal, Month == i)$geo_mean_dev, mu =1, alternative = 'less')
+  } else {
+    test <- wilcox.test(subset(Turb_Seasonal, Month == i)$geo_mean_dev, mu =1, alternative = 'greater')
+  }
+  
+  Turb_Q_Months <- Turb_Q_Months %>% add_row(Month = i, `10th` = quantile(subset(Turb_Seasonal, Month == i)$geo_mean_dev, probs = 0.1),
+                                           `25th` = quantile(subset(Turb_Seasonal, Month == i)$geo_mean_dev, probs = 0.25),
+                                           `50th` = quantile(subset(Turb_Seasonal, Month == i)$geo_mean_dev, probs = 0.5),
+                                           `75th` = quantile(subset(Turb_Seasonal, Month == i)$geo_mean_dev, probs = 0.75),
+                                           `90th` = quantile(subset(Turb_Seasonal, Month == i)$geo_mean_dev, probs = 0.9),
+                                           `p-val` = test$p.value)
+  remove(test)
+}
+
+write.csv(Turb_Q_Months, file = './data_cache/SeasonalityResults/Turbidity_Monthly_Dist.csv')

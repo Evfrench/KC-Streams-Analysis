@@ -57,6 +57,10 @@ ggplot(data = site_dev %>% subset(Param == 'ParcelsBuilt_Roll_Ave')) +
 
 # check the distributions #######################################################################
 
+# Note: add a normal pdf over these
+# Use data set mean & SD, then..... something to generate the pdf 
+
+
 ggplot(data = WQ_params) +
   geom_density(aes(x= `Nitrate_N`))
 

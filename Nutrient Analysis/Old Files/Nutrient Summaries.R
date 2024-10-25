@@ -177,7 +177,7 @@ ggplot(P_filtered2, aes(Year, value)) +
   geom_point() +
   geom_line() +
   ggtitle("Annual Median Orthophosphate, Median-Centered and Zoomed In") +
-  scale_y_continuous(name = "PO4, μg/L", limits = c(-50,50))
+  scale_y_continuous(name = "PO4, μg/L", limits = c(-50,100))
 
 ggplot(P_filtered3, aes(Year, value)) + 
   facet_wrap(. ~ variable, shrink = FALSE) + 

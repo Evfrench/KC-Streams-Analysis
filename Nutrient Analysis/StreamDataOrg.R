@@ -1,8 +1,3 @@
-library(tidyverse)
-library(lubridate)
-library(dplyr)
-library(miscTools)
-library(zoo)
 source('./functions/get_socrata_data_func.R')
 
 WRIA7<- get_socrata_data_func(locns = c('AMES_1','CHERRY_1','GRIFFIN','HARRIS_1',
@@ -48,10 +43,28 @@ WRIA15<- get_socrata_data_func(locns = c('VA23A','VA41A','VA65A','VA42A','VA45A'
                                SiteType = 'Streams and Rivers')
 
 
-WRIA_Combined <- rbind(WRIA7,WRIA8_1,WRIA8_2,WRIA9,WRIA10,WRIA15)
+WRIA_Combined <- rbind(WRIA7,WRIA8_1,WRIA8_2,WRIA9,WRIA10,WRIA15) 
 
-All_KC_WQ_Data <- normalize_water_quality_data_parameters(WRIA_Combined)  
+All_KC_WQ_Data <- normalize_water_quality_data_parameters(WRIA_Combined) # consider removing this function in the future. It is not necessary and time-intensive 
 All_KC_WQ_Data[All_KC_WQ_Data == 0] <- NA
-All_KC_WQ_Data$Decimal_year <- decimal_date(All_KC_WQ_Data$CollectDate)
-All_KC_WQ_Data$Year_mon <- as.yearmon(All_KC_WQ_Data$Decimal_year)
-write_csv(All_KC_WQ_Data, './data_cache/KC_WQ_Data', col_name=TRUE)
+All_KC_WQ_Data <- ALL_KC_WQ_Data %>%
+  mutate(Decimal_year = decimal_date(CollectDate),
+         Year_Mon = as.yearmon(Decimal_year),
+         .before = 2) %>%
+  rowwise() %>%
+  mutate(Wtr_Year = replace(Year, Month %in% c(10:12), Year+1),
+         .before = 1)
+
+write_csv(All_KC_WQ_Data, './data_cache/SourceData/KC_WQ_Data.csv', col_name=TRUE)
+
+#bigTable <- fread('~/KC-Streams-Analysis/data_cache/SourceData/KC_WQ_Data.csv')
+#bigTable <- bigTable %>%
+#  mutate(Decimal_year = decimal_date(CollectDate),
+#         Year_Mon = as.yearmon(Decimal_year),
+#         .before = 2) %>%
+#  rowwise() %>%
+#  mutate(Wtr_Year = replace(Year, Month %in% c(10:12), Year+1),
+#         .before = 1)
+#
+#write_csv(bigTable, './data_cache/SourceData/KC_WQ_Data.csv', col_name=TRUE)
+

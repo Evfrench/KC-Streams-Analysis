@@ -32,10 +32,18 @@ Nitrate <- full_join(Stream_Flow, subset(WQ_Params, Parameter == "Nitrite + Nitr
          LogQ = log(AveQ)) %>%
   drop_na(matches('AveQ'))
 
-#  
+# Let's make something similar to the WRTDS model Hirsch used
+# Uses sampling date, discharge, and day of year 
+# There are interactions between all of these, how are those accounted for? a single tensor? multiple tensors?
+# Maybe add a tensor interaction between DOY and time sampled? Change the long term component to just the year?
+# Add a temp component, but normalized to the deviation from the median of that.
 Nq <- qgam(Value ~ s(Dec_Date, k = 25, bs = 'ad') + s(LogQ, k = 20, bs = 'ad') + s(DOY, k = 20, bs ='cp'), data = Nitrate, qu = 0.5)
 
-Ngam <- gam(Value ~ s(Dec_Date, k = 25, bs = 'tp') + s(LogQ, k = 20, bs = 'tp') + s(DOY, k = 20, bs ='cp') + ti(LogQ, DOY, bs= c('tp','cp'), k= 10), data = Nitrate, family = gaussian)
+Ngam <- gam(Value ~ s(Year.x, k = 40, bs = 'cr') + 
+              s(LogQ, k = 25, bs = 'cr') + 
+              s(DOY, k = 20, bs ='cc') + 
+              ti(Year.x, LogQ, DOY, k = c(10,10,10), bs = c('cr', 'cr', 'cc')), 
+            data = Nitrate, family = gaussian)
   
 mqN <- mqgam(Value ~ s(Dec_Date, k = 10, bs = 'ad') + s(AveQ, k = 15, bs ='ad') + s(DOY, k = 15, bs ='cp'), data = Nitrate, qu = 0.5)
 
@@ -72,8 +80,7 @@ ggplot(data = Nitrate) +
 
 ggplot(data = Nitrate) +
   geom_point(aes(x = LogQ, y = Value))+
-  geom_line (aes(x = LogQ, y = Pred)) 
-+
+  geom_line (aes(x = LogQ, y = Pred)) +
   geom_ribbon(aes(x = LogQ, ymin = CI_lower, ymax = CI_upper,
                   y = NULL),
               alpha = 0.2, fill = "black")
@@ -89,4 +96,28 @@ fitted_values(Nq)
 ## Generalized function test
 source('./functions/get_socrata_data_func.R')
 
-test_list <- QuantileGamRun(SiteCode = c('0321','0322'), Params = c('Nitrite + Nitrate Nitrogen', 'Orthophosphate Phosphorus'))
+mod_list <- QuantileGamRun(SiteCode = c('A319'), Params = c('Nitrite + Nitrate Nitrogen'))
+
+# what about predicting one year of concentrations? Is is a jack-knife cross-validation to exclude an entire year?
+
+
+Print(ggplot(data = dat) +
+       geom_point(aes(x = Date, y = Value), col = "darkgrey") +
+       geom_line(aes(x = Date, y = q50),
+                 col = "black", lwd = 1) +
+       geom_line(aes(x = Date, y = q25),
+                 col = "black", lwd = 0.5) +
+       geom_line(aes(x = Date, y = q75),
+                 col = "black", lwd = 0.5) +
+       geom_line(aes(x = Date, y = q10),
+                 col = "black", lwd = 0.5, linetype = 'twodash') +
+       geom_line(aes(x = Date, y = q90),
+                 col = "black", lwd = 0.5, linetype = 'twodash') +
+       scale_y_continuous(#limits = c(0,3), 
+         name = unique(dat$Units)[1]) +
+       ggtitle(label = title))
+
+
+# Applying this seasonal model to the Salish Sea Model. Let's see how we can use GAMs for this model
+# Get Mike's info for USGS wet and dry years 
+# WE could predict concentrations for riverine inputs to the SSM. Would give quicker access to boundary conditions? If it is taken up, there is always a reason why people do things. WHat would we lose by switching to this?
