@@ -25,31 +25,39 @@ ggplot(TN_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 TN_slopes <- LT_Slope_Dist(TN_Annual, units = c('μg/L'))
-write.csv(TN_slopes,'./data_cache/LongTermTrends/TN_Slopes.csv')
+write.csv(TN_slopes[[1]],'./data_cache/LongTermTrends/TN_Slopes.csv')
+write.csv(TN_slopes[[2]],'./data_cache/ZscoreTrends/TN_Scores.csv')
+write.csv(TN_slopes[[4]],'./data_cache/ZscoreTrends/TN_Values.csv')
 
-if (quantile(TN_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(TN_slopes$`Mean Slope (μg/L/decade)`, alternative = 'less')
+
+if (quantile(TN_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(TN_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(TN_slopes$`Mean Slope (μg/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(TN_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'greater')
 }
 # Get the IQR of the distribution and percent change distribution
-TN_quant <- quantile(TN_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-TN_pquant <- quantile(TN_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TN_quant <- quantile(TN_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TN_pquant <- quantile(TN_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(TN_slopes, aes(x = `Mean Slope (μg/L/decade)`)) +
+ggplot(TN_slopes[[1]], aes(x = `Mean Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 50) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TN_quant[2], TN_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TN_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Total Nitrogen Slope Distribution') 
 
-ggplot(TN_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(TN_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TN_pquant[2], TN_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TN_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Total Nitrogen Slope Distribution, Percent Change') 
+
+## Comparing these long term trends as z-scores #######################
+
+TN_slopes[[3]]+
+  ggtitle("Total Nitrogen Annual Z-score Distribution") 
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -68,9 +76,9 @@ write.csv(TN_lc_mods[[1]],'./data_cache/LandCover/TN_LandCover_Models.csv')
 # residual by quantiles
 # residual by exogenous variables (studentized?)
 # Cook's D values
+summary(TN_lc_mods[["Total Nitrogen = Const. + Developed, Total + Deciduous Forest + Agriculture, Total"]])
 
-
-top_model <- TN_lc_mods[["Total Nitrogen = Const. + Developed, All Intensities + Deciduous Forest + Agriculture, Total"]]
+top_model <- TN_lc_mods[["Total Nitrogen = Const. + Developed, Total + Deciduous Forest + Agriculture, Total"]]
 
 # quantiles
 qqnorm(top_model$residuals)
@@ -153,7 +161,7 @@ ggplot(TN_Seasonal, aes(x= Month, y=geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
   #scale_y_continuous(limits = c(-100, 250), n.breaks = 10) +
-  scale_y_log10() +
+  scale_y_log10(limits = c(0.5,2)) +
   ylab('Deviation from Median') +
   geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Total Nitrogen Monthly Deviations from Annual Median")

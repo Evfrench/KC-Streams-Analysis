@@ -1,7 +1,7 @@
 source('./functions/get_socrata_data_func.R')
 
 WRIA7<- get_socrata_data_func(locns = c('AMES_1','CHERRY_1','GRIFFIN','HARRIS_1',
-                                        'PATTER_3', 'RAGING_MTH','SKYHOMISH','SNQDUVALL',
+                                        'PATTER_3', 'RAGING_MTH','SKYKOMISH','SNQDUVALL',
                                         'MKF_SNQ','NFK_SNQ','SFK_SNQ','TOLT_MTH'),
                                        parms = default_data_parms,
                                        SiteType = 'Streams and Rivers')

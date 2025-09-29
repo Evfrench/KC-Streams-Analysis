@@ -19,11 +19,11 @@ library(GGally)
 library(corrplot)
 library(gratia)
 library(qgam)
-
-# Initialize some of the common data ###########################################################
+library(MARSS)
+# Initialize some of the common data #########################################################################
 
 # This creates a scatterplot matrix of all the land cover categories in the NLCD
-#LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
+ LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
 #pairs.panels(LandCover[, c(3:22)], smooth = FALSE, scale = TRUE, lm = TRUE, cex.cor = 3, main = 'Scatterplot Matrix for Landcover Data')
 # This plot tells me that the best parameters to test are as follows: 
 # Developed, All Intensities
@@ -187,20 +187,20 @@ generate_egret_sample_from_water_quality_data <- function(input_data = data.fram
 #
 get_socrata_data_func <- function(locns = c('0852'),
   parms = default_data_parms,
-  SiteType = 'Large Lakes') {
+  SiteType = 'Streams and Rivers') {
   
   # Start by fetching location data
   # https://data.kingcounty.gov/Environment-Waste-Management/WLRD-Sites/wbhs-bbzf
   loc_url_portal<-'https://data.kingcounty.gov/resource/wbhs-bbzf.csv'
-  cache_name = './data_cache/Misc/cache_WLRD_location_dataset.csv'
+#  cache_name = './data_cache/Misc/cache_WLRD_location_dataset.csv'
   # Rename cache file to re-fetch data
-  if(file.exists(cache_name)) {
-    locs <- read_csv(cache_name)
-  } else {
+#  if(file.exists(cache_name)) {
+#    locs <- read_csv(cache_name)
+#  } else {
     # save df as csv for later
     locs <- read.socrata(loc_url_portal)
-    write_csv(locs, cache_name, col_name=TRUE)
-  }
+#    write_csv(locs, cache_name, col_name=TRUE)
+#  }
 
   locs <- (locs %>%
     transmute(SiteName=sitename,
@@ -219,11 +219,11 @@ get_socrata_data_func <- function(locns = c('0852'),
   locs <- filter(locs,Locator %in% locns)
   # Do each location individually, for ease of caching
   # Base cache name on location
-  cache_name = paste0('./data_cache/Misc/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
+#  cache_name = paste0('./data_cache/Misc/cache_water_quality-',paste0(locs$Locator,collapse='-'),'-dataset.csv')
   
-  if(file.exists(cache_name)) {
-    data_out <- read_csv(cache_name)
-  } else {
+#  if(file.exists(cache_name)) {
+#    data_out <- read_csv(cache_name)
+#  } else {
       # Fetching Puget Sound Water Quality data
       # https://data.kingcounty.gov/Environment-Waste-Management/Water-Quality/vwmt-pvjw
     data_url_start<-'https://data.kingcounty.gov/resource/vwmt-pvjw.csv' #entire wq portal
@@ -281,9 +281,9 @@ get_socrata_data_func <- function(locns = c('0852'),
                         Date=data_out$CollectDate,
                         Parameter=data_out$Parameter)
 
-    # save df as csv for later
-    write_csv(data_out, cache_name, col_name=TRUE)
-  }
+#    # save df as csv for later
+#    write_csv(data_out, cache_name, col_name=TRUE)
+#  }
 
   return(data_out)
 }
@@ -495,8 +495,7 @@ demedian <- function(x = data.frame())
 LT_Slope_Dist <- function(input.data= tibble(), 
                           window= c(1979,2012,2013,2022), 
                           cutoff= c(5,5,10), 
-                          units= NULL,
-                          hydro= FALSE){
+                          units= NULL){
   # This function will filter out sites and extract the long term trends
   # The trend is based on the window, a series of four numbers, the first 2 are the baseline years, the second 2 are the test or recent years
   
@@ -547,8 +546,46 @@ LT_Slope_Dist <- function(input.data= tibble(),
       remove(Loop.frameBase, Loop.frameTest,Y1,Y2,V1,V2,stop)
     }
 
+  Out.Zscore <- input.data %>% as_tibble(rownames = NULL) %>%
+    subset(Year >= (window[1]+1) & Year <= window[4]) %>%
+    column_to_rownames(var = "Year") %>%
+    select(all_of(colnames(input.data)[colnames(input.data) %in% rownames(Out.data)])) %>%
+    t() %>%
+    zscore() %>%
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Year") %>%
+    mutate(Year = as.numeric(Year), .before = 1) %>%
+    pivot_longer(!Year, names_to = 'Locator', values_to = 'Z_scores')
   
-  return(Out.data)
+  Out.Value <- input.data %>% as_tibble(rownames = NULL) %>%
+    subset(Year >= (window[1]+1) & Year <= window[4]) %>%
+    column_to_rownames(var = "Year") %>%
+    select(all_of(colnames(input.data)[colnames(input.data) %in% rownames(Out.data)])) %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Year") %>%
+    mutate(Year = as.numeric(Year), .before = 1) %>%
+    pivot_longer(!Year, names_to = 'Locator', values_to = units)
+  
+  
+  samples <- Out.Zscore %>% drop_na() %>% count(Year)
+  
+  Score.Plot <- ggplot(Out.Zscore, aes(x= Year, y= Z_scores)) +
+    geom_boxplot(aes(group= Year), outliers = F) +
+    #scale_x_continuous(breaks = 1:12,labels = 1:12) +
+    scale_y_continuous(limits = c(-4, 4)) +
+    ylab('Zscore') +
+    geom_hline(yintercept = c(-3,0,3), linetype = 'twodash', color = 'grey', linewidth = 1) +
+    #ggtitle("Nitrate Annual Z-score Distribution") +
+    annotate('text', x = samples$Year, y = rep(-4, each = length(samples$n)), label = samples$n, size = rel(3)) +
+    annotate('text', x = min(samples$Year)-1, y = -4, label = 'n =', size = rel(3)) +
+    theme(axis.title.x = element_text(size = 15),
+          axis.title.y = element_text(size = 15),
+          axis.text = element_text(size = 15),
+          title = element_text(size = 20))
+  
+  Out.List <- list(Out.data,Out.Zscore,Score.Plot,Out.Value)
+  return(Out.List)
 }
 
 ####
@@ -717,7 +754,7 @@ Seasonal_Analysis <- function(input_data = tibble(), form = "Percent", window = 
       subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
       group_by(variable,Year) %>%
       reframe(annual_dev = 100*(value - median(value, na.rm=TRUE))/(median(value, na.rm=TRUE)), # calculates the median concentration for each year, then the monthly deviation from the median
-              Month = Month) %>%
+              Month = month(Month, label = TRUE)) %>%
       group_by(variable,Month) %>%
       reframe(med_annual_dev = median(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average
   }
@@ -736,7 +773,7 @@ Seasonal_Analysis <- function(input_data = tibble(), form = "Percent", window = 
       subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
       group_by(variable,Year) %>%
       reframe(annual_dev = (value - mean(value, na.rm=TRUE)), # calculates the mean concentration for each year, then the monthly deviation from the median
-              Month = Month) %>%
+              Month = month(Month, label = TRUE)) %>%
       group_by(variable,Month) %>%
       reframe(mean_annual_dev = mean(annual_dev, na.rm= TRUE)) # merges all of years for each site into one average
   }
@@ -770,9 +807,27 @@ Seasonal_Analysis <- function(input_data = tibble(), form = "Percent", window = 
       subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
       group_by(variable,Year) %>%
       reframe(rel_dev = value / median(value, na.rm=TRUE), # divides the monthly concentration by its annual median
-              Month = Month) %>%
+              Month = month(Month, label = TRUE)) %>%
       group_by(variable,Month) %>%
-      reframe(geo_mean_dev = geometric.mean(rel_dev, na.rm= TRUE))  # merges all of years for each site into one average
+      reframe(mean_dev = mean(rel_dev, na.rm= TRUE))  # merges all of years for each site into one average
+  }
+  
+  if(form == 'Relative2'){
+    long_table <- input_data %>%
+      reshape2::melt(id.var='Year_mon') %>% #make the table long
+      mutate(Year = year(Year_mon),
+             Month = month(Year_mon)) %>% # separate the year_mon into two separate columns, the remove any empty fields
+      drop_na() %>%
+      rowwise() %>%
+      mutate(Year = replace(Year, Month %in% c(10:12), Year+1),
+             .before = 1) %>%
+      group_by(Year, variable) %>%
+      subset(Year >= window[1] & Year <= window[2]) %>%
+      mutate(num = n()) %>% 
+      subset(num >= 7) %>% # Counts the number of non-empty months per site and year, then removes all years that have less than half a year of data
+      group_by(variable,Year) %>%
+      reframe(rel_dev = value / median(value, na.rm=TRUE), # divides the monthly concentration by its annual median
+              Month = month(Month, label = TRUE))
   }
   return(long_table) 
 }
@@ -786,7 +841,7 @@ Seasonal_Analysis <- function(input_data = tibble(), form = "Percent", window = 
 # Issues with y-scaling. How to remove extreme values? just replot?
 
 
-QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate Nitrogen')){
+QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate Nitrogen'), Start_Date = c('01-01-1979')){
 
   outlist <- list()
   # This will begin by querying the socrata database for each of the site_codes mentioned for all parameters  
@@ -802,16 +857,17 @@ QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate N
                                                              Locator))))))) %>%
     mutate(Parameter = replace(Parameter, Parameter == 'Dissolved Oxygen, Field', 'Dissolved Oxygen'),  # merge the two DO and conductivity fields
            Parameter = replace(Parameter, Parameter == 'Conductivity, Field', 'Conductivity'),
-           Units = replace(Units, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total_Nitrogen",
+           Units = replace(Units, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total Nitrogen",
                                                    "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus"), 'ug/L'),
            Censored = if_else(Value <= MDL, TRUE, FALSE, missing = FALSE),
            Date = date(CollectDate),
            Dec_Date = decimal_date(Date) - min(decimal_date(Date))) %>%
     rowwise() %>%
-    mutate(Value = replace(Value, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total_Nitrogen",
+    mutate(Value = replace(Value, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total Nitrogen",
                                                    "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus"), Value*1000)) # Convert nutrient values to micrograms per liter for convenience
   
   SiteCode <- unique(WQ_Params$Locator)
+  Params <- unique(WQ_Params$Parameter)
   count = 0
   
   # Fit and plot the models
@@ -822,7 +878,7 @@ QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate N
       title <- paste(SiteCode[i], Params[j], sep = ": ")
       
       dat <- WQ_Params %>% 
-        subset(Date > dmy('31-12-1978') & Date < dmy('01-01-2023')) %>%
+        subset(Date > dmy(Start_Date) & Date < dmy('01-01-2023')) %>%
         subset(Locator == SiteCode[i]) %>%
         subset(Parameter == Params[j])
       
@@ -848,7 +904,7 @@ QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate N
                         col = "black", lwd = 0.5, linetype = 'twodash') +
               geom_line(aes(x = Date, y = q90),
                         col = "black", lwd = 0.5, linetype = 'twodash') +
-              scale_y_continuous(#limits = c(0,3), 
+              scale_y_log10(#limits = c(0,3), 
                 name = unique(dat$Units)[1]) +
               ggtitle(label = title))
       
@@ -860,4 +916,87 @@ QuantileGamRun <- function(SiteCode = c('A315'), Params = c('Nitrite + Nitrate N
   return(outlist)
   }
 
+Z_Score_Box_Data <- function(input_data,sep20,sep80, parm_name, units){
+  
+  # convert the long table to a wide table, for use of different analysis methods
+  long_table_20 <- input_data %>% select(all_of(c('Year',Sites20$Locator))) %>%
+    subset(Year >= 1980 & Year <=2022) %>%
+    pivot_longer(!Year, names_to = 'Locator', values_to = 'Concentration')
+  
+  long_table_80 <- input_data %>% select(all_of(c('Year',Sites80$Locator))) %>%
+    subset(Year >= 1980 & Year <=2022) %>%
+    pivot_longer(!Year, names_to = 'Locator', values_to = 'Concentration')
+  # Convert the input data to z scores, then change it to a long data frame
 
+  
+    
+  Z_Scores_20 <- input_data %>% select(all_of(c('Year',Sites20$Locator))) %>%
+    subset(Year >= 1980 & Year <= 2022) %>%
+    column_to_rownames(var = "Year") %>%
+    t() %>%
+    zscore() %>%
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Year") %>%
+    mutate(Year = as.numeric(Year), .before = 1) %>%
+    pivot_longer(!Year, names_to = 'Locator', values_to = 'Z_scores')
+  
+  Z_Scores_80 <- input_data %>% select(all_of(c('Year',Sites80$Locator))) %>%
+    subset(Year >= 1980 & Year <= 2022) %>%
+    column_to_rownames(var = "Year") %>%
+    t() %>%
+    zscore() %>%
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "Year") %>%
+    mutate(Year = as.numeric(Year), .before = 1) %>%
+    pivot_longer(!Year, names_to = 'Locator', values_to = 'Z_scores')
+  
+  samples_20 <- Z_Scores_20 %>% drop_na() %>% count(Year) # record the number of samples in year
+  samples_80 <- Z_Scores_80 %>% drop_na() %>% count(Year) # record the number of samples in year
+  
+  gplot1 <- ggplot() +
+    geom_boxplot(aes(x= Z_Scores_20$Year, y= Z_Scores_20$Z_score, group= Z_Scores_20$Year, fill= 'Low Development (20% ± 7%)'), outliers = T) +
+    geom_boxplot(aes(x= Z_Scores_80$Year, y= Z_Scores_80$Z_score, group= Z_Scores_80$Year, fill= 'High Development (93% ± 2%)'), outliers = T) +
+    ylab('Zscore') +
+    xlab('Year') +
+    geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
+    ggtitle(paste(parm_name, 'Annual Z-score Distribution', sep = ' ')) +
+    scale_y_continuous(limits = c(-4,4)) +
+    annotate('text', x = samples_80$Year, y = rep(-3.8, each = length(samples_80$n)), label = samples_80$n, size = rel(3.0), color='red') +
+    annotate('text', x = min(samples_80$Year)-1, y = -3.8, label = 'n =', size = rel(3.0))+
+    annotate('text', x = samples_20$Year, y = rep(-4, each = length(samples_20$n)), label = samples_20$n, size = rel(3.0), color='blue') +
+    annotate('text', x = min(samples_20$Year)-1, y = -4, label = 'n =', size = rel(3.0))+
+    labs(fill = "Key") +
+    theme(legend.position = "bottom",
+          axis.title.x = element_text(size = 15),
+          axis.title.y = element_text(size = 15),
+          axis.text = element_text(size = 15),
+          title = element_text(size = 20))
+  
+  gplot2 <- ggplot() +
+    geom_boxplot(aes(x= long_table_20$Year, y= long_table_20$Concentration, group= long_table_20$Year, fill = 'Low Development (20% ± 7%)'), outliers = F) +
+    geom_boxplot(aes(x= long_table_80$Year, y= long_table_80$Concentration, group= long_table_80$Year, fill = 'Intense Development (93% ± 2%)'), outliers = F) +
+    ylab(units) +
+    xlab('Year') +
+    labs(fill = "Key") +
+    geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
+    ggtitle(paste(parm_name, 'Annual Distribution', sep = ' ')) +
+    theme(legend.position = "bottom",
+          axis.title.x = element_text(size = 15),
+          axis.title.y = element_text(size = 15),
+          axis.text = element_text(size = 15),
+          title = element_text(size = 20),
+          legend.text = element_text(size = 13))
+
+  
+  out_list <- list(Z_Scores_80, Z_Scores_20, 
+                   long_table_80, long_table_20, 
+                   samples_80, samples_20, 
+                   gplot1, gplot2)
+  names(out_list) <- c('Upper 80th z scores', 'Lower 20th z scores', 
+                       'Upper 80th values', 'Lower 20th values',
+                       'Upper 80th samples', 'Lower 20th samples',
+                       'Z Score Plot', 'Values Plot')
+  return(out_list) 
+}

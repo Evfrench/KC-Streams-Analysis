@@ -25,34 +25,39 @@ ggplot(Turb_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Turb_slopes <- LT_Slope_Dist(Turb_Annual, units = c('NTU'))
-write.csv(Turb_slopes,'./data_cache/LongTermTrends/Turbidity_Slopes.csv')
+write.csv(Turb_slopes[[1]],'./data_cache/LongTermTrends/Turbidity_Slopes.csv')
+write.csv(Turb_slopes[[2]],'./data_cache/ZscoreTrends/Turbidity_Scores.csv')
+write.csv(Turb_slopes[[4]],'./data_cache/ZscoreTrends/Turbidity_Values.csv')
 
-if (quantile(Turb_slopes$`Mean Slope (NTU/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(Turb_slopes$`Mean Slope (NTU/decade)`, alternative = 'less')
+if (quantile(Turb_slopes[[1]]$`Mean Slope (NTU/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(Turb_slopes[[1]]$`Mean Slope (NTU/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(Turb_slopes$`Mean Slope (NTU/decade)`, alternative = 'greater')
+  results <- wilcox.test(Turb_slopes[[1]]$`Mean Slope (NTU/decade)`, alternative = 'greater')
 }
 
 # Get the IQR of the distribution and percent change distribution
-Turb_quant <- quantile(Turb_slopes$`Mean Slope (NTU/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-Turb_pquant <- quantile(Turb_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Turb_quant <- quantile(Turb_slopes[[1]]$`Mean Slope (NTU/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Turb_pquant <- quantile(Turb_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(Turb_slopes, aes(x = `Mean Slope (NTU/decade)`)) +
-  geom_histogram(bins = 12) + 
+ggplot(Turb_slopes[[1]], aes(x = `Mean Slope (NTU/decade)`)) +
+  geom_histogram(binwidth = 0.2) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Turb_quant[2], Turb_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Turb_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Turbidity Slope Distribution') 
 
-ggplot(Turb_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(Turb_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Turb_pquant[2], Turb_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Turb_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Turbidity Slope Distribution, Percent Change') 
 
+## Comparing these long term trends as z-scores #######################
 
+Turb_slopes[[3]]+
+  ggtitle("Turbidity Annual Z-score Distribution") 
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022
 
@@ -151,13 +156,14 @@ ggplot() +
 
 Turb_Seasonal <- Seasonal_Analysis(Turb_Monthly, form = 'Relative')
 
-ggplot(Turb_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(Turb_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100, 400), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Turbidity % Monthly Deviations from Annual Median")
+  #scale_y_continuous(limits = c(-100, 400), n.breaks = 10) +
+  scale_y_log10(limits = c(0.3,3)) +
+  ylab('Deviation from Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Turbidity Monthly Deviations from Annual Median")
 
 Turb_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
 

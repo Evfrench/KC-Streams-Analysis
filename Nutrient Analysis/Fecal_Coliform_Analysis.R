@@ -19,14 +19,14 @@ Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly
 Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This set will call the log-space data
-Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
+#Fec_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
 #Fec_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Fecal_Coliform_log.csv') %>% select(- all_of(remove_sites))
 #Fec_Monthly$Year_mon <- as.yearmon(Fec_Monthly$Year_mon)
 
 # This will call E. coli data
-Ecoli_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_E._coli.csv') %>% select(- all_of(remove_sites))
-Ecoli_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_E._coli.csv') %>% select(- all_of(remove_sites))
-Ecoli_Monthly$Year_mon <- as.yearmon(Ecoli_Monthly$Year_mon)
+#Ecoli_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_E._coli.csv') %>% select(- all_of(remove_sites))
+#Ecoli_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_E._coli.csv') %>% select(- all_of(remove_sites))
+#Ecoli_Monthly$Year_mon <- as.yearmon(Ecoli_Monthly$Year_mon)
 
 # This set will call the log-space data
 #Ecoli_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_E._coli_log.csv') %>% select(- all_of(remove_sites))
@@ -42,45 +42,53 @@ ggplot(Fec_Entries, aes(x = Year, y = Entries)) +
   ggtitle('Fecal Coliform Entries per Year')
 
 # Plot the number of entries per year with the fixed code
-Ecoli_Entries <- tibble(as.data.frame(Ecoli_Annual)['Year'], rowSums(!is.na(Ecoli_Annual[,-1])))
-names(Ecoli_Entries) <- c('Year', 'Entries')
-ggplot(Ecoli_Entries, aes(x = Year, y = Entries)) +
-  geom_col() +
-  ggtitle('E. Coli Entries per Year')
+#Ecoli_Entries <- tibble(as.data.frame(Ecoli_Annual)['Year'], rowSums(!is.na(Ecoli_Annual[,-1])))
+#names(Ecoli_Entries) <- c('Year', 'Entries')
+#ggplot(Ecoli_Entries, aes(x = Year, y = Entries)) +
+#  geom_col() +
+#  ggtitle('E. Coli Entries per Year')
 
 # Long Term Trend Analysis ##################################################################
 #
-# Baseline: 1979 - 2008, 5 yrs required
+# Baseline: 1979 - 2012, 5 yrs required
 # Current: 2013 - 2020, 5 yrs required (Note discrepancy in the code)
 # Results: x sites, 
-#### You need site names tied to row names in this function #######
+#### You need site names tied to row names in this function ###
 # This function will calculate the long term slopes as defined by the function inputs stated above
 fecal_slopes <- LT_Slope_Dist(Fec_Annual, units = c('CFU/100mL'))
-write.csv(fecal_slopes,'./data_cache/LongTermTrends/fecal_Slopes.csv')
+write.csv(fecal_slopes[[1]],'./data_cache/LongTermTrends/fecal_Slopes.csv')
+write.csv(fecal_slopes[[2]],'./data_cache/ZscoreTrends/fecal_Scores.csv')
+write.csv(fecal_slopes[[4]],'./data_cache/ZscoreTrends/fecal_Values.csv')
 
-if (quantile(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, alternative = 'less')
+
+if (quantile(fecal_slopes[[1]]$`Mean Slope (CFU/100mL/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(fecal_slopes[[1]]$`Mean Slope (CFU/100mL/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, alternative = 'greater')
+  results <- wilcox.test(fecal_slopes[[1]]$`Mean Slope (CFU/100mL/decade)`, alternative = 'greater')
 }
 # Get the IQR of the distribution and percent change distribution
-fec_quant <- quantile(fecal_slopes$`Mean Slope (CFU/100mL/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-fec_pquant <- quantile(fecal_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+fec_quant <- quantile(fecal_slopes[[1]]$`Mean Slope (CFU/100mL/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+fec_pquant <- quantile(fecal_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(fecal_slopes, aes(x = `Mean Slope (CFU/100mL/decade)`)) +
-  geom_histogram(bins = 12) + 
+ggplot(fecal_slopes[[1]], aes(x = `Mean Slope (CFU/100mL/decade)`)) +
+  geom_histogram(binwidth = 20) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(fec_quant[2], fec_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = fec_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
-  ggtitle('Fecal Coliform Log Slope Distribution') 
+  ggtitle('Fecal Coliform Slope Distribution') 
 
-ggplot(fecal_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(fecal_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(fec_pquant[2], fec_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = fec_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Fecal Coliform Slope Distribution, Percent Change') 
+
+## Comparing these long term trends as z-scores #######################
+
+fecal_slopes[[3]]+
+  ggtitle("Fecal Coliform Annual Z-score Distribution")
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -182,22 +190,23 @@ ggplot() +
 
 Fec_Seasonal <- Seasonal_Analysis(Fec_Monthly, form = 'Relative')
 
-ggplot(Fec_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(Fec_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
 #  scale_y_continuous(limits = c(-250, 1000), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Fecal Coliform % Monthly Deviations from Annual Median")
+  scale_y_log10(limits = c(0.25,4)) +
+  ylab('Deviation from Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Fecal Coliform Monthly Deviations from Annual Median")
 
-Ecoli_Seasonal <- Seasonal_Analysis(Ecoli_Monthly)
+#Ecoli_Seasonal <- Seasonal_Analysis(Ecoli_Monthly)
 
-ggplot(Ecoli_Seasonal, aes(x= Month, y= med_annual_dev)) +
-  geom_boxplot(aes(group= Month)) +
-  scale_x_continuous(breaks = 1:12,labels = 1:12) +
+#ggplot(Ecoli_Seasonal, aes(x= Month, y= med_annual_dev)) +
+#  geom_boxplot(aes(group= Month)) +
+#  scale_x_continuous(breaks = 1:12,labels = 1:12) +
 #  scale_y_continuous(limits = c(-250, 1000), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
+#  ylab('% Deviation from Median') +
+#  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("E. Coli % Monthly Deviations from Annual Median")
 
 

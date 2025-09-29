@@ -25,35 +25,42 @@ ggplot(Nit_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Nitrate_slopes <- LT_Slope_Dist(Nit_Annual, units = c('μg/L'))
-write.csv(Nitrate_slopes,'./data_cache/LongTermTrends/Nitrate_Slopes.csv')
+write.csv(Nitrate_slopes[[1]],'./data_cache/LongTermTrends/Nitrate_Slopes.csv')
+write.csv(Nitrate_slopes[[2]],'./data_cache/ZscoreTrends/Nitrate_Scores.csv')
+write.csv(Nitrate_slopes[[4]],'./data_cache/ZscoreTrends/Nitrate_Values.csv')
 
 
 # Get the IQR of the distribution and percent change distribution
-Nit_quant <- quantile(Nitrate_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-Nit_pquant <- quantile(Nitrate_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Nit_quant <- quantile(Nitrate_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Nit_pquant <- quantile(Nitrate_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
-if (quantile(Nitrate_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(Nitrate_slopes$`Mean Slope (μg/L/decade)`, alternative = 'less')
+if (quantile(Nitrate_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(Nitrate_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(Nitrate_slopes$`Mean Slope (μg/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(Nitrate_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'greater')
 }
 
 
 # Make histograms of the resulting distributions
-ggplot(Nitrate_slopes, aes(x = `Mean Slope (μg/L/decade)`)) +
+ggplot(Nitrate_slopes[[1]], aes(x = `Mean Slope (μg/L/decade)`)) +
   geom_histogram(binwidth = 50) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Nit_quant[2], Nit_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Nit_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Nitrate Slope Distribution') 
 
-ggplot(Nitrate_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(Nitrate_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(binwidth = 3) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Nit_pquant[2], Nit_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Nit_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Nitrate Slope Distribution, Percent Change') 
 
+
+## Comparing these long term trends as z-scores #######################
+
+Nitrate_slopes[[3]]+
+  ggtitle("Nitrate Annual Z-score Distribution") 
 
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022
@@ -167,7 +174,7 @@ ggplot(Nit_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
   #scale_y_continuous(limits = c(-100, 250), n.breaks = 10) +
-  scale_y_log10() +
+  scale_y_log10(limits = c(0.3,3)) +
   ylab('Deviation from Median') +
   geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Nitrate Monthly Deviations from Annual Median")
@@ -264,3 +271,53 @@ biplot(Decomp, choices = c(1,3))
 
 biplot(Decomp, choices = c(2,3))
 
+
+# Giving Mike some extra nitrate data ###########################################
+
+NO3_0309 <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Nitrite_+_Nitrate_Nitrogen.csv') %>% 
+  mutate(Year_mon = as.yearmon(Year_mon), .before = 1) %>%
+  select(all_of(c('Year_mon', '0309', '3106')))
+
+# all sites with 16.89% or less
+# all sites with 88.93% or more
+
+
+
+WQ_Params <- get_socrata_data_func(locns = '0317', parms = "Nitrite + Nitrate Nitrogen",
+                                   SiteType = 'Streams and Rivers') %>%
+  mutate(Locator=ifelse(Locator=='FF321','F321',                  #Join past/present locations
+                        ifelse(Locator=='A632','0632',
+                               ifelse(Locator=='N484A','N484',
+                                      ifelse(Locator %in% c('0456','0456A'),'A456',
+                                             ifelse(Locator=='X438', '0438',
+                                                    ifelse(Locator=='X630','A630',
+                                                           Locator))))))) %>%
+  mutate(Parameter = replace(Parameter, Parameter == 'Dissolved Oxygen, Field', 'Dissolved Oxygen'),  # merge the two DO and conductivity fields
+         Parameter = replace(Parameter, Parameter == 'Conductivity, Field', 'Conductivity'),
+         Units = replace(Units, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total Nitrogen",
+                                                 "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus"), 'ug/L'),
+         Censored = if_else(Value <= MDL, TRUE, FALSE, missing = FALSE),
+         Date = date(CollectDate),
+         Dec_Date = decimal_date(Date) - min(decimal_date(Date))) %>%
+  rowwise() %>%
+  mutate(Value = replace(Value, Parameter %in% c("Ammonia Nitrogen", "Organic Nitrogen", "Nitrite + Nitrate Nitrogen", "Total Kjeldahl Nitrogen", "Total Nitrogen",
+                                                 "Orthophosphate Phosphorus", "Total Phosphorus", "Total Hydrolyzable Phosphorus"), Value*1000)) %>% # Convert nutrient values to micrograms per liter for convenience
+  subset(Year >= 1979 & Year <= 2022)
+
+ggplot(data = WQ_Params) +
+  scale_y_continuous(name = 'Nitrate ug/L', limits = c(0,2500)) +
+  xlab('Date') +
+  ggtitle('Nitrate: Raw Example') +
+  geom_point(aes(x = CollectDate, y = Value))
+  
+ggplot(data = Nit_Monthly) +
+  scale_y_continuous(name = 'Nitrate ug/L', limits = c(0,2500)) +
+  scale_x_continuous(limits = c(1979,2023),name = 'Date') +
+  ggtitle('Nitrate: Monthly Example') +
+  geom_point(aes(x = Year_mon, y = `0317`))
+  
+ggplot(data = Nit_Annual) +
+  scale_y_continuous(name = 'Nitrate ug/L', limits = c(0,2500)) +
+  scale_x_continuous(limits = c(1979,2022),name = 'Date') +
+  ggtitle('Nitrate: Annual Example') +
+  geom_point(aes(x = Year, y = `0317`))

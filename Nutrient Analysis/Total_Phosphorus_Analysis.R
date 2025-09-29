@@ -25,31 +25,38 @@ ggplot(TP_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 TP_slopes <- LT_Slope_Dist(TP_Annual, units = c('μg/L'))
-write.csv(TP_slopes,'./data_cache/LongTermTrends/TP_Slopes.csv')
+write.csv(TP_slopes[[1]],'./data_cache/LongTermTrends/TP_Slopes.csv')
+write.csv(TP_slopes[[2]],'./data_cache/ZscoreTrends/TP_Scores.csv')
+write.csv(TP_slopes[[4]],'./data_cache/ZscoreTrends/TP_Values.csv')
 
-if (quantile(TP_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(TP_slopes$`Mean Slope (μg/L/decade)`, alternative = 'less')
+
+if (quantile(TP_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(TP_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(TP_slopes$`Mean Slope (μg/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(TP_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'greater')
 }
 # Get the IQR of the distribution and percent change distribution
-TP_quant <- quantile(TP_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-TP_pquant <- quantile(TP_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TP_quant <- quantile(TP_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TP_pquant <- quantile(TP_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(TP_slopes, aes(x = `Mean Slope (μg/L/decade)`)) +
+ggplot(TP_slopes[[1]], aes(x = `Mean Slope (μg/L/decade)`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TP_quant[2], TP_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TP_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Total Phosphorus Slope Distribution') 
 
-ggplot(TP_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(TP_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TP_pquant[2], TP_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TP_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Total Phosphorus Slope Distribution, Percent Change') 
+
+## Comparing these long term trends as z-scores #######################
+TP_slopes[[3]]+
+  ggtitle("TP Annual Z-score Distribution")
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -150,13 +157,14 @@ ggplot() +
 
 TP_Seasonal <- Seasonal_Analysis(TP_Monthly, form = 'Relative')
 
-ggplot(TP_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(TP_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Total Phosphorus % Monthly Deviations from Annual Median")
+  #scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
+  scale_y_log10(limits = c(0.5,2)) +
+  ylab('Deviation from Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Total Phosphorus Monthly Deviations from Annual Median")
 
 TP_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
 

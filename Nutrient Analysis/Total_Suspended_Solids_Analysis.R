@@ -31,32 +31,40 @@ ggplot(TSS_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 TSS_slopes <- LT_Slope_Dist(TSS_Annual, units = c('mg/L'))
-write.csv(TSS_slopes,'./data_cache/LongTermTrends/TSS_Slopes.csv')
+write.csv(TSS_slopes[[1]],'./data_cache/LongTermTrends/TSS_Slopes.csv')
+write.csv(TSS_slopes[[2]],'./data_cache/ZscoreTrends/TSS_Scores.csv')
+write.csv(TSS_slopes[[4]],'./data_cache/ZscoreTrends/TSS_Values.csv')
 
-if (quantile(TSS_slopes$`Mean Slope (mg/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(TSS_slopes$`Mean Slope (mg/L/decade)`, alternative = 'less')
+if (quantile(TSS_slopes[[1]]$`Mean Slope (mg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(TSS_slopes[[1]]$`Mean Slope (mg/L/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(TSS_slopes$`Mean Slope (mg/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(TSS_slopes[[1]]$`Mean Slope (mg/L/decade)`, alternative = 'greater')
 }
 
 # Get the IQR of the distribution and percent change distribution
-TSS_quant <- quantile(TSS_slopes$`Mean Slope (mg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-TSS_pquant <- quantile(TSS_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TSS_quant <- quantile(TSS_slopes[[1]]$`Mean Slope (mg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+TSS_pquant <- quantile(TSS_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(TSS_slopes, aes(x = `Mean Slope (mg/L/decade)`)) +
-  geom_histogram(binwidth = 0.25) + 
+ggplot(TSS_slopes[[1]], aes(x = `Mean Slope (mg/L/decade)`)) +
+  geom_histogram(binwidth = 0.3) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TSS_quant[2], TSS_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TSS_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('TSS Slope Distribution') 
 
-ggplot(TSS_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(TSS_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(TSS_pquant[2], TSS_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = TSS_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('TSS Slope Distribution, Percent Change') 
+
+
+## Comparing these long term trends as z-scores #######################
+
+TSS_slopes[[3]]+
+  ggtitle("TSS Annual Z-score Distribution")
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -157,13 +165,14 @@ ggplot() +
 
 TSS_Seasonal <- Seasonal_Analysis(TSS_Monthly, form = 'Relative')
 
-ggplot(TSS_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(TSS_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100, 400), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("TSS % Monthly Deviations from Annual Median")
+  #scale_y_continuous(limits = c(-100, 400), n.breaks = 10) +
+  scale_y_log10(limits = c(0.3,3)) +
+  ylab('Deviation from Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("TSS Monthly Deviations from Annual Median")
 
 TSS_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
 

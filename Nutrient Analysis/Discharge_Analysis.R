@@ -7,11 +7,13 @@ source('./functions/get_socrata_data_func.R')
 #Summarize to monthly average discharge
 monthly <- readRDS(file = '~/KC-Streams-Analysis/data_cache/Hydrological/DailyAveFlow_allgages.RDS') %>%
   drop_na() %>%
-  mutate(Year_mon = as.yearmon(Date)) %>%
-  group_by(SITE_CODE, Year_mon) %>%
+  subset(SITE_CODE %in% c('46a','35c','46a','15c','18a','09a','26a','18a'))%>%
+  group_by(SITE_CODE, Year, Month) %>%
   summarize(AveQ30 = mean(log(AveQ), na.rm = TRUE))%>%
-  reshape2::dcast(Year_mon ~ SITE_CODE, value.var = 'AveQ30') %>%
-  subset(Year_mon >= 1980)
+  pivot_wider(names_from = SITE_CODE, values_from = AveQ30)
+
+write_csv(monthly, file = '~/KC-Streams-Analysis/data_cache/Hydrological/monthly_flow_six_gages.csv')
+
 
 seasonal_flow <- Seasonal_Analysis(monthly, form = 'Mean-Dev')
 

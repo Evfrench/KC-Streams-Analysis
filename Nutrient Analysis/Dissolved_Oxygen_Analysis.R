@@ -25,32 +25,41 @@ ggplot(DO_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 DO_slopes <- LT_Slope_Dist(DO_Annual, units = c('mg/L'))
-write.csv(DO_slopes,'./data_cache/LongTermTrends/Dissolved_Oxygen_Slopes.csv')
+write.csv(DO_slopes[[1]],'./data_cache/LongTermTrends/Dissolved_Oxygen_Slopes.csv')
+write.csv(DO_slopes[[2]],'./data_cache/ZscoreTrends/Dissolved_Oxygen_Scores.csv')
+write.csv(DO_slopes[[4]],'./data_cache/ZscoreTrends/Dissolved_Oxygen_Values.csv')
 
-if (quantile(DO_slopes$`Mean Slope (mg/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(DO_slopes$`Mean Slope (mg/L/decade)`, alternative = 'less')
+
+if (quantile(DO_slopes[[1]]$`Mean Slope (mg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(DO_slopes[[1]]$`Mean Slope (mg/L/decade)`, alternative = 'less', exact = FALSE)
 } else {
-  results <- wilcox.test(DO_slopes$`Mean Slope (mg/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(DO_slopes[[1]]$`Mean Slope (mg/L/decade)`, alternative = 'greater')
 }
 
 # Get the IQR of the distribution and percent change distribution
-DO_quant <- quantile(DO_slopes$`Mean Slope (mg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-DO_pquant <- quantile(DO_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+DO_quant <- quantile(DO_slopes[[1]]$`Mean Slope (mg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+DO_pquant <- quantile(DO_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(DO_slopes, aes(x = `Mean Slope (mg/L/decade)`)) +
-  geom_histogram(bins = 12) + 
+ggplot(DO_slopes[[1]], aes(x = `Mean Slope (mg/L/decade)`)) +
+  geom_histogram(binwidth = 0.05) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(DO_quant[2], DO_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = DO_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Dissolved Oxygen Slope Distribution') 
 
-ggplot(DO_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(DO_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 12) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(DO_pquant[2], DO_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = DO_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Dissolved Oxygen Slope Distribution, Percent Change') 
+
+## Comparing these long term trends as z-scores #######################
+
+DO_slopes[[3]]+
+  ggtitle("DO Annual Z-score Distribution") 
+# correlate median z-scores with temperature
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -136,13 +145,15 @@ ggplot() +
 
 DO_Seasonal <- Seasonal_Analysis(DO_Monthly, form = 'Relative')
 
-ggplot(DO_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(DO_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
   #scale_y_continuous(limits = c(-75, 50), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Dissolved Oxygen % Monthly Deviations from Annual Median")
+  #scale_y_log10() +
+  scale_y_log10(limits = c(0.8,1.2), n.breaks = 8) +
+  ylab('Multiples of Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Dissolved Oxygen")
 
 DO_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
 
@@ -272,3 +283,54 @@ write.csv(DO_Table,'./data_cache/Misc/DissolvedOxygen_Combined.csv')
 
 DOsat_Table <- inner_join(rownames_to_column(DOSatP_slopes, var = 'Locator'),DOsat_LC_inputs, by = 'Locator')
 write.csv(DOsat_Table,'./data_cache/Misc/DOSaturation_Combined.csv')
+
+
+Low_months <- DO_Monthly %>%
+  pivot_longer(!Year_mon, values_to = 'DO', names_to = 'Site') %>%
+  mutate(Site=ifelse(Site=='0450CC','0450', 
+                     ifelse(Site=='0484A','0484', Site))) %>%
+  mutate(Month = month(Year_mon), 
+         Year = year(Year_mon),
+         .before = 1) %>%
+  subset(Month %in% c(7:8)) %>%
+  subset(Year >= 1979 & Year <= 2022) %>%
+  group_by(Site, Year) %>%
+  summarise(DO = mean(DO, na.rm = T)) %>%
+  mutate(DO = ifelse(is.nan(DO) , NA, DO)) 
+
+
+ggplot(data = Low_months) +
+  facet_wrap(.~ Site) +
+  geom_point(aes(x = Year, y= DO)) +
+  geom_hline(yintercept = 2, linetype = 'twodash', color = 'grey', linewidth = 1)
+  xlab('Year') +
+  ylab('Temperature')
+
+# Fitting the warm months to land cover data ################################################
+
+Warm_Annual_DO <- Low_months %>%
+  pivot_wider(id_cols = Year, values_from = DO, names_from = Site)
+  
+  LowDO_lc_mods <- Land_Cover_Modeling(Warm_Annual_DO, CoverVariables, param = "DO", window = c(2016, 2022), log_space = FALSE)
+  
+  
+  
+  # Create a data frame of Estimated Henry's Constants, provided by D. Tromans (2000)
+  TempK1 <- 10.25 + 273.15
+  TempK2 <- 10.946 + 273.15
+  diffT <- TempK2 - TempK1
+  #
+  #
+  # Henry's Constant Estimations
+  DOSat_1 <- exp((0.046*(TempK1^2) + 203.35*TempK1*log(TempK1/298) - (299.378 + 0.092*TempK1)*(TempK1 - 298) - 20.591*10^3)/(8.3144*TempK1))
+  DOSat_2 <- exp((0.046*(TempK2^2) + 203.35*TempK2*log(TempK2/298) - (299.378 + 0.092*TempK2)*(TempK2 - 298) - 20.591*10^3)/(8.3144*TempK2))
+  #
+  #
+  #
+  # Convert to DO Saturation
+  DOSat_1 <- DOSat_1 * 0.21 * 32000 * 0.99975
+  DOSat_2 <- DOSat_2 * 0.21 * 32000 * 0.99975
+  Diff <- DOSat_2 - DOSat_1
+  #
+  #
+  #  

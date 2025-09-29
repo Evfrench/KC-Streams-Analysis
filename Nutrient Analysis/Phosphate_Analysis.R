@@ -24,12 +24,15 @@ ggplot(Srp_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Phosphate_slopes <- LT_Slope_Dist(Srp_Annual, units = c('μg/L'))
-write.csv(Phosphate_slopes,'./data_cache/LongTermTrends/Phosphate_Slopes.csv')
+write.csv(Phosphate_slopes[[1]],'./data_cache/LongTermTrends/Phosphate_Slopes.csv')
+write.csv(Phosphate_slopes[[2]],'./data_cache/ZscoreTrends/Phosphate_Scores.csv')
+write.csv(Phosphate_slopes[[4]],'./data_cache/ZscoreTrends/Phosphate_Values.csv')
 
-if (quantile(Phosphate_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(Phosphate_slopes$`Mean Slope (μg/L/decade)`, alternative = 'less')
+
+if (quantile(Phosphate_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(Phosphate_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(Phosphate_slopes$`Mean Slope (μg/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(Phosphate_slopes[[1]]$`Mean Slope (μg/L/decade)`, alternative = 'greater')
 }
 #Phosphate_slopes <- fread('./data_cache/LongTermTrends/Phosphate_Slopes.csv')
 
@@ -37,27 +40,32 @@ if (quantile(Phosphate_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.5)) < 0) 
 #write.csv(Phosphate_slopes2,'./data_cache/LongTermTrends/Phosphate_Slopes2.csv')
 
 # Get the IQR of the distribution and percent change distribution
-Srp_quant <- quantile(Phosphate_slopes$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-Srp_pquant <- quantile(Phosphate_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Srp_quant <- quantile(Phosphate_slopes[[1]]$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Srp_pquant <- quantile(Phosphate_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 #    Srp_quant <- quantile(Phosphate_slopes2$`Mean Slope (μg/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
 #    Srp_pquant <- quantile(Phosphate_slopes2$Percent_Slp.per.decade, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 # Make histograms of the resulting distributions
-ggplot(Phosphate_slopes, aes(x = `Mean Slope (μg/L/decade)`)) +
+ggplot(Phosphate_slopes[[1]], aes(x = `Mean Slope (μg/L/decade)`)) +
   geom_histogram(bins = 30) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Srp_quant[2], Srp_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Srp_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Phosphate Slope Distribution') 
 
-ggplot(Phosphate_slopes2, aes(x = `% Change Per Decade`)) +
+ggplot(Phosphate_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(bins = 10) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Srp_pquant[2], Srp_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Srp_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Phosphate Slope Distribution, Percent Change') 
 
+## Comparing these long term trends as z-scores #######################
+
+
+Phosphate_slopes[[3]]+
+  ggtitle("Phosphate Annual Z-score Distribution")
 
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022
@@ -159,13 +167,14 @@ ggplot() +
 
 Srp_Seasonal <- Seasonal_Analysis(Srp_Monthly, form = 'Relative')
 
-ggplot(Srp_Seasonal, aes(x= Month, y= med_annual_dev)) +
+ggplot(Srp_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
-  scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
-  ylab('% Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
-  ggtitle("Phosphate % Monthly Deviations from Annual Median")
+  #scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
+  scale_y_log10(limits = c(0.5,2)) +
+  ylab('Deviation from Median') +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  ggtitle("Phosphate Monthly Deviations from Annual Median")
 
 Srp_Q_Months <- tibble('Month' = numeric(), '10th' = numeric(), '25th' = numeric(), '50th' = numeric(), '75th' = numeric(), '90th' = numeric(), 'p-val' = numeric())
 
@@ -186,7 +195,15 @@ for (i in 1:12) {
 }
 
 write.csv(Srp_Q_Months, file = './data_cache/SeasonalityResults/Phosphate_Monthly_Dist.csv')
-# Extra Stuff
+# Extra Stuff ########
 
 PO4_Table <- inner_join(rownames_to_column(Phosphate_slopes, var = 'Locator'),Phosphate_LC_inputs, by = 'Locator')
 write.csv(PO4_Table,'./data_cache/Misc/Phosphate_Combined.csv')
+
+# Something for Mike
+
+SRP_AllSites <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Orthophosphate_Phosphorus.csv') %>%
+  mutate(Year_mon = as.yearmon(Year_mon),
+         Year = year(Year_mon),
+         Month = month(Year_mon, label = TRUE),
+         .before = 1)

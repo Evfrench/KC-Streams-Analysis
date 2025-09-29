@@ -10,6 +10,11 @@ source('./functions/get_socrata_data_func.R')
 summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','annual')
 summarize_WQ_data('Nitrite_+_Nitrate_Nitrogen','monthly')
 
+# Ammonium Nitrogen #######################################################################################################
+
+summarize_WQ_data('Ammonia_Nitrogen','annual')
+summarize_WQ_data('Ammonia_Nitrogen','monthly')
+
 # Total Nitrogen ##########################################################################################################
 
 summarize_WQ_data('Total_Nitrogen','annual')

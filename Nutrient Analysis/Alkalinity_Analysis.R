@@ -7,8 +7,11 @@ remove_sites <- c('0305','0307','0308','0309','3106',
 
 # If already run once, these will load the frames from the data cache
 Alk_Annual <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Total_Alkalinity.csv') %>% select(- all_of(remove_sites))
-Alk_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Total_Alkalinity.csv') %>% select(- all_of(remove_sites))
-Alk_Monthly$Year_mon <- as.yearmon(Alk_Monthly$Year_mon)
+Alk_Monthly <- fread('~/KC-Streams-Analysis/data_cache/NutrientData/mean_monthly_Total_Alkalinity.csv') %>% select(- all_of(remove_sites)) %>%
+  mutate(Year_mon = as.yearmon(Year_mon), .before = 1)
+#Alk_Monthly$Year_mon <- as.yearmon(Alk_Monthly$Year_mon)
+
+#write_csv(Alk_Monthly, file = './data_cache/Misc/Alk_AllSites.csv')
 
 # Plot the number of entries per year with the fixed code
 Alk_Entries <- tibble(as.data.frame(Alk_Annual)['Year'], rowSums(!is.na(Alk_Annual[,-1])))
@@ -25,33 +28,45 @@ ggplot(Alk_Entries, aes(x = Year, y = Entries)) +
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 Alk_slopes <- LT_Slope_Dist(Alk_Annual, units = c('mg CaCO3/L'))
-write.csv(Alk_slopes,'./data_cache/LongTermTrends/Alkalinity_Slopes.csv')
+write.csv(Alk_slopes[[1]],'./data_cache/LongTermTrends/Alkalinity_Slopes.csv')
+write.csv(Alk_slopes[[2]],'./data_cache/ZscoreTrends/Alkalinity_Scores.csv')
+write.csv(Alk_slopes[[4]],'./data_cache/ZscoreTrends/Alkalinity_Values.csv')
 
-if (quantile(Alk_slopes$`Mean Slope (mg CaCO3/L/decade)`, probs = c(0.5)) < 0) {
-  results <- wilcox.test(Alk_slopes$`Mean Slope (mg CaCO3/L/decade)`, alternative = 'less')
+Alk_quant <- quantile(Alk_slopes[[1]]$`Mean Slope (mg CaCO3/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Alk_pquant <- quantile(Alk_slopes[[1]]$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
+
+if (quantile(Alk_slopes[[1]]$`Mean Slope (mg CaCO3/L/decade)`, probs = c(0.5)) < 0) {
+  results <- wilcox.test(Alk_slopes[[1]]$`Mean Slope (mg CaCO3/L/decade)`, alternative = 'less')
 } else {
-  results <- wilcox.test(Alk_slopes$`Mean Slope (mg CaCO3/L/decade)`, alternative = 'greater')
+  results <- wilcox.test(Alk_slopes[[1]]$`Mean Slope (mg CaCO3/L/decade)`, alternative = 'greater')
 }
 
 
-# Get the IQR of the distribution and percent change distribution
-Alk_quant <- quantile(Alk_slopes$`Mean Slope (mg CaCO3/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
-Alk_pquant <- quantile(Alk_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
-
 # Make histograms of the resulting distributions
-ggplot(Alk_slopes, aes(x = `Mean Slope (mg CaCO3/L/decade)`)) +
-  geom_histogram(binwidth = 2) + 
+ggplot(Alk_slopes[[1]], aes(x = `Mean Slope (mg CaCO3/L/decade)`)) +
+  geom_histogram(binwidth = 1.5) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Alk_quant[2], Alk_quant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Alk_quant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Total Alkalinity Slope Distribution') 
 
-ggplot(Alk_slopes, aes(x = `% Change Per Decade`)) +
+ggplot(Alk_slopes[[1]], aes(x = `% Change Per Decade`)) +
   geom_histogram(binwidth = 2) + 
   geom_vline(xintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
   geom_vline(xintercept = c(Alk_pquant[2], Alk_pquant[4]), linetype = 'dashed', color = 'black', linewidth = 0.5) +
   geom_vline(xintercept = Alk_pquant[3], linetype = 'solid', color = 'black', linewidth = 0.5) +
   ggtitle('Total Alkalinity Slope Distribution, Percent Change') 
+
+## Comparing these long term trends as z-scores #######################
+
+Alk_slopes[[3]] +
+  ggtitle("Alkalinity Annual Z-score Distribution") 
+
+
+
+ # Get the IQR of the distribution and percent change distribution
+Alk_quant <- quantile(Alk_slopes$`Mean Slope (mg CaCO3/L/decade)`, probs = c(0.1,0.25,0.5,0.75,0.9))
+Alk_pquant <- quantile(Alk_slopes$`% Change Per Decade`, probs = c(0.1,0.25,0.5,0.75,0.9))
 
 
 # Land Cover Analysis and Modeling ######################################################################
@@ -172,9 +187,9 @@ ggplot(Alk_Seasonal, aes(x= Month, y= geo_mean_dev)) +
   geom_boxplot(aes(group= Month)) +
   scale_x_continuous(breaks = 1:12,labels = 1:12) +
   #scale_y_continuous(limits = c(-100, 200), n.breaks = 10) +
-  scale_y_log10() +
+  scale_y_log10(limits = c(0.5,2)) +
   ylab('Deviation from Median') +
-  geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 'twodash', color = 'grey', linewidth = 1) +
   ggtitle("Total Alkalinity Deviations from Annual Median")
 
 
@@ -198,8 +213,13 @@ for (i in 1:12) {
 
 write.csv(Alk_Q_Months, file = './data_cache/SeasonalityResults/Alkalinity_Monthly_Dist.csv')
 
-
 # Extra Stuff
 
 Alk_Table <- inner_join(rownames_to_column(Alk_slopes, var = 'Locator'),Alk_LC_inputs, by = 'Locator')
 write.csv(Alk_Table,'./data_cache/Misc/Alkalinity_Combined.csv')
+
+
+ggplot() +
+  geom_point(data = LandCover, aes(x = `Developed, Total`, y = `Forest, Total`)) +
+  xlab("% Coverage, Total Developed") +
+  ylab("% Coverage, Total Forested")

@@ -1,0 +1,26 @@
+"","Description","R_Squared","RMSE","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Ammonia = Const. + Developed, Total",0.035,22.389,530.185,0.139,11.196,0.134,NA,NA,1
+"2","Ammonia = Const. + Developed, Total + Agriculture, Total",0.051,22.206,531.232,0.082,8.363,0.163,0.501,NA,0.592
+"3","Ammonia = Const. + Open Water",0.012,22.662,531.589,0.069,19.284,-1.622,NA,NA,0.496
+"4","Ammonia = Const. + Developed, Total + Open Water",0.044,22.287,531.652,0.067,12.673,0.129,-1.415,NA,0.48
+"5","Ammonia = Const. + Developed, Total + Deciduous Forest",0.044,22.29,531.668,0.066,8.346,0.148,0.512,NA,0.476
+"6","Ammonia = Const. + Agriculture, Total",0.004,22.753,532.055,0.055,17.253,0.231,NA,NA,0.392
+"7","Ammonia = Const. + Deciduous Forest",0.003,22.766,532.117,0.053,16.724,0.277,NA,NA,0.381
+"8","Ammonia = Const. + Developed, Total + Wetlands, Total",0.036,22.38,532.136,0.052,10.236,0.137,0.312,NA,0.377
+"9","Ammonia = Const. + Wetlands, Total",0,22.795,532.269,0.049,17.943,-0.023,NA,NA,0.353
+"10","Ammonia = Const. + Developed, Total + Deciduous Forest + Agriculture, Total",0.058,22.121,532.783,0.038,5.837,0.175,0.474,0.482,0.273
+"11","Ammonia = Const. + Developed, Total + Agriculture, Total + Open Water",0.058,22.125,532.809,0.037,9.843,0.157,0.472,-1.256,0.269
+"12","Ammonia = Const. + Developed, Total + Agriculture, Total + Wetlands, Total",0.051,22.205,533.227,0.03,8.076,0.164,0.496,0.104,0.219
+"13","Ammonia = Const. + Developed, Total + Deciduous Forest + Open Water",0.05,22.215,533.276,0.03,10.023,0.141,0.44,-1.224,0.213
+"14","Ammonia = Const. + Developed, Total + Deciduous Forest + Wetlands, Total",0.048,22.24,533.407,0.028,5.205,0.16,0.65,0.771,0.2
+"15","Ammonia = Const. + Agriculture, Total + Open Water",0.015,22.628,533.417,0.028,18.677,0.206,-1.572,NA,0.199
+"16","Ammonia = Const. + Deciduous Forest + Open Water",0.013,22.647,533.511,0.026,18.383,0.199,-1.545,NA,0.19
+"17","Ammonia = Const. + Developed, Total + Wetlands, Total + Open Water",0.045,22.272,533.573,0.026,11.497,0.133,0.397,-1.459,0.184
+"18","Ammonia = Const. + Wetlands, Total + Open Water",0.012,22.662,533.586,0.025,19.079,0.084,-1.633,NA,0.183
+"19","Ammonia = Const. + Deciduous Forest + Agriculture, Total",0.006,22.731,533.941,0.021,16.297,0.241,0.211,NA,0.153
+"20","Ammonia = Const. + Agriculture, Total + Wetlands, Total",0.004,22.751,534.044,0.02,17.623,0.241,-0.156,NA,0.145
+"21","Ammonia = Const. + Deciduous Forest + Wetlands, Total",0.003,22.763,534.105,0.02,16.198,0.302,0.164,NA,0.141
+"22","Ammonia = Const. + Deciduous Forest + Agriculture, Total + Open Water",0.016,22.618,535.361,0.01,17.954,0.168,0.193,-1.51,0.075
+"23","Ammonia = Const. + Agriculture, Total + Wetlands, Total + Open Water",0.015,22.628,535.416,0.01,18.756,0.209,-0.036,-1.567,0.073
+"24","Ammonia = Const. + Deciduous Forest + Wetlands, Total + Open Water",0.013,22.643,535.489,0.01,17.684,0.233,0.224,-1.56,0.071
+"25","Ammonia = Const. + Deciduous Forest + Agriculture, Total + Wetlands, Total",0.006,22.731,535.941,0.008,16.259,0.243,0.21,0.012,0.056

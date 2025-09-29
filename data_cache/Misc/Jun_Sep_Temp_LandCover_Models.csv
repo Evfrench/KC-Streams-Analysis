@@ -1,0 +1,26 @@
+"","Description","R_Squared","RMSE","AICc","AICwt","Intercept","coef_1","coef_2","coef_3","relLik"
+"1","Temperature = Const. + Developed, Total + Wetlands, Total",0.096,1.585,224.983,0.095,13.253,0.013,0.17,NA,1
+"2","Temperature = Const. + Deciduous Forest",0.064,1.612,224.985,0.095,14.781,-0.1,NA,NA,0.999
+"3","Temperature = Const. + Developed, Total + Deciduous Forest",0.095,1.585,225.028,0.093,14.248,0.009,-0.085,NA,0.978
+"4","Temperature = Const. + Developed, Total + Deciduous Forest + Wetlands, Total",0.116,1.566,225.634,0.069,13.735,0.011,-0.062,0.126,0.722
+"5","Temperature = Const. + Developed, Total",0.051,1.623,225.789,0.064,13.776,0.012,NA,NA,0.668
+"6","Temperature = Const. + Deciduous Forest + Agriculture, Total",0.076,1.602,226.236,0.051,14.843,-0.095,-0.031,NA,0.534
+"7","Temperature = Const. + Developed, Total + Agriculture, Total + Wetlands, Total",0.107,1.575,226.262,0.05,13.389,0.012,-0.031,0.183,0.527
+"8","Temperature = Const. + Deciduous Forest + Wetlands, Total",0.074,1.603,226.361,0.048,14.514,-0.087,0.084,NA,0.502
+"9","Temperature = Const. + Developed, Total + Wetlands, Total + Open Water",0.1,1.581,226.696,0.041,13.191,0.014,0.166,0.077,0.425
+"10","Temperature = Const. + Developed, Total + Deciduous Forest + Agriculture, Total",0.098,1.582,226.795,0.039,14.34,0.008,-0.084,-0.018,0.404
+"11","Temperature = Const. + Developed, Total + Deciduous Forest + Open Water",0.097,1.583,226.877,0.037,14.174,0.01,-0.082,0.056,0.388
+"12","Temperature = Const. + Deciduous Forest + Open Water",0.065,1.611,226.927,0.036,14.744,-0.098,0.035,NA,0.378
+"13","Temperature = Const. + Wetlands, Total",0.03,1.641,227.033,0.034,14.012,0.138,NA,NA,0.359
+"14","Temperature = Const. + Deciduous Forest + Agriculture, Total + Wetlands, Total",0.093,1.587,227.156,0.032,14.502,-0.076,-0.04,0.112,0.337
+"15","Temperature = Const. + Agriculture, Total + Wetlands, Total",0.061,1.615,227.163,0.032,14.078,-0.05,0.165,NA,0.336
+"16","Temperature = Const. + Developed, Total + Open Water",0.058,1.617,227.358,0.029,13.681,0.012,0.096,NA,0.305
+"17","Temperature = Const. + Developed, Total + Agriculture, Total",0.056,1.619,227.47,0.028,13.895,0.01,-0.021,NA,0.288
+"18","Temperature = Const. + Agriculture, Total",0.019,1.65,227.678,0.025,14.469,-0.039,NA,NA,0.26
+"19","Temperature = Const. + Deciduous Forest + Agriculture, Total + Open Water",0.076,1.601,228.196,0.019,14.811,-0.093,-0.03,0.029,0.201
+"20","Temperature = Const. + Deciduous Forest + Wetlands, Total + Open Water",0.074,1.603,228.319,0.018,14.485,-0.085,0.083,0.03,0.189
+"21","Temperature = Const. + Open Water",0.005,1.662,228.529,0.016,14.298,0.079,NA,NA,0.17
+"22","Temperature = Const. + Wetlands, Total + Open Water",0.033,1.638,228.861,0.014,13.971,0.134,0.062,NA,0.144
+"23","Temperature = Const. + Agriculture, Total + Wetlands, Total + Open Water",0.062,1.613,229.069,0.012,14.046,-0.049,0.162,0.045,0.13
+"24","Temperature = Const. + Developed, Total + Agriculture, Total + Open Water",0.062,1.614,229.099,0.012,13.796,0.011,-0.019,0.089,0.128
+"25","Temperature = Const. + Agriculture, Total + Open Water",0.023,1.647,229.464,0.01,14.408,-0.037,0.069,NA,0.106
