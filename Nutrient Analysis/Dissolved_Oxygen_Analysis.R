@@ -61,6 +61,18 @@ DO_slopes[[3]]+
   ggtitle("DO Annual Z-score Distribution") 
 # correlate median z-scores with temperature
 
+# Test for fitting a linear model to the z-score data. Possibly by site? is this possible?
+test_lm <- lm(Z_scores~Year, data = DO_slopes[[2]], subset = Locator=="A315")
+summary.lm(test_lm)
+### Playing with some time series shenanigans #####
+#library(xts)
+#library(fable)
+#test_ts <- as_tsibble(DO_Monthly %>% mutate(Year_mon = yearmonth(Year_mon)), index = Year_mon) %>% fill_gaps(.full = TRUE)
+#test_arima <- test_ts %>% model(ARIMA(A315 ~ Year_mon))
+
+
+
+
 
 # Land Cover Analysis and Modeling ######################################################################
 # 2016 - 2022

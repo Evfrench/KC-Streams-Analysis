@@ -20,8 +20,7 @@ ggplot(TP_Entries, aes(x = Year, y = Entries)) +
 # Long Term Trend Analysis ##################################################################
 #
 # Baseline: 1979 - 2008, 5 yrs required
-# Current: 2013 - 2020, 5 yrs required (Note descrepancy in the code)
-# Results: x sites, 
+# Current: 2013 - 2020, 5 yrs required (Note discrepancy in the code)
 
 # This function will calculate the long term slopes as defined by the function inputs stated above
 TP_slopes <- LT_Slope_Dist(TP_Annual, units = c('μg/L'))

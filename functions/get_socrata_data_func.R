@@ -1,11 +1,8 @@
 ## function to extract water quality data from Socrata
 # contains additional functions to format the water quality data for different purposes
 # Libraries ##################################################################################################
-library(plyr)
-library(dplyr)
-library(mgcv)
-library(data.table)
 library(tidyverse)
+library(data.table)
 library(RSocrata)
 library(lubridate)
 library(miscTools)
@@ -13,17 +10,17 @@ library(forecast)
 library(zoo)
 library(readr)
 library(readxl)
-library(ggplot2)
 library(psych)
 library(GGally)
 library(corrplot)
+library(mgcv)
 library(gratia)
 library(qgam)
 library(MARSS)
 # Initialize some of the common data #########################################################################
 
 # This creates a scatterplot matrix of all the land cover categories in the NLCD
- LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
+# LandCover <- read_excel("data_cache/SourceData/streams_2019lulc.xlsx", sheet = "LULC - %")
 #pairs.panels(LandCover[, c(3:22)], smooth = FALSE, scale = TRUE, lm = TRUE, cex.cor = 3, main = 'Scatterplot Matrix for Landcover Data')
 # This plot tells me that the best parameters to test are as follows: 
 # Developed, All Intensities
@@ -546,6 +543,7 @@ LT_Slope_Dist <- function(input.data= tibble(),
       remove(Loop.frameBase, Loop.frameTest,Y1,Y2,V1,V2,stop)
     }
 
+  # This converts the data to z-scores by site, then compiles the data as a long table
   Out.Zscore <- input.data %>% as_tibble(rownames = NULL) %>%
     subset(Year >= (window[1]+1) & Year <= window[4]) %>%
     column_to_rownames(var = "Year") %>%
@@ -558,6 +556,7 @@ LT_Slope_Dist <- function(input.data= tibble(),
     mutate(Year = as.numeric(Year), .before = 1) %>%
     pivot_longer(!Year, names_to = 'Locator', values_to = 'Z_scores')
   
+  # This creates a long table of the site constituent values
   Out.Value <- input.data %>% as_tibble(rownames = NULL) %>%
     subset(Year >= (window[1]+1) & Year <= window[4]) %>%
     column_to_rownames(var = "Year") %>%
@@ -955,6 +954,14 @@ Z_Score_Box_Data <- function(input_data,sep20,sep80, parm_name, units){
   samples_20 <- Z_Scores_20 %>% drop_na() %>% count(Year) # record the number of samples in year
   samples_80 <- Z_Scores_80 %>% drop_na() %>% count(Year) # record the number of samples in year
   
+  Val_avghigh <- long_table_80 %>% drop_na() %>% group_by(Year) %>%
+    summarise(Conc=mean(Concentration, na.rm = T),
+              std.err= sd(Concentration, na.rm = T)/sqrt(n()))
+  
+  Val_avglow <- long_table_20 %>% drop_na() %>% group_by(Year) %>% 
+    summarise(Conc=mean(Concentration, na.rm = T),
+              std.err= sd(Concentration, na.rm = T)/sqrt(n()))
+  
   gplot1 <- ggplot() +
     geom_boxplot(aes(x= Z_Scores_20$Year, y= Z_Scores_20$Z_score, group= Z_Scores_20$Year, fill= 'Low Development (20% ± 7%)'), outliers = T) +
     geom_boxplot(aes(x= Z_Scores_80$Year, y= Z_Scores_80$Z_score, group= Z_Scores_80$Year, fill= 'High Development (93% ± 2%)'), outliers = T) +
@@ -963,9 +970,9 @@ Z_Score_Box_Data <- function(input_data,sep20,sep80, parm_name, units){
     geom_hline(yintercept = 0, linetype = 'twodash', color = 'grey', linewidth = 1) +
     ggtitle(paste(parm_name, 'Annual Z-score Distribution', sep = ' ')) +
     scale_y_continuous(limits = c(-4,4)) +
-    annotate('text', x = samples_80$Year, y = rep(-3.8, each = length(samples_80$n)), label = samples_80$n, size = rel(3.0), color='red') +
+    annotate('text', x = samples_80$Year, y = rep(-3.8, each = length(samples_80$n)), label = samples_80$n, size = rel(3.0), colour='red') +
     annotate('text', x = min(samples_80$Year)-1, y = -3.8, label = 'n =', size = rel(3.0))+
-    annotate('text', x = samples_20$Year, y = rep(-4, each = length(samples_20$n)), label = samples_20$n, size = rel(3.0), color='blue') +
+    annotate('text', x = samples_20$Year, y = rep(-4, each = length(samples_20$n)), label = samples_20$n, size = rel(3.0), colour='blue') +
     annotate('text', x = min(samples_20$Year)-1, y = -4, label = 'n =', size = rel(3.0))+
     labs(fill = "Key") +
     theme(legend.position = "bottom",
@@ -975,8 +982,8 @@ Z_Score_Box_Data <- function(input_data,sep20,sep80, parm_name, units){
           title = element_text(size = 20))
   
   gplot2 <- ggplot() +
-    geom_boxplot(aes(x= long_table_20$Year, y= long_table_20$Concentration, group= long_table_20$Year, fill = 'Low Development (20% ± 7%)'), outliers = F) +
-    geom_boxplot(aes(x= long_table_80$Year, y= long_table_80$Concentration, group= long_table_80$Year, fill = 'Intense Development (93% ± 2%)'), outliers = F) +
+    geom_ribbon(aes(x= Val_avglow$Year, ymin = (Val_avglow$Conc - Val_avglow$std.err), ymax = (Val_avglow$Conc + Val_avglow$std.err), fill = 'Low Development (20% ± 7%)'), alpha = 0.2) +
+    geom_ribbon(aes(x= Val_avghigh$Year, ymin = (Val_avghigh$Conc - Val_avghigh$std.err), ymax = (Val_avghigh$Conc + Val_avghigh$std.err), fill = 'Intense Development (93% ± 2%)'), alpha = 0.2) +
     ylab(units) +
     xlab('Year') +
     labs(fill = "Key") +
@@ -987,8 +994,9 @@ Z_Score_Box_Data <- function(input_data,sep20,sep80, parm_name, units){
           axis.title.y = element_text(size = 15),
           axis.text = element_text(size = 15),
           title = element_text(size = 20),
-          legend.text = element_text(size = 13))
-
+          legend.text = element_text(size = 13)) +
+    geom_line(aes(x= Val_avghigh$Year, y= Val_avghigh$Conc), color = 'red', linewidth = 1) +
+    geom_line(aes(x= Val_avglow$Year, y= Val_avglow$Conc), color = 'blue', linewidth = 1)
   
   out_list <- list(Z_Scores_80, Z_Scores_20, 
                    long_table_80, long_table_20, 
@@ -1000,3 +1008,23 @@ Z_Score_Box_Data <- function(input_data,sep20,sep80, parm_name, units){
                        'Z Score Plot', 'Values Plot')
   return(out_list) 
 }
+
+
+USGS_Flow_Query <- function(gages) {  # Queries NWIS database owned by USGS, this will be decommisioned soon
+  
+  usgs.flow = data.frame()
+  
+  for(gage in gages){
+    usgs.flow1<-readNWISdv(gage,'00060',statCd = c('00003'))
+    if(nrow(usgs.flow1)>0) usgs.flow1<-usgs.flow1[,c(2,3,4)] else next
+    if(!exists('usgs.flow')){usgs.flow<-usgs.flow1 
+    next
+    }
+    usgs.flow<-rbind(usgs.flow,usgs.flow1)
+  }
+  
+  colnames(usgs.flow)<-c('SITE_CODE','Date','AveQ')
+  return(usgs.flow)
+}
+
+"%!in%" <- function(x, y) x[!x %in% y] #--  x without y

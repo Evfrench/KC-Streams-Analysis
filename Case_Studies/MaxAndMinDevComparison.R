@@ -45,12 +45,21 @@ Cond<- fread ('~/KC-Streams-Analysis/data_cache/NutrientData/median_annual_Combi
 
 Cond_z <- Z_Score_Box_Data(Cond,Sites20,Sites80,'Conductivity','uS/cm')
 
-# plot results
+Cond_avghigh <- Cond_z[[3]] %>% drop_na() %>% group_by(Year) %>%
+  summarise(Conc=mean(Concentration, na.rm = T),
+            std.err= sd(Concentration, na.rm = T)/n())
+
+Cond_avglow <- Cond_z[[4]] %>% group_by(Year) %>% 
+  summarise(Conc=mean(Concentration, na.rm = T),
+            sdev.up=Conc + sd(Concentration, na.rm = T),
+            sdev.down= Conc - sd(Concentration, na.rm = T))
+
+#plot results
 Cond_z[[8]] +
   annotate('text', x = Cond_z[[5]]$Year, y = rep(-6, each = length(Cond_z[[5]]$n)), label = Cond_z[[5]]$n, size = rel(3.5), color = 'red') +
   annotate('text', x = min(Cond_z[[5]]$Year)-1, y = -6, label = 'n =', size = rel(3.5)) +
   annotate('text', x = min(Cond_z[[6]]$Year)-1, y = -16, label = 'n =', size = rel(3.5)) +
-  annotate('text', x = Cond_z[[6]]$Year, y = rep(-16, each = length(Cond_z[[6]]$n)), label = Cond_z[[6]]$n, size = rel(3.5), color = 'blue')
+  annotate('text', x = Cond_z[[6]]$Year, y = rep(-16, each = length(Cond_z[[6]]$n)), label = Cond_z[[6]]$n, size = rel(3.5), color = 'blue') 
 
 # Dissolved Oxygen
 

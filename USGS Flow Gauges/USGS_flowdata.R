@@ -7,7 +7,7 @@ library(zoo)
 
 # for dataRetrieval help, visit https://waterdata.usgs.gov/blog/dataretrieval/?
 
-# Getting data for rivers draining the Puget Sound
+# Getting data for rivers draining the Puget Sound, discharge is in cfs
 gages<-c(12113000,12112600)
 usgs.flow = data.frame()
 
